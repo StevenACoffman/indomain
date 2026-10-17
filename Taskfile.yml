@@ -39,7 +39,7 @@ tasks:
     cmds:
       # -coverpkg=./... credits each package for code exercised by ANY package's
       # tests, so the reported numbers reflect real coverage. Without it, helpers
-      # in internal/schema and internal/model that are driven only by lint/cmd
+      # in pkg/schema and pkg/model that are driven only by lint/cmd
       # tests show a misleadingly low per-package figure.
       - go test -race -coverpkg=./... -coverprofile=coverage.out ./...
 

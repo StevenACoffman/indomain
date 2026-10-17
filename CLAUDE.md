@@ -33,16 +33,16 @@ modelith/
 
 ### Why this layout
 
-- **`internal/schema/` is the source of truth for the format.** The Go code
+- **`pkg/schema/` is the source of truth for the format.** The Go code
   embeds each version's JSON Schema via `go:embed`; the canonical copy is
   destined for a stable URL (`https://modelith.sh/schema/domain-model/v1.json`)
   that editors will fetch via the `# yaml-language-server: $schema=` header once
   it's served (a roadmap item — not live yet; the CLI/CI embed the schema, so
-  they don't depend on it). Living under `internal/` keeps the *Go API* private
-  (`internal/` is a Go-compiler rule) without affecting URL reachability.
+  they don't depend on it). Living under `pkg/` keeps the *Go API* private
+  (`pkg/` is a Go-compiler rule) without affecting URL reachability.
   Versions are directories (`v1/`,
   `v2/`, …) so the repo layout mirrors the URL layout and adding one is additive.
-- **`internal/` not `pkg/`** — this is a tool, not a library. The CLI and the
+- **`pkg/` not `pkg/`** — this is a tool, not a library. The CLI and the
   published schema are the contract; the Go API is private. Promote to a public
   API later only if there's demand.
 - **`docs/` is self-contained Docusaurus content** built and served by the
@@ -70,17 +70,17 @@ Claude Code plugin with `--plugin-dir` live in
   committed `examples/example.modelith.md` must stay in sync. After any change to
   the renderer *or* the example, run `task render` (or `modelith render
   examples/example.modelith.yaml`) to regenerate the `.md`. `task render-check` /
-  CI fails on drift; `internal/render/markdown` has a golden test against it. The
+  CI fails on drift; `pkg/render/markdown` has a golden test against it. The
   example must also lint clean under `task lint-models` (strict: completeness
   gaps are errors).
-- **Schema ↔ structs stay in sync.** `internal/schema/v1/modelith.schema.json`
-  and `internal/model/model.go` are guarded by `TestSchemaStructSync` (every
+- **Schema ↔ structs stay in sync.** `pkg/schema/v1/modelith.schema.json`
+  and `pkg/model/model.go` are guarded by `TestSchemaStructSync` (every
   schema property has a matching struct json field and vice versa). Every object
   is `additionalProperties: false`.
 - **The canonical schema URL appears in three places** — the schema's `$id`, the
-  Go `URLFor`/`URL` in `internal/schema/schema.go`, and the example header — and
+  Go `URLFor`/`URL` in `pkg/schema/schema.go`, and the example header — and
   `TestURLConsistency` fails if they drift. Don't hardcode the URL elsewhere.
-- **The binary, not the schema, owns supported versions.** `internal/schema`
+- **The binary, not the schema, owns supported versions.** `pkg/schema`
   holds a `registry` (version → embedded bytes); `lint` reads the declared
   `version` and gives a friendly error before schema validation. Adding a format
   version = new `vN/` schema + a registry entry; never mutate a shipped version.

@@ -96,4 +96,4 @@ holds the one definition of which declarations could be the same line, and both
 the renderer and the linter read it, so the fold rule and the diagnostic cannot
 drift apart.
 
-Pinned by `TestADR_0008_*` in `internal/render/mermaid` and in `internal/lint`.
+Pinned by `TestADR_0008_*` in `../../pkg/render/mermaid` and in `../../pkg/lint`.

@@ -19,12 +19,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/stacklok/modelith/internal/deps"
-	"github.com/stacklok/modelith/internal/lint"
-	"github.com/stacklok/modelith/internal/model"
-	"github.com/stacklok/modelith/internal/provenance"
-	"github.com/stacklok/modelith/internal/render/markdown"
-	"github.com/stacklok/modelith/internal/schema"
+	"github.com/StevenACoffman/indomain/internal/deps"
+	"github.com/StevenACoffman/indomain/internal/lint"
+	"github.com/StevenACoffman/indomain/internal/model"
+	"github.com/StevenACoffman/indomain/internal/provenance"
+	"github.com/StevenACoffman/indomain/internal/render/markdown"
+	"github.com/StevenACoffman/indomain/internal/schema"
 )
 
 // version is set at build time via -ldflags "-X main.version=..." by
@@ -755,7 +755,7 @@ func isDir(p string) bool {
 
 // defaultOut is where render writes when no -o is given: a model's .md beside
 // its .yaml source. It is the rendered location an import link assumes for the
-// model it names (see importLinkTarget in internal/render/markdown) — a link
+// model it names (see importLinkTarget in pkg/render/markdown) — a link
 // resolves only when the imported model was, in fact, rendered here.
 func defaultOut(in string) string { return model.RenderedPath(in) }
 

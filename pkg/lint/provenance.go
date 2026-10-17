@@ -3,7 +3,7 @@ package lint
 import (
 	"fmt"
 
-	"github.com/stacklok/modelith/internal/provenance"
+	"github.com/StevenACoffman/indomain/internal/provenance"
 )
 
 // runProvenance reports defects in the file's provenance header and verifies

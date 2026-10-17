@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stacklok/modelith/internal/deps"
-	"github.com/stacklok/modelith/internal/lint"
-	"github.com/stacklok/modelith/internal/provenance"
+	"github.com/StevenACoffman/indomain/internal/deps"
+	"github.com/StevenACoffman/indomain/internal/lint"
+	"github.com/StevenACoffman/indomain/internal/provenance"
 )
 
 // run executes the CLI with args, capturing stdout+stderr, and returns the
@@ -593,7 +593,7 @@ func TestDepsImportRejectsBadArguments(t *testing.T) {
 		{
 			name: "a host modelith cannot fetch from",
 			args: []string{"deps", "import", "https://gitlab.com/acme/billing/-/blob/main/m.modelith.yaml", dir},
-			want: "github.com/stacklok/modelith/issues",
+			want: "github.com/StevenACoffman/indomain/issues",
 		},
 		{
 			name: "a URL that names no file",
@@ -623,8 +623,8 @@ func TestDepsImportRejectsBadArguments(t *testing.T) {
 
 // report builds a Report for a copy that was reached and found current at the
 // given ref. Calling provenance.Digest here is fixture plumbing, not the
-// assertion: what the digest covers is pinned in internal/provenance, and what
-// it decides is pinned in internal/deps. These tests are about the printing.
+// assertion: what the digest covers is pinned in pkg/provenance, and what
+// it decides is pinned in pkg/deps. These tests are about the printing.
 func report(path, ref, commit string) deps.Report {
 	const content = "kind: DomainModel\n"
 	return deps.Report{
@@ -873,7 +873,7 @@ func TestDepsImportTimeoutFlagParses(t *testing.T) {
 			if strings.Contains(err.Error(), "unknown flag") {
 				t.Fatalf("--timeout %s was rejected: %v", tc.val, err)
 			}
-			if !strings.Contains(err.Error(), "github.com/stacklok/modelith/issues") {
+			if !strings.Contains(err.Error(), "github.com/StevenACoffman/indomain/issues") {
 				t.Fatalf("want the unsupported-host error, got: %v", err)
 			}
 			if got, _ := cmd.Flags().GetDuration("timeout"); got != want {

@@ -15,8 +15,8 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
 
-	"github.com/stacklok/modelith/internal/model"
-	"github.com/stacklok/modelith/internal/render/mermaid"
+	"github.com/StevenACoffman/indomain/internal/model"
+	"github.com/StevenACoffman/indomain/internal/render/mermaid"
 )
 
 // MDX comment syntax ({/* */}) rather than an HTML comment (<!-- -->): the docs

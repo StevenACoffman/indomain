@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stacklok/modelith/internal/provenance"
+	"github.com/StevenACoffman/indomain/internal/provenance"
 )
 
 // laterSHA is the commit an origin has moved to. It differs from sha in every

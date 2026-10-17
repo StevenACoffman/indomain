@@ -19,8 +19,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stacklok/modelith/internal/model"
-	"github.com/stacklok/modelith/internal/provenance"
+	"github.com/StevenACoffman/indomain/internal/model"
+	"github.com/StevenACoffman/indomain/internal/provenance"
 )
 
 // Host identifies the source-code platform a Source was parsed from.
@@ -294,7 +294,7 @@ func parseADOSource(u *url.URL, ref string) (Source, error) {
 	return src, nil
 }
 
-const issuesURL = "https://github.com/stacklok/modelith/issues"
+const issuesURL = "https://github.com/StevenACoffman/indomain/issues"
 
 // Options are the inputs to Import.
 type Options struct {

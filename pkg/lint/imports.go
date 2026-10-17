@@ -8,8 +8,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/stacklok/modelith/internal/model"
-	"github.com/stacklok/modelith/internal/schema"
+	"github.com/StevenACoffman/indomain/internal/model"
+	"github.com/StevenACoffman/indomain/internal/schema"
 )
 
 // Files is the filesystem seam import resolution runs on: reading an imported

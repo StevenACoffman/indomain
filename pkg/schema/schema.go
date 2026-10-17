@@ -4,8 +4,8 @@
 // canonical URL (see URLFor) for use in a
 // "# yaml-language-server: $schema=" header.
 //
-// This package is internal on purpose: modelith's contract is the CLI and the
-// JSON Schema, not a Go API. The schema living under internal/ is only a
+// This package is pkg on purpose: modelith's contract is the CLI and the
+// JSON Schema, not a Go API. The schema living under pkg/ is only a
 // Go-compiler visibility rule. The CLI embeds the schema bytes, so it validates
 // models without fetching their canonical URLs.
 package schema

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stacklok/modelith/internal/model"
-	"github.com/stacklok/modelith/internal/provenance"
+	"github.com/StevenACoffman/indomain/internal/model"
+	"github.com/StevenACoffman/indomain/internal/provenance"
 )
 
 // ErrToolUnavailable marks a failure of the delegated CLI itself rather than of

@@ -23,8 +23,8 @@ import (
 	"golang.org/x/text/message"
 	"sigs.k8s.io/yaml"
 
-	"github.com/stacklok/modelith/internal/model"
-	"github.com/stacklok/modelith/internal/schema"
+	"github.com/StevenACoffman/indomain/internal/model"
+	"github.com/StevenACoffman/indomain/internal/schema"
 )
 
 // Severity classifies how serious a finding is.
@@ -201,7 +201,7 @@ func runStructural(data []byte, res *Result) bool {
 		res.Findings = append(res.Findings, Finding{
 			Severity: SeverityError,
 			Category: CategoryStructural,
-			Message:  fmt.Sprintf("internal: %v", err),
+			Message:  fmt.Sprintf("pkg: %v", err),
 		})
 		return false
 	}

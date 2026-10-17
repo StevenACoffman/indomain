@@ -240,7 +240,7 @@ func TestADR_0015_UnknownFetchMethodIsAnError(t *testing.T) {
 	}
 }
 
-const issuesHint = "https://github.com/stacklok/modelith/issues"
+const issuesHint = "https://github.com/StevenACoffman/indomain/issues"
 
 func TestDigest_ChangesWithTheContent(t *testing.T) {
 	t.Parallel()

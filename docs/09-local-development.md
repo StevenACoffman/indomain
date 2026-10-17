@@ -120,13 +120,13 @@ the load-bearing ones:
 - **The example is a golden fixture.** After any change to the renderer *or*
   `examples/example.modelith.yaml`, run `task render` to regenerate the committed
   `.md`. `task render-check` / CI fails on drift, and there's a golden test in
-  `internal/render/markdown`. The example must also lint clean under
+  `../pkg/render/markdown`. The example must also lint clean under
   `task lint-models` (strict).
-- **Schema ↔ structs stay in sync.** `internal/schema/v1/modelith.schema.json`
-  and `internal/model/model.go` are guarded by `TestSchemaStructSync`. Every
+- **Schema ↔ structs stay in sync.** `../pkg/schema/v1/modelith.schema.json`
+  and `../pkg/model/model.go` are guarded by `TestSchemaStructSync`. Every
   object is `additionalProperties: false`.
 - **The canonical schema URL appears in three places** (schema `$id`, the Go
   `URLFor`/`URL`, the example header); `TestURLConsistency` fails on drift.
 - **The binary, not the schema, owns supported versions.** Adding a format
-  version = a new `vN/` schema + a registry entry in `internal/schema`; never
+  version = a new `vN/` schema + a registry entry in `../pkg/schema`; never
   mutate a shipped version.

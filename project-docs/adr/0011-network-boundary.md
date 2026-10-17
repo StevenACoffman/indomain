@@ -25,8 +25,8 @@ in CI on every pull request — are fast, deterministic, and work on a plane.
 
 ## Decision
 
-**`lint` and `render` never touch the network.** Neither do `internal/lint`,
-`internal/render/...`, `internal/schema`, or `internal/model`. This holds no
+**`lint` and `render` never touch the network.** Neither do `../../pkg/lint`,
+`../../pkg/render/...`, `../../pkg/schema`, or `../../pkg/model`. This holds no
 matter what flags are passed; there is no escape hatch that makes lint fetch
 something. A feature that would require it is redesigned or refused, exactly
 as the old rule said.

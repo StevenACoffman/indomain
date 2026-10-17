@@ -1,4 +1,9 @@
-# Modelith
+# InDomain (Temporary Fork of Modelith)
+
+Note: This is just a fork of the upstream [Modelith](https://github.com/stacklok/modelith) with `internal` -> `pkg` because
+I wanted to be able to read [Modelith](https://github.com/stacklok/modelith) output files. 
+
+## Modelith stuff below here
 
 Tooling for authoring, validating, and rendering **domain models** — the
 canonical, plain-language expression of what a system *is*: its concepts, how

@@ -18,8 +18,8 @@ upstream version maintains a `CONTEXT.md` glossary.
 There is no self-model, and no `CONTEXT.md` either. The format's vocabulary
 lives where it already lives:
 
-- `internal/schema/v1/modelith.schema.json` — the normative definition.
-- `internal/model/model.go` — the Go structs, held property-for-property
+- `../../pkg/schema/v1/modelith.schema.json` — the normative definition.
+- `../../pkg/model/model.go` — the Go structs, held property-for-property
   against the schema by `TestSchemaStructSync`.
 - `docs/06-schema-reference.md` — the prose definition users read.
 - `examples/example.modelith.yaml` and `docs/05-parking-garage/` — the worked

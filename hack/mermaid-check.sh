@@ -10,7 +10,7 @@
 #     plus docs/04-reading-the-diagrams.md, whose diagrams are hand-authored.
 #     Hand-authored blocks matter most here: nothing regenerates them, so a
 #     broken one ships silently, and that page is what teaches the notation.
-#   - raw, unfenced .mmd files: internal/render/mermaid/testdata/*.mmd (the
+#   - raw, unfenced .mmd files: pkg/render/mermaid/testdata/*.mmd (the
 #     Go golden-test fixtures for the renderer, pinned as bare Mermaid source
 #     with no surrounding fence). These are already exactly what mmdc expects,
 #     so they're fed to it as-is — wrapping them in a throwaway fence just to

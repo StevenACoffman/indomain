@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/stacklok/modelith/internal/model"
+	"github.com/StevenACoffman/indomain/internal/model"
 )
 
 // erMarkers renders a cardinality as Mermaid erDiagram crow's-foot notation,

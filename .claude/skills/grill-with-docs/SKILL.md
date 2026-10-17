@@ -19,8 +19,8 @@ when the decision is one a test can pin).
 **Format or vocabulary changes → flag them, do not write them.** A new schema
 key, a renamed concept, a changed definition: note it for the implementing
 change and move on. Format vocabulary lives in three places that are checked
-against each other — `internal/schema/v1/modelith.schema.json`,
-`internal/model/model.go` (guarded by `TestSchemaStructSync`), and
+against each other — `../../../pkg/schema/v1/modelith.schema.json`,
+`../../../pkg/model/model.go` (guarded by `TestSchemaStructSync`), and
 `docs/06-schema-reference.md` — plus the golden `examples/`. Editing one of
 them mid-grilling leaves the repo failing `task check` with the design still
 half-argued.

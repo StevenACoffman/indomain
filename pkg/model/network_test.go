@@ -23,12 +23,12 @@ func TestADR_0011_OfflinePackages(t *testing.T) {
 	t.Parallel()
 
 	offlinePackages := []string{
-		"github.com/stacklok/modelith/internal/lint",
-		"github.com/stacklok/modelith/internal/render/markdown",
-		"github.com/stacklok/modelith/internal/render/mermaid",
-		"github.com/stacklok/modelith/internal/schema",
-		"github.com/stacklok/modelith/internal/model",
-		"github.com/stacklok/modelith/internal/provenance",
+		"github.com/StevenACoffman/indomain/pkg/lint",
+		"github.com/StevenACoffman/indomain/pkg/render/markdown",
+		"github.com/StevenACoffman/indomain/pkg/render/mermaid",
+		"github.com/StevenACoffman/indomain/pkg/schema",
+		"github.com/StevenACoffman/indomain/pkg/model",
+		"github.com/StevenACoffman/indomain/pkg/provenance",
 	}
 
 	// net/url and net/netip are parsers that perform no I/O; the JSON Schema

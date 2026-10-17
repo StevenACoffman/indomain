@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stacklok/modelith/internal/model"
+	"github.com/StevenACoffman/indomain/internal/model"
 )
 
 // firstDiff reports the first line where want and got differ, so a golden
 // failure points at the change instead of just saying "they differ." Mirrors
-// internal/render/markdown's helper of the same name.
+// pkg/render/markdown's helper of the same name.
 func firstDiff(want, got string) string {
 	wl := strings.Split(want, "\n")
 	gl := strings.Split(got, "\n")

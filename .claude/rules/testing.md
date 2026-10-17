@@ -31,14 +31,14 @@ the rule can't be pinned by a test yet, say so in the ADR.
 modelith's correctness rests on a few cross-file invariants that fail quietly
 if unguarded. Each already has, or must get, a named test:
 
-- **Schema ↔ structs stay in sync.** `internal/schema/v1/modelith.schema.json`
-  and `internal/model/model.go` agree property-for-property, every object
+- **Schema ↔ structs stay in sync.** `../../pkg/schema/v1/modelith.schema.json`
+  and `../../pkg/model/model.go` agree property-for-property, every object
   `additionalProperties: false`. Guarded by `TestSchemaStructSync`.
 - **The canonical schema URL is consistent** across the schema `$id`, the Go
   `URLFor`/`URL`, and the example header. Guarded by `TestURLConsistency`.
 - **The example is a golden fixture.** `examples/example.modelith.yaml`
   renders to exactly `examples/example.modelith.md`, and lints clean under
-  strict completeness. Guarded by the `internal/render/markdown` golden test
+  strict completeness. Guarded by the `../../pkg/render/markdown` golden test
   and by `task lint-models` / `render-check` in CI.
 
 Touching any of these surfaces means running `task check` locally before

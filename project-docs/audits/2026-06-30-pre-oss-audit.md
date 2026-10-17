@@ -66,9 +66,9 @@ License/legal and CLI/DX came back **clean**.
 
 - **[devops]** `.github/workflows/release.yml:8` · easy · `contents: write` at workflow level — move to job level for tighter scoping
 
-- **[schema]** `internal/schema/v1/modelith.schema.json:193` · easy · `attribute` `else` branch error message is cryptic ('value is not valid' against schema `false`) — add `$comment` to surface 'derivation is only allowed when derived is true'
+- **[schema]** `../../pkg/schema/v1/modelith.schema.json:193` · easy · `attribute` `else` branch error message is cryptic ('value is not valid' against schema `false`) — add `$comment` to surface 'derivation is only allowed when derived is true'
 
-- **[schema]** `internal/schema/v1/modelith.schema.json:121` · easy · `entity.attributes` array missing description unlike all other entity sub-arrays (relationships, actions, invariants all have one)
+- **[schema]** `../../pkg/schema/v1/modelith.schema.json:121` · easy · `entity.attributes` array missing description unlike all other entity sub-arrays (relationships, actions, invariants all have one)
 
 - **[security]** `.goreleaser.yaml:6` · Q · Pre-hook `go mod tidy` at release time can silently alter go.sum against what CI tested. Remove or move the tidy check to CI.
 
@@ -88,17 +88,17 @@ License/legal and CLI/DX came back **clean**.
 
 - **[devops]** `action.yml:27` · — · No explicit "caller must run actions/checkout first" in description or inputs. Low priority.
 
-- **[schema]** `internal/schema/v1/modelith.schema.json:148` · easy · `cardinality` and `ownership` enum fields lack `type: string` — reduces editor autocomplete quality
+- **[schema]** `../../pkg/schema/v1/modelith.schema.json:148` · easy · `cardinality` and `ownership` enum fields lack `type: string` — reduces editor autocomplete quality
 
-- **[schema]** `internal/schema/v1/modelith.schema.json:156` · easy · `ownership` field should declare `default: "referenced"` to match description and docs
+- **[schema]** `../../pkg/schema/v1/modelith.schema.json:156` · easy · `ownership` field should declare `default: "referenced"` to match description and docs
 
-- **[schema]** `internal/schema/v1/modelith.schema.json:66` · easy · No `title` on any `$defs` entry — editor hover shows raw `$ref` path fragments instead of concept names
+- **[schema]** `../../pkg/schema/v1/modelith.schema.json:66` · easy · No `title` on any `$defs` entry — editor hover shows raw `$ref` path fragments instead of concept names
 
-- **[schema]** `internal/schema/v1/modelith.schema.json:204` · easy · `action` $def has no title/description; `actionObject` has no description — oneOf union is under-documented for editors
+- **[schema]** `../../pkg/schema/v1/modelith.schema.json:204` · easy · `action` $def has no title/description; `actionObject` has no description — oneOf union is under-documented for editors
 
-- **[schema]** `internal/schema/v1/modelith.schema.json:258` · easy · `scenario` has no `description` property (unlike `actionObject`). Mark Q — intentional omission or gap?
+- **[schema]** `../../pkg/schema/v1/modelith.schema.json:258` · easy · `scenario` has no `description` property (unlike `actionObject`). Mark Q — intentional omission or gap?
 
-- **[schema]** `internal/schema/v1/modelith.schema.json:1` · easy · No root-level `examples` array — editors use this for snippet generation
+- **[schema]** `../../pkg/schema/v1/modelith.schema.json:1` · easy · No root-level `examples` array — editors use this for snippet generation
 
 - **[schema]** `docs/06-schema-reference.md:32` · easy · `entities` table says required=no but doesn't note the `minProperties: 1` constraint. `entities: {}` will fail schema validation with a confusing message.
 
@@ -108,7 +108,7 @@ License/legal and CLI/DX came back **clean**.
 
 - **[docs]** `README.md:93` · easy · Roadmap notes "Scenario sequenceDiagram rendering (Markdown-only today)" but docs never mention this limitation in-context. Add one sentence to 03-understanding-your-model or 06-schema-reference.
 
-- **[go]** `internal/lint/lint.go:171` · easy · Schema recompiled on every `lint.Run` call — use `sync.Once` in schema package to cache the compiled schema
+- **[go]** `../../pkg/lint/lint.go:171` · easy · Schema recompiled on every `lint.Run` call — use `sync.Once` in schema package to cache the compiled schema
 
 - **[go]** `cmd/modelith/main.go:128` · easy · `os.ReadFile` error returned bare (inconsistent with adjacent `lint.Run` error which wraps with path). Same in renderCmd:206.
 
@@ -116,9 +116,9 @@ License/legal and CLI/DX came back **clean**.
 
 - **[go]** `cmd/modelith/main_test.go:1` · easy · No test for `render --check` when committed .md file doesn't yet exist
 
-- **[go]** `internal/schema/schema.go:52` · — · `var URL` is set-once but declared as var — document as immutable; not actionable until package is public API
+- **[go]** `../../pkg/schema/schema.go:52` · — · `var URL` is set-once but declared as var — document as immutable; not actionable until package is public API
 
-- **[go]** `internal/lint/lint.go:73` · — · Package-level compiled regexp and printer vars — acceptable for internal CLI, note for completeness
+- **[go]** `../../pkg/lint/lint.go:73` · — · Package-level compiled regexp and printer vars — acceptable for internal CLI, note for completeness
 
 - **[plugin]** `plugin/skills/domain-model-author/SKILL.md:105` · easy · Skill instructs agent to write the `$schema` header but never gives the literal URL — agent may omit or fabricate it. State the exact URL or say "copy the `$id` from `modelith schema` output."
 
@@ -136,7 +136,7 @@ License/legal and CLI/DX came back **clean**.
 | Q4 | `.github/workflows/release.yml:8` | Move `contents: write` to job level? (Easy if yes.) |
 | Q5 | `.github/workflows/ci.yml:18` | Pin Go toolchain version in CI/release? |
 | Q6 | `plugin/skills/domain-model-author/SKILL.md:36` | Confirm modelith.sh docs are live before launch, or soften the link? |
-| Q7 | `internal/schema/v1/modelith.schema.json:258` | Add `description` field to `scenario`? Intentional omission or gap? |
+| Q7 | `../../pkg/schema/v1/modelith.schema.json:258` | Add `description` field to `scenario`? Intentional omission or gap? |
 
 ---
 
@@ -144,13 +144,13 @@ License/legal and CLI/DX came back **clean**.
 
 1. **DDD omissions undocumented** — `docs/06-schema-reference.md:79` · Add "What this format deliberately leaves out" section covering aggregates, value objects, domain events, bounded contexts with a per-item out-of-scope/roadmap call.
 
-2. **Glossary/entity namespace collision unguarded** — `internal/schema/v1/modelith.schema.json:28` · A glossary key that promotes to an entity is silently ambiguous. Add a lint error (cheap, next to the existing duplicate-invariant-id check).
+2. **Glossary/entity namespace collision unguarded** — `../../pkg/schema/v1/modelith.schema.json:28` · A glossary key that promotes to an entity is silently ambiguous. Add a lint error (cheap, next to the existing duplicate-invariant-id check).
 
-3. **Completeness check pressures junk invariants** — `internal/lint/lint.go:496` · The "entity has no invariants" warning + strict CI + author skill teaches newcomers to invent cardinality-restating filler. Soften the message; document that genuinely rule-free entities are fine.
+3. **Completeness check pressures junk invariants** — `../../pkg/lint/lint.go:496` · The "entity has no invariants" warning + strict CI + author skill teaches newcomers to invent cardinality-restating filler. Soften the message; document that genuinely rule-free entities are fine.
 
 4. **Ticket as value object in flagship example** — `docs/05-parking-garage/garage.modelith.yaml:222` · Ticket is a textbook value object modeled as an owned 1:1 entity. The worked example should name the tension explicitly, turning a hidden limitation into a teaching moment.
 
-5. **Cardinality optionality foot-gun** — `internal/schema/v1/modelith.schema.json:148` · 1:n carries no optionality; minimums live as invariants. The Mermaid renderer outputs `||--o{` (zero-or-many) even when an invariant says "at least one." Document in schema-reference and check 04-reading-the-diagrams.
+5. **Cardinality optionality foot-gun** — `../../pkg/schema/v1/modelith.schema.json:148` · 1:n carries no optionality; minimums live as invariants. The Mermaid renderer outputs `||--o{` (zero-or-many) even when an invariant says "at least one." Document in schema-reference and check 04-reading-the-diagrams.
 
 6. **Example violates its own relationship guidance** — `docs/06-schema-reference.md:113` · The reference says prefer single-side declaration, but example.modelith.yaml declares Project↔User n:n from both ends redundantly. Fix example or make this the explicit "both ends add clarity" case with explanation.
 

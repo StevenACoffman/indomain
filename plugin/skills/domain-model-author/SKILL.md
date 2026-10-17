@@ -28,7 +28,7 @@ hand-writes. Your job is to run that conversation and produce well-formed YAML.
 2. **Read the schema.** Run `modelith schema` — that is the source of truth and works
    wherever `modelith` is installed. (Only when you are working *inside the
    modelith repo itself* may you instead read
-   `internal/schema/v1/modelith.schema.json` directly; that path does not exist
+   `../../../pkg/schema/v1/modelith.schema.json` directly; that path does not exist
    in a consuming repo.) Every file you produce must validate against it.
 3. **Read the existing model.** Find the relevant `*.modelith.yaml` in the repo
    and read it in full, plus its rendered `.md` if present. New entries must be

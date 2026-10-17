@@ -205,7 +205,7 @@ func (h *Header) validate(seen map[string]int) []Problem {
 		// there as unknown too would report one mistake twice.
 	case !known:
 		problems = append(problems, Problem{seen["fetch"], fmt.Sprintf(
-			"unknown fetch method %q — this modelith supports %s. If you need another, please open an issue at https://github.com/stacklok/modelith/issues",
+			"unknown fetch method %q — this modelith supports %s. If you need another, please open an issue at https://github.com/StevenACoffman/indomain/issues",
 			h.Fetch, quotedList(Methods()))})
 	default:
 		required = append(required, method...)

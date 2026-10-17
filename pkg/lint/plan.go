@@ -5,8 +5,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/stacklok/modelith/internal/model"
-	"github.com/stacklok/modelith/internal/schema"
+	"github.com/StevenACoffman/indomain/internal/model"
+	"github.com/StevenACoffman/indomain/internal/schema"
 )
 
 // Input is one explicitly requested model and the bytes read for it.

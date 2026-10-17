@@ -22,8 +22,8 @@ file wins.
   writes files and prints diagnostics. If a feature seems to need a daemon or a
   browser, that's a sign to redesign it, not to add the dependency.
 - **`lint` and `render` never perform network I/O**, whatever flags are passed,
-  and neither do `internal/lint`, `internal/render/...`, `internal/schema`, or
-  `internal/model`. `TestADR_0011_OfflinePackages` enforces this by walking
+  and neither do `../../pkg/lint`, `../../pkg/render/...`, `../../pkg/schema`, or
+  `../../pkg/model`. `TestADR_0011_OfflinePackages` enforces this by walking
   their transitive imports for `net`, `net/http`, and `os/exec` — `os/exec` is
   banned there so the rule can't be evaded by shelling out to `curl`. A
   proposal to relax this for convenience is refused; see
@@ -38,9 +38,9 @@ file wins.
 - Keep the dependency set small; every addition is a supply-chain and
   binary-size cost. Prefer the standard library.
 - The CLI is built on `cobra`. Keep command wiring in `cmd/modelith/`; keep
-  the logic it calls in `internal/`.
+  the logic it calls in `../../pkg/`.
 - Schema and example bytes are embedded with `go:embed` (see
-  `internal/schema/`). Never read them from a path at runtime; embedding is
+  `../../pkg/schema/`). Never read them from a path at runtime; embedding is
   what lets the single binary validate without fetching the canonical URL.
 
 ## Linting
@@ -138,7 +138,7 @@ one clever pattern.
 ## Wiring
 
 - Keep `main()` and the cobra command functions thin: parse arguments, wire
-  dependencies, delegate to `internal/` code.
+  dependencies, delegate to `../../pkg/` code.
 - No `init()`-based registration of behavior, no package-level mutable
   singletons, no global state. A dependency a function needs comes in as a
   parameter or a constructor argument.

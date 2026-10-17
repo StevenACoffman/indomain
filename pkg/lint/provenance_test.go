@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stacklok/modelith/internal/provenance"
+	"github.com/StevenACoffman/indomain/internal/provenance"
 )
 
 // stamp returns src as a vendored copy: a well-formed provenance header whose

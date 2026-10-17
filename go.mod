@@ -1,4 +1,4 @@
-module github.com/stacklok/modelith
+module github.com/StevenACoffman/indomain
 
 go 1.26
 

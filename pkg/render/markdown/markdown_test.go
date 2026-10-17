@@ -13,7 +13,7 @@ import (
 	extast "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/text"
 
-	"github.com/stacklok/modelith/internal/model"
+	"github.com/StevenACoffman/indomain/internal/model"
 )
 
 // gfm parses rendered output the way a reader's tooling will: CommonMark plus

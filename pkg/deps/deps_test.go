@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stacklok/modelith/internal/provenance"
+	"github.com/StevenACoffman/indomain/internal/provenance"
 )
 
 // fakeRunner answers the gh/az calls Import makes. It behaves like gh or az,
@@ -316,7 +316,7 @@ func TestParseSource(t *testing.T) {
 		{
 			name:    "another host asks for an issue rather than guessing",
 			raw:     "https://gitlab.com/acme/billing/-/blob/main/payments.modelith.yaml",
-			wantErr: "github.com/stacklok/modelith/issues",
+			wantErr: "github.com/StevenACoffman/indomain/issues",
 		},
 		{
 			// The Raw button hands this one back, so it is easy to paste. Sending
