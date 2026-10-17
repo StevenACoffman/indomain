@@ -1,4 +1,4 @@
-// Command modelith is the Stacklok domain-model tool: it lints domain-model YAML
+// Command indomain is the Stacklok domain-model tool: it lints domain-model YAML
 // files and renders them to Markdown (with embedded Mermaid).
 package main
 
@@ -19,12 +19,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/StevenACoffman/indomain/internal/deps"
-	"github.com/StevenACoffman/indomain/internal/lint"
-	"github.com/StevenACoffman/indomain/internal/model"
-	"github.com/StevenACoffman/indomain/internal/provenance"
-	"github.com/StevenACoffman/indomain/internal/render/markdown"
-	"github.com/StevenACoffman/indomain/internal/schema"
+	"github.com/StevenACoffman/indomain/pkg/deps"
+	"github.com/StevenACoffman/indomain/pkg/lint"
+	"github.com/StevenACoffman/indomain/pkg/model"
+	"github.com/StevenACoffman/indomain/pkg/provenance"
+	"github.com/StevenACoffman/indomain/pkg/render/markdown"
+	"github.com/StevenACoffman/indomain/pkg/schema"
 )
 
 // version is set at build time via -ldflags "-X main.version=..." by
@@ -92,7 +92,7 @@ func main() {
 
 func rootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Use:           "modelith",
+		Use:           "indomain",
 		Short:         "Author, validate, and render Stacklok domain models",
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -148,10 +148,10 @@ CLI fails fast instead of stalling the import.
 The imports list of the model that will reference this copy is yours to edit;
 this command prints the entry to add.`),
 		Example: strings.TrimSpace(`
-  modelith deps import https://github.com/acme/billing/blob/main/docs/payments.modelith.yaml
-  modelith deps import https://github.com/acme/billing/blob/main/docs/payments.modelith.yaml docs/
-  modelith deps import --ref v2.1.0 https://github.com/acme/billing/blob/main/docs/payments.modelith.yaml
-  modelith deps import "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/payments.modelith.yaml&version=GBmain"`),
+  indomain deps import https://github.com/acme/billing/blob/main/docs/payments.modelith.yaml
+  indomain deps import https://github.com/acme/billing/blob/main/docs/payments.modelith.yaml docs/
+  indomain deps import --ref v2.1.0 https://github.com/acme/billing/blob/main/docs/payments.modelith.yaml
+  indomain deps import "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/payments.indomain.yaml&version=GBmain"`),
 		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir := "."
@@ -218,7 +218,7 @@ func printImportResult(out, errOut io.Writer, res *deps.Result, wd string) {
 }
 
 // printTransitiveNote says that a model reaches for models of its own and that
-// modelith did not follow them. verb differs between a first import, where the
+// indomain did not follow them. verb differs between a first import, where the
 // imports are simply what the model has, and an update, where they are what it
 // gained since the copy on disk was taken.
 func printTransitiveNote(out io.Writer, name string, imports []string, verb string) {
@@ -231,7 +231,7 @@ func printTransitiveNote(out io.Writer, name string, imports []string, verb stri
 		declares = fmt.Sprintf("%s an import of its own", verb)
 	}
 	fmt.Fprintf(out, "\nNote: %s %s (%s).\n"+
-		"modelith vendors one file, not a dependency tree, and resolution is not\n"+
+		"indomain vendors one file, not a dependency tree, and resolution is not\n"+
 		"transitive — if you need items from those models, import them directly.\n",
 		name, declares, strings.Join(imports, ", "))
 }
@@ -258,10 +258,10 @@ skipped, so the glob you already pass to lint works here unchanged; a closing
 line says how many were skipped. Exits non-zero when any copy is stale.
 
 This command answers what the origin has done. Whether a copy here has been
-hand-edited is a different question, and modelith lint answers it offline.
+hand-edited is a different question, and indomain lint answers it offline.
 
 A copy pinned to a tag is reported as up to date for as long as that tag points
-where it did; modelith does not look for newer releases. Every line names the
+where it did; indomain does not look for newer releases. Every line names the
 ref it was checked against.
 
 Fetching is delegated to the gh CLI for github.com origins and the az CLI for
@@ -271,8 +271,8 @@ is written.
 Each fetch is bounded by --timeout (default 60s, 0 disables the bound): a hung
 CLI fails fast instead of stalling the run.`),
 		Example: strings.TrimSpace(`
-  modelith deps check docs/payments.modelith.yaml
-  modelith deps check docs/*.modelith.yaml`),
+  indomain deps check docs/payments.indomain.yaml
+  indomain deps check docs/*.indomain.yaml`),
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			reports, err := deps.Check(cmd.Context(), deps.CheckOptions{Paths: args, Timeout: timeout})
@@ -315,7 +315,7 @@ one file, because one ref names a different version in every other repository.
 
 This command writes the copies and nothing else. It does not edit any model's
 imports list, and it does not lint: an item a copy used to define may have been
-renamed or removed upstream, and modelith lint is what reports that from the
+renamed or removed upstream, and indomain lint is what reports that from the
 importing model's seat.
 
 Fetching is delegated to the gh CLI for github.com origins and the az CLI for
@@ -324,9 +324,9 @@ dev.azure.com ones, each of which must be installed and authenticated.
 Each fetch is bounded by --timeout (default 60s, 0 disables the bound): a hung
 CLI fails fast instead of stalling the run.`),
 		Example: strings.TrimSpace(`
-  modelith deps update docs/payments.modelith.yaml
-  modelith deps update docs/*.modelith.yaml
-  modelith deps update --ref v2.2.0 docs/payments.modelith.yaml`),
+  indomain deps update docs/payments.indomain.yaml
+  indomain deps update docs/*.indomain.yaml
+  indomain deps update --ref v2.2.0 docs/payments.indomain.yaml`),
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			reports, err := deps.Update(cmd.Context(), deps.UpdateOptions{
@@ -430,7 +430,7 @@ func printUpdateReports(out, errOut io.Writer, reports []deps.Report) bool {
 			printTransitiveNote(out, filepath.Base(r.Path), r.NewImports, "now declares")
 		}
 	}
-	fmt.Fprint(out, "\nRun `modelith lint` on the models that import these copies. An item a copy\n"+
+	fmt.Fprint(out, "\nRun `indomain lint` on the models that import these copies. An item a copy\n"+
 		"used to define may have been renamed or removed upstream, which breaks a\n"+
 		"reference this command cannot see.\n")
 	printTrustWarning(errOut)
@@ -515,10 +515,10 @@ func lintCmd() *cobra.Command {
 		Use:   "lint <file>...",
 		Short: "Validate domain-model files (structural, semantic, completeness)",
 		Example: strings.TrimSpace(`
-  modelith lint model.modelith.yaml
-  modelith lint services/*.modelith.yaml            # multiple files / globs
-  modelith lint --completeness error model.modelith.yaml
-  modelith lint --format json model.modelith.yaml   # machine-readable for CI`),
+  indomain lint model.indomain.yaml
+  indomain lint services/*.indomain.yaml            # multiple files / globs
+  indomain lint --completeness error model.indomain.yaml
+  indomain lint --format json model.indomain.yaml   # machine-readable for CI`),
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			switch completeness {
@@ -610,10 +610,10 @@ func renderCmd() *cobra.Command {
 		Use:   "render <file>",
 		Short: "Render a domain-model file to Markdown (with embedded Mermaid)",
 		Example: strings.TrimSpace(`
-  modelith render model.modelith.yaml            # write model.modelith.md beside the source
-  modelith render -o out.md model.modelith.yaml  # write to a specific path
-  modelith render --stdout model.modelith.yaml   # write to stdout instead of a file
-  modelith render --check model.modelith.yaml    # CI gate: fail if the committed .md is stale`),
+  indomain render model.indomain.yaml            # write model.indomain.md beside the source
+  indomain render -o out.md model.indomain.yaml  # write to a specific path
+  indomain render --stdout model.indomain.yaml   # write to stdout instead of a file
+  indomain render --check model.indomain.yaml    # CI gate: fail if the committed .md is stale`),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			in := args[0]
@@ -646,7 +646,7 @@ func renderCmd() *cobra.Command {
 			// What stays skipped is everything the origin owns rather than this
 			// repository: a copy this build cannot render at all — a newer schema
 			// version, a shape this binary does not know — is not a --check
-			// failure, because there is nothing here to fix. `modelith lint`
+			// failure, because there is nothing here to fix. `indomain lint`
 			// reports it, loudly and once.
 			//
 			// The exemption is claimed by a *clean* header, not by
@@ -655,17 +655,17 @@ func renderCmd() *cobra.Command {
 			// copy, which is right for lint: the header defects are reported and
 			// the completeness noise is suppressed. Skipping on that same answer
 			// would be silent, and would hand the exemption to a model this
-			// repository owns that merely carries a "# modelith-" comment. An
+			// repository owns that merely carries a "# indomain-" comment. An
 			// exemption needs a valid claim, so a file whose header does not
 			// parse cleanly is checked like any other — its defects are already
-			// failing `modelith lint`.
+			// failing `indomain lint`.
 			header, headerProblems := provenance.Parse(data)
 			vendored := header != nil && len(headerProblems) == 0
 			skipVendored := func(tail string) error {
 				fmt.Fprintf(cmd.OutOrStdout(), "%s is a vendored copy %s\n", in, tail)
 				return nil
 			}
-			unrenderable := fmt.Sprintf("this modelith cannot render — skipped (run `modelith lint %s` for details)", in)
+			unrenderable := fmt.Sprintf("this indomain cannot render — skipped (run `indomain lint %s` for details)", in)
 			if check && vendored {
 				if _, err := os.Stat(target); errors.Is(err, fs.ErrNotExist) {
 					return skipVendored("with no committed " + filepath.Base(target) + " — skipped")
@@ -679,7 +679,7 @@ func renderCmd() *cobra.Command {
 					return skipVendored(unrenderable)
 				}
 				var b strings.Builder
-				fmt.Fprintf(&b, "%s is not a valid domain model — run `modelith lint %s` for details:", in, in)
+				fmt.Fprintf(&b, "%s is not a valid domain model — run `indomain lint %s` for details:", in, in)
 				for _, f := range findings {
 					loc := f.Path
 					if loc == "" {
@@ -720,10 +720,10 @@ func renderCmd() *cobra.Command {
 			if check {
 				existing, err := os.ReadFile(target)
 				if err != nil {
-					return fmt.Errorf("cannot read committed output %s: %w — regenerate it with `modelith render %s` and commit the result", target, err, in)
+					return fmt.Errorf("cannot read committed output %s: %w — regenerate it with `indomain render %s` and commit the result", target, err, in)
 				}
 				if string(existing) != rendered {
-					return fmt.Errorf("%s is out of date — regenerate it with `modelith render %s` and commit the result", target, in)
+					return fmt.Errorf("%s is out of date — regenerate it with `indomain render %s` and commit the result", target, in)
 				}
 				fmt.Fprintf(cmd.OutOrStdout(), "%s is up to date\n", target)
 				return nil
@@ -765,7 +765,7 @@ func schemaCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "schema",
 		Short:   "Print the canonical JSON Schema",
-		Example: "  modelith schema > modelith.schema.json",
+		Example: "  indomain schema > indomain.schema.json",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, err := cmd.OutOrStdout().Write(schema.JSON())

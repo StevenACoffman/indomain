@@ -19,8 +19,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/StevenACoffman/indomain/internal/model"
-	"github.com/StevenACoffman/indomain/internal/provenance"
+	"github.com/StevenACoffman/indomain/pkg/model"
+	"github.com/StevenACoffman/indomain/pkg/provenance"
 )
 
 // Host identifies the source-code platform a Source was parsed from.
@@ -48,7 +48,7 @@ func runCommand(cmd *exec.Cmd, name string, args []string, stderr *strings.Build
 	out, err := cmd.Output()
 	if err != nil {
 		if errors.Is(err, exec.ErrNotFound) {
-			return nil, unusable{fmt.Errorf("%s is not installed — modelith delegates fetching to it%s", name, installHint(name))}
+			return nil, unusable{fmt.Errorf("%s is not installed — indomain delegates fetching to it%s", name, installHint(name))}
 		}
 		if msg := strings.TrimSpace(stderr.String()); msg != "" {
 			failed := fmt.Errorf("%s %s: %s", name, strings.Join(args, " "), msg)
@@ -165,7 +165,7 @@ func ParseSource(raw, ref string) (Source, error) {
 	// advice about the wrong problem.
 	if host == "raw.githubusercontent.com" {
 		return Source{}, fmt.Errorf(
-			"%q is a raw file URL, and modelith wants the page you see when you open the file on github.com — the same address with /blob/ in it. Open the file there and copy the address bar",
+			"%q is a raw file URL, and indomain wants the page you see when you open the file on github.com — the same address with /blob/ in it. Open the file there and copy the address bar",
 			raw)
 	}
 
@@ -181,7 +181,7 @@ func ParseSource(raw, ref string) (Source, error) {
 			raw, org)
 	default:
 		return Source{}, fmt.Errorf(
-			"modelith can currently fetch only from github.com and dev.azure.com, and %q is on %q. Support for other hosts is not written yet because nobody has needed it — if you do, please open an issue at %s saying where your models live",
+			"indomain can currently fetch only from github.com and dev.azure.com, and %q is on %q. Support for other hosts is not written yet because nobody has needed it — if you do, please open an issue at %s saying where your models live",
 			raw, u.Host, issuesURL)
 	}
 }
@@ -193,7 +193,7 @@ func parseGitHubSource(u *url.URL, ref string) (Source, error) {
 	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
 	if len(parts) < 5 || parts[2] != "blob" {
 		return Source{}, fmt.Errorf(
-			"%q is not a GitHub file URL — it should look like https://github.com/<owner>/<repo>/blob/<ref>/<path to the .modelith.yaml>, which is the address you get by opening the file on github.com",
+			"%q is not a GitHub file URL — it should look like https://github.com/<owner>/<repo>/blob/<ref>/<path to the .indomain.yaml>, which is the address you get by opening the file on github.com",
 			u.String())
 	}
 	for _, p := range parts {
@@ -369,13 +369,13 @@ func Import(ctx context.Context, opts Options) (*Result, error) {
 
 	if provenance.Present(content) {
 		return nil, fmt.Errorf(
-			"%s carries a %s line, so modelith reads it as somebody else's copy rather than a model's home. If it is a copy, vendor it from the origin its header names instead, so this repository tracks the model's home. If it is not — the line is an ordinary comment that happens to use modelith's reserved prefix at column zero — it has to be indented or removed at the origin before this file can be vendored",
+			"%s carries a %s line, so indomain reads it as somebody else's copy rather than a model's home. If it is a copy, vendor it from the origin its header names instead, so this repository tracks the model's home. If it is not — the line is an ordinary comment that happens to use indomain's reserved prefix at column zero — it has to be indented or removed at the origin before this file can be vendored",
 			opts.URL, provenance.LinePrefix)
 	}
 	m, err := model.Parse(content)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"%s did not parse as a domain model — check that the URL names a *.modelith.yaml file, and that this modelith is new enough to read it: %w",
+			"%s did not parse as a domain model — check that the URL names a *.indomain.yaml file, and that this indomain is new enough to read it: %w",
 			opts.URL, err)
 	}
 	if m.Kind != "DomainModel" {
@@ -480,7 +480,7 @@ func splitHint(src Source, err error) string {
 		return ""
 	}
 	return fmt.Sprintf(
-		"\n\nmodelith read %q as the ref and %q as the path. If the ref has a slash in it that split is wrong: pass the whole ref to --ref, or — if --ref is already pinning a different ref, which cannot re-split the path — open the file on the ref you want and import that URL instead",
+		"\n\nindomain read %q as the ref and %q as the path. If the ref has a slash in it that split is wrong: pass the whole ref to --ref, or — if --ref is already pinning a different ref, which cannot re-split the path — open the file on the ref you want and import that URL instead",
 		src.Ref, src.Path)
 }
 
@@ -722,7 +722,7 @@ func fetchContentADO(ctx context.Context, runner Runner, src Source) ([]byte, er
 		uri += "&versionDescriptor.versionType=" + url.QueryEscape(vt)
 	}
 
-	tmp, err := os.CreateTemp("", "modelith-ado-*")
+	tmp, err := os.CreateTemp("", "indomain-ado-*")
 	if err != nil {
 		return nil, fmt.Errorf("creating a temp file for the fetch: %w", err)
 	}

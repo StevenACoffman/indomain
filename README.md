@@ -41,7 +41,7 @@ conversation) — the skills shell out to the binary, so install it first.
 **1. Install the CLI:**
 
 ```sh
-brew install stacklok/tap/modelith
+brew install stacklok/tap/indomain
 ```
 
 Or download a prebuilt binary from the
@@ -49,7 +49,7 @@ Or download a prebuilt binary from the
 source:
 
 ```sh
-go install github.com/stacklok/modelith/cmd/modelith@latest
+go install github.com/stacklok/indomain/cmd/indomain@latest
 ```
 
 **2. Install the Claude Code plugin** (the skills that author the model):
@@ -62,14 +62,14 @@ go install github.com/stacklok/modelith/cmd/modelith@latest
 Install with the [skills CLI](https://skills.sh) (also works with Cursor, Windsurf, and others):
 
 ```sh
-npx skills add stacklok/modelith
+npx skills add stacklok/indomain
 ```
 
 Once the marketplace listing is approved:
 
 ```sh
 claude plugin marketplace add anthropics/claude-plugins-community
-claude plugin install modelith@claude-community
+claude plugin install indomain@claude-community
 ```
 
 **3. Author by conversation.** In Claude Code, invoke `/modelith:domain-model-author`

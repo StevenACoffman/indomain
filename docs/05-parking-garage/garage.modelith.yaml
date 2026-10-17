@@ -8,7 +8,7 @@ description: >-
   temporary visitor's pay-on-exit ticket.
 
 imports:
-  - ./payments.modelith.yaml
+  - ./payments.indomain.yaml
 
 glossary:
   Operator: >-

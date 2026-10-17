@@ -23,8 +23,8 @@ import (
 	"golang.org/x/text/message"
 	"sigs.k8s.io/yaml"
 
-	"github.com/StevenACoffman/indomain/internal/model"
-	"github.com/StevenACoffman/indomain/internal/schema"
+	"github.com/StevenACoffman/indomain/pkg/model"
+	"github.com/StevenACoffman/indomain/pkg/schema"
 )
 
 // Severity classifies how serious a finding is.
@@ -139,7 +139,7 @@ func Run(path string, src []byte, files Files) (*Result, error) {
 }
 
 // Structural runs only the JSON Schema (structural) layer and returns its
-// findings — empty if the document is structurally valid. `modelith render` uses it
+// findings — empty if the document is structurally valid. `indomain render` uses it
 // to fail with a friendly schema error instead of the raw strict-YAML parse
 // error, without running the semantic/completeness layers (which shouldn't
 // block rendering).
@@ -173,10 +173,10 @@ func runStructural(data []byte, res *Result) bool {
 		return false
 	}
 
-	// Dispatch on the declared format version. modelith — not the schema — is
+	// Dispatch on the declared format version. indomain — not the schema — is
 	// the source of truth for which versions this build understands: if the file
 	// targets a version we don't have, say so plainly (so a newer file gets
-	// "upgrade modelith", not a cryptic schema mismatch) and validate against
+	// "upgrade indomain", not a cryptic schema mismatch) and validate against
 	// that version's schema. A missing/empty version falls through to the schema,
 	// which requires it and reports the absence in the usual way.
 	version := schema.Current
@@ -188,8 +188,8 @@ func runStructural(data []byte, res *Result) bool {
 					Severity: SeverityError,
 					Category: CategoryStructural,
 					Path:     "/version",
-					Message: fmt.Sprintf("unsupported schema version %q; this modelith supports: %s "+
-						"(upgrade modelith, or set a supported version)", v, strings.Join(schema.SupportedVersions(), ", ")),
+					Message: fmt.Sprintf("unsupported schema version %q; this indomain supports: %s "+
+						"(upgrade indomain, or set a supported version)", v, strings.Join(schema.SupportedVersions(), ", ")),
 				})
 				return false
 			}

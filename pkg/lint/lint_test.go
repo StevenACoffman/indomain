@@ -10,7 +10,7 @@ import (
 // testModelPath stands in for the linted file's path. Only a model with
 // imports cares what it is (they resolve relative to its directory), so the
 // inline fixtures here pass it and a nil FileReader.
-const testModelPath = "model.modelith.yaml"
+const testModelPath = "model.indomain.yaml"
 
 func countBy(fs []Finding, sev Severity, cat Category) int {
 	n := 0
@@ -23,7 +23,7 @@ func countBy(fs []Finding, sev Severity, cat Category) int {
 }
 
 func TestExampleIsClean(t *testing.T) {
-	const path = "../../examples/example.modelith.yaml"
+	const path = "../../examples/example.indomain.yaml"
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

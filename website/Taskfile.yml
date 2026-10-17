@@ -1,6 +1,6 @@
 version: '3'
 
-# Docusaurus site for modelith.sh.
+# Docusaurus site for indomain.sh.
 # Content lives in ../docs; this file holds only the Docusaurus infra.
 # Run from the repo root via `task site:*` (the root Taskfile includes this
 # file under the `site` namespace with dir: website).

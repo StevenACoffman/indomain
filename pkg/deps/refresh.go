@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/StevenACoffman/indomain/internal/model"
-	"github.com/StevenACoffman/indomain/internal/provenance"
+	"github.com/StevenACoffman/indomain/pkg/model"
+	"github.com/StevenACoffman/indomain/pkg/provenance"
 )
 
 // ErrToolUnavailable marks a failure of the delegated CLI itself rather than of
@@ -142,7 +142,7 @@ func Check(ctx context.Context, opts CheckOptions) ([]Report, error) {
 // It writes when the copy on disk does not already hold the origin's content,
 // or when the ref moved. It does not touch the model that imports the copy: an
 // item this copy used to define may have been renamed or removed upstream, and
-// modelith lint is what reports that, from the importing model's seat.
+// indomain lint is what reports that, from the importing model's seat.
 func Update(ctx context.Context, opts UpdateOptions) ([]Report, error) {
 	if opts.Ref != "" && len(opts.Paths) != 1 {
 		return nil, fmt.Errorf(
@@ -212,7 +212,7 @@ func visit(ctx context.Context, runner Runner, path string, opts surveyOptions) 
 	h, problems := provenance.Parse(local)
 	if len(problems) > 0 {
 		rep.Err = fmt.Errorf(
-			"its provenance header is not usable (%s) — run `modelith lint %s` for the full report",
+			"its provenance header is not usable (%s) — run `indomain lint %s` for the full report",
 			problems[0].Message, path)
 		return rep, nil
 	}
@@ -357,7 +357,7 @@ func sourceFromHeader(h *provenance.Header, ref string) (Source, error) {
 		// method a future build understands would parse without problems and
 		// still have no address this function can assemble.
 		return Source{}, fmt.Errorf(
-			"modelith cannot refresh a copy fetched with %q — this build knows how to fetch %s",
+			"indomain cannot refresh a copy fetched with %q — this build knows how to fetch %s",
 			h.Fetch, strings.Join(provenance.Methods(), ", "))
 	}
 	switch originHost(h.Origin) {
@@ -367,7 +367,7 @@ func sourceFromHeader(h *provenance.Header, ref string) (Source, error) {
 		return adoSourceFromHeader(h, ref)
 	default:
 		return Source{}, fmt.Errorf(
-			"cannot be refreshed: it was vendored from %q, and deps check and deps update reach github.com and dev.azure.com origins only. To take a newer version, import it again from its origin (`modelith deps import <the file's address>`) — that overwrites this copy with the origin's current file. If you need refresh for another host, please open an issue at %s",
+			"cannot be refreshed: it was vendored from %q, and deps check and deps update reach github.com and dev.azure.com origins only. To take a newer version, import it again from its origin (`indomain deps import <the file's address>`) — that overwrites this copy with the origin's current file. If you need refresh for another host, please open an issue at %s",
 			h.Origin, issuesURL)
 	}
 }
@@ -424,7 +424,7 @@ func adoVersionPrefix(refType string) string {
 func checkFetched(upstream []byte, src Source) (*model.Model, error) {
 	if provenance.Present(upstream) {
 		return nil, fmt.Errorf(
-			"%s now carries a %s line at its origin, so modelith reads it as somebody else's copy rather than a model's home. Vendoring a copy of a copy would record the wrong repository as this model's home — vendor it from the origin its own header names instead",
+			"%s now carries a %s line at its origin, so indomain reads it as somebody else's copy rather than a model's home. Vendoring a copy of a copy would record the wrong repository as this model's home — vendor it from the origin its own header names instead",
 			src.Path, provenance.LinePrefix)
 	}
 	m, err := model.Parse(upstream)

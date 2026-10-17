@@ -278,11 +278,11 @@ definition and the other **references** it.
 List the other model's file, and write `scope.Name` where you reference it:
 
 ```yaml
-# garage.modelith.yaml
+# garage.indomain.yaml
 kind: DomainModel
 version: v1
 imports:
-  - ./payments.modelith.yaml
+  - ./payments.indomain.yaml
 entities:
   Visit:
     definition: One car's stay in the garage.
@@ -302,9 +302,9 @@ one is already taken:
 
 ```yaml
 imports:
-  - ./payments.modelith.yaml            # binds "payments"
+  - ./payments.indomain.yaml            # binds "payments"
   - scope: billing                      # binds "billing"
-    path: ./legacy/pay-v2.modelith.yaml
+    path: ./legacy/pay-v2.indomain.yaml
 ```
 
 | Field | Type | Required | Notes |
@@ -397,7 +397,7 @@ warning for every enum in it, and under
 Say so at the top level:
 
 ```yaml
-# payments.modelith.yaml
+# payments.indomain.yaml
 kind: DomainModel
 version: v1
 shared: true

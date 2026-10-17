@@ -1,7 +1,7 @@
 ---
 sidebar_position: 4
 title: Reading the Diagrams
-description: How to read the Mermaid entity-relationship (ER) diagrams modelith renders, including crow's-foot cardinality notation.
+description: How to read the Mermaid entity-relationship (ER) diagrams indomain renders, including crow's-foot cardinality notation.
 ---
 
 # Reading the Diagrams

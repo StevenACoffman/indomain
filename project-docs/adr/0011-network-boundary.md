@@ -72,7 +72,7 @@ credential handling. This is the choice `cmd/go` made for VCS fetches.
   of the offline packages and fails if any of them reaches `net`, `net/http`,
   or `os/exec`. Banning `os/exec` there is deliberate: without it the rule
   could be evaded by shelling out to `curl`.
-- That test guards the library packages, not the commands. `cmd/modelith`
+- That test guards the library packages, not the commands. `../../cmd/indomain`
   reaches `net` transitively through `spf13/pflag` today, and the network-using
   commands will legitimately import `os/exec`, so the package-level ban cannot
   extend there. "No flag makes `lint` fetch" is therefore a design commitment

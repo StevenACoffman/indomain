@@ -1,7 +1,7 @@
 ---
 paths:
   - "**/*.go"
-description: Go coding conventions for modelith
+description: Go coding conventions for indomain
 ---
 
 # Go style & conventions
@@ -37,7 +37,7 @@ file wins.
 
 - Keep the dependency set small; every addition is a supply-chain and
   binary-size cost. Prefer the standard library.
-- The CLI is built on `cobra`. Keep command wiring in `cmd/modelith/`; keep
+- The CLI is built on `cobra`. Keep command wiring in `../../cmd/indomain/`; keep
   the logic it calls in `../../pkg/`.
 - Schema and example bytes are embedded with `go:embed` (see
   `../../pkg/schema/`). Never read them from a path at runtime; embedding is

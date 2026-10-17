@@ -1,7 +1,7 @@
 ---
 sidebar_position: 9
 title: Local Development
-description: Building modelith, the Task workflow, and developing the Claude Code plugin locally.
+description: Building indomain, the Task workflow, and developing the Claude Code plugin locally.
 ---
 
 # Local Development
@@ -24,7 +24,7 @@ bottom of this page.
 ## Building the binary
 
 ```sh
-task build            # → ./bin/modelith
+task build            # → ./bin/indomain
 task install          # go install into GOBIN (on your PATH)
 ```
 
@@ -78,7 +78,7 @@ To iterate on the plugin without publishing, point Claude Code straight at the
 plugin directory:
 
 ```sh
-claude --plugin-dir /path/to/modelith/plugin
+claude --plugin-dir /path/to/indomain/plugin
 ```
 
 You can pass `--plugin-dir` more than once to load several plugins at once. The
@@ -94,9 +94,9 @@ identical skill names and you can't tell which is active. Uninstall the managed
 one before testing locally, and reinstall when you're done:
 
 ```sh
-claude plugin uninstall modelith@claude-community
-claude --plugin-dir /path/to/modelith/plugin   # test
-claude plugin install modelith@claude-community
+claude plugin uninstall indomain@claude-community
+claude --plugin-dir /path/to/indomain/plugin   # test
+claude plugin install indomain@claude-community
 ```
 
 </details>

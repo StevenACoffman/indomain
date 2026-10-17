@@ -1,10 +1,10 @@
 // Package schema holds the canonical JSON Schemas for a Stacklok domain model,
 // one per format version, and helpers to compile them. The schema files
-// themselves (vN/modelith.schema.json) are the source of truth. Each has a
+// themselves (vN/indomain.schema.json) are the source of truth. Each has a
 // canonical URL (see URLFor) for use in a
 // "# yaml-language-server: $schema=" header.
 //
-// This package is pkg on purpose: modelith's contract is the CLI and the
+// This package is pkg on purpose: indomain's contract is the CLI and the
 // JSON Schema, not a Go API. The schema living under pkg/ is only a
 // Go-compiler visibility rule. The CLI embeds the schema bytes, so it validates
 // models without fetching their canonical URLs.
@@ -22,9 +22,9 @@ import (
 //go:embed v1/modelith.schema.json
 var rawV1 []byte
 
-// Current is the format version this build of modelith writes and renders. It
+// Current is the format version this build of indomain writes and renders. It
 // is the version whose schema is used for the "# yaml-language-server" header
-// modelith emits and the default for commands that print the schema.
+// indomain emits and the default for commands that print the schema.
 const Current = "v1"
 
 // registry maps each supported format version to its embedded schema bytes.
@@ -48,7 +48,7 @@ func URLFor(version string) string {
 }
 
 // URL is the canonical published URL for the current schema version. It is the
-// value modelith writes into a "# yaml-language-server: $schema=" header.
+// value indomain writes into a "# yaml-language-server: $schema=" header.
 var URL = URLFor(Current)
 
 // Supported reports whether version is a format version this build understands.

@@ -13,7 +13,7 @@ import (
 	extast "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/text"
 
-	"github.com/StevenACoffman/indomain/internal/model"
+	"github.com/StevenACoffman/indomain/pkg/model"
 )
 
 // gfm parses rendered output the way a reader's tooling will: CommonMark plus
@@ -300,12 +300,12 @@ func TestRenderEntity_SymmetricRelationship(t *testing.T) {
 }
 
 // TestGoldenExample renders the committed example and compares it to the
-// checked-in Markdown. This is the same invariant `modelith render --check` enforces
+// checked-in Markdown. This is the same invariant `indomain render --check` enforces
 // in CI: if you change the renderer or the example YAML, regenerate the .md.
 func TestGoldenExample(t *testing.T) {
 	const (
-		src    = "../../../examples/example.modelith.yaml"
-		golden = "../../../examples/example.modelith.md"
+		src    = "../../../examples/example.indomain.yaml"
+		golden = "../../../examples/example.indomain.md"
 	)
 	data, err := os.ReadFile(src)
 	if err != nil {
@@ -322,7 +322,7 @@ func TestGoldenExample(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got != string(want) {
-		t.Errorf("rendered output does not match %s.\nRegenerate with: go run ./cmd/modelith render %s\n%s",
+		t.Errorf("rendered output does not match %s.\nRegenerate with: go run ./cmd/indomain render %s\n%s",
 			golden, src, firstDiff(string(want), got))
 	}
 }
@@ -337,8 +337,8 @@ func TestRenderImports_SectionAndLinkedTypes(t *testing.T) {
 
 	m := &model.Model{
 		Imports: []model.Import{
-			{Scope: "payments", Path: "../payments/payments.modelith.yaml"},
-			{Scope: "billing", Path: "./legacy/pay-v2.modelith.yaml"},
+			{Scope: "payments", Path: "../payments/payments.indomain.yaml"},
+			{Scope: "billing", Path: "./legacy/pay-v2.indomain.yaml"},
 		},
 		Entities: map[string]model.Entity{
 			"Ticket": {
@@ -359,10 +359,10 @@ func TestRenderImports_SectionAndLinkedTypes(t *testing.T) {
 		// The source path is the model file; the link leads to the rendered
 		// Markdown beside it. Labelling the link with the .yaml path pointed the
 		// reader at a file they would not land on.
-		"- **`payments`** — `../payments/payments.modelith.yaml` ([rendered](../payments/payments.modelith.md))\n",
-		"- **`billing`** — `./legacy/pay-v2.modelith.yaml` ([rendered](./legacy/pay-v2.modelith.md))\n",
-		"| `paidWith` | [payments.PaymentMethod](../payments/payments.modelith.md#paymentmethod) |  |\n",
-		"| `plan` | [billing.Plan](./legacy/pay-v2.modelith.md#plan) |  |\n",
+		"- **`payments`** — `../payments/payments.indomain.yaml` ([rendered](../payments/payments.indomain.md))\n",
+		"- **`billing`** — `./legacy/pay-v2.indomain.yaml` ([rendered](./legacy/pay-v2.indomain.md))\n",
+		"| `paidWith` | [payments.PaymentMethod](../payments/payments.indomain.md#paymentmethod) |  |\n",
+		"| `plan` | [billing.Plan](./legacy/pay-v2.indomain.md#plan) |  |\n",
 		// A scope no import binds is a lint error; the renderer states it rather
 		// than linking to a file it has no reason to believe exists.
 		"| `unbound` | shipping.Carrier |  |\n",
@@ -381,8 +381,8 @@ func TestRenderImports_SectionAndLinkedTypes(t *testing.T) {
 // TestRenderImports_LinkRelativeToOutputDir pins the R2-1 fix: `render -o
 // <dir>/x.md` and `--stdout` used to emit import links relative to the
 // *source* directory regardless of where the output landed, so a link into
-// `outdir/payments.modelith.md` dangled — the file modelith actually wrote was
-// `payments.modelith.md` beside the source. The link target must instead be
+// `outdir/payments.indomain.md` dangled — the file indomain actually wrote was
+// `payments.indomain.md` beside the source. The link target must instead be
 // the imported model's default rendered path (RenderedPath resolved against
 // sourceDir) expressed relative to outDir. The second case has sourceDir and
 // outDir share no ancestor but "/", the case an implementation that assumes a
@@ -392,8 +392,8 @@ func TestRenderImports_LinkRelativeToOutputDir(t *testing.T) {
 
 	m := &model.Model{
 		Imports: []model.Import{
-			{Scope: "payments", Path: "../payments/payments.modelith.yaml"},
-			{Scope: "billing", Path: "./legacy/pay-v2.modelith.yaml"},
+			{Scope: "payments", Path: "../payments/payments.indomain.yaml"},
+			{Scope: "billing", Path: "./legacy/pay-v2.indomain.yaml"},
 		},
 		Entities: map[string]model.Entity{
 			"Ticket": {
@@ -416,23 +416,23 @@ func TestRenderImports_LinkRelativeToOutputDir(t *testing.T) {
 			name:      "sibling output directory",
 			sourceDir: "/repo/models",
 			outDir:    "/repo/out",
-			payments:  "../payments/payments.modelith.md",
-			billing:   "../models/legacy/pay-v2.modelith.md",
+			payments:  "../payments/payments.indomain.md",
+			billing:   "../models/legacy/pay-v2.indomain.md",
 		},
 		{
 			name:      "no common ancestor beyond root",
 			sourceDir: "/src/models",
 			outDir:    "/var/output",
-			payments:  "../../src/payments/payments.modelith.md",
-			billing:   "../../src/models/legacy/pay-v2.modelith.md",
+			payments:  "../../src/payments/payments.indomain.md",
+			billing:   "../../src/models/legacy/pay-v2.indomain.md",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := Render(m, tc.sourceDir, tc.outDir)
 			for _, want := range []string{
-				fmt.Sprintf("- **`payments`** — `../payments/payments.modelith.yaml` ([rendered](%s))\n", tc.payments),
-				fmt.Sprintf("- **`billing`** — `./legacy/pay-v2.modelith.yaml` ([rendered](%s))\n", tc.billing),
+				fmt.Sprintf("- **`payments`** — `../payments/payments.indomain.yaml` ([rendered](%s))\n", tc.payments),
+				fmt.Sprintf("- **`billing`** — `./legacy/pay-v2.indomain.yaml` ([rendered](%s))\n", tc.billing),
 				fmt.Sprintf("[payments.PaymentMethod](%s#paymentmethod)", tc.payments),
 			} {
 				if !strings.Contains(got, want) {
@@ -455,7 +455,7 @@ func TestRenderImports_AbsolutePathIsNotRelativized(t *testing.T) {
 
 	m := &model.Model{
 		Imports: []model.Import{
-			{Scope: "payments", Path: "/etc/payments.modelith.yaml"},
+			{Scope: "payments", Path: "/etc/payments.indomain.yaml"},
 		},
 		Entities: map[string]model.Entity{
 			"Ticket": {
@@ -478,8 +478,8 @@ func TestRenderImports_AbsolutePathIsNotRelativized(t *testing.T) {
 			t.Parallel()
 			got := Render(m, tc.sourceDir, tc.outDir)
 			for _, want := range []string{
-				"- **`payments`** — `/etc/payments.modelith.yaml` ([rendered](/etc/payments.modelith.md))\n",
-				"[payments.PaymentMethod](/etc/payments.modelith.md#paymentmethod)",
+				"- **`payments`** — `/etc/payments.indomain.yaml` ([rendered](/etc/payments.indomain.md))\n",
+				"[payments.PaymentMethod](/etc/payments.indomain.md#paymentmethod)",
 			} {
 				if !strings.Contains(got, want) {
 					t.Errorf("expected %q in:\n%s", want, got)
@@ -498,17 +498,17 @@ func TestRenderImports_HostilePathCannotEscapeItsMarkup(t *testing.T) {
 	t.Parallel()
 
 	// Closes the link destination, then opens an image and a second link.
-	const breakout = `./p.modelith.yaml) <img src=x onerror=alert(1)> [click me](#`
+	const breakout = `./p.indomain.yaml) <img src=x onerror=alert(1)> [click me](#`
 
 	m := &model.Model{
 		Imports: []model.Import{
 			{Scope: "payments", Path: breakout},
-			{Scope: "piped", Path: "./a|b.modelith.yaml"},
-			{Scope: "spaced", Path: "./a b.modelith.yaml"},
+			{Scope: "piped", Path: "./a|b.indomain.yaml"},
+			{Scope: "spaced", Path: "./a b.indomain.yaml"},
 			// A newline would inject a heading into the Imports list; the derived
 			// scope carries it too, since it comes from the same string.
-			{Scope: "line\nbreak", Path: "./a\n## Injected\n\nb.modelith.yaml"},
-			{Scope: "ticked", Path: "./a`b``c.modelith.yaml"},
+			{Scope: "line\nbreak", Path: "./a\n## Injected\n\nb.indomain.yaml"},
+			{Scope: "ticked", Path: "./a`b``c.indomain.yaml"},
 		},
 		Entities: map[string]model.Entity{
 			"Ticket": {
@@ -522,20 +522,20 @@ func TestRenderImports_HostilePathCannotEscapeItsMarkup(t *testing.T) {
 	for _, want := range []string{
 		// The path is a code span, so nothing in it opens a tag, and the link
 		// beside it carries a fixed label with nothing to escape.
-		"- **`payments`** — `./p.modelith.yaml) <img src=x onerror=alert(1)> [click me](#`" +
-			` ([rendered](./p.modelith.yaml%29%20%3Cimg%20src%3Dx%20onerror%3Dalert%281%29%3E%20%5Bclick%20me%5D%28%23.md))` + "\n",
+		"- **`payments`** — `./p.indomain.yaml) <img src=x onerror=alert(1)> [click me](#`" +
+			` ([rendered](./p.indomain.yaml%29%20%3Cimg%20src%3Dx%20onerror%3Dalert%281%29%3E%20%5Bclick%20me%5D%28%23.md))` + "\n",
 		// A pipe survives in the destination as %7C rather than being escaped
 		// for a table cell it is not in.
-		"`./a|b.modelith.yaml` ([rendered](./a%7Cb.modelith.md))\n",
-		"`./a b.modelith.yaml` ([rendered](./a%20b.modelith.md))\n",
+		"`./a|b.indomain.yaml` ([rendered](./a%7Cb.indomain.md))\n",
+		"`./a b.indomain.yaml` ([rendered](./a%20b.indomain.md))\n",
 		// Every control character is replaced before the value is written.
-		"- **`line break`** — `./a ## Injected  b.modelith.yaml` ([rendered](./a%0A%23%23%20Injected%0A%0Ab.modelith.md))\n",
+		"- **`line break`** — `./a ## Injected  b.indomain.yaml` ([rendered](./a%0A%23%23%20Injected%0A%0Ab.indomain.md))\n",
 		// A path holding backticks widens the span's fence rather than closing
 		// it early.
-		"```./a`b``c.modelith.yaml``` ([rendered](./a%60b%60%60c.modelith.md))\n",
+		"```./a`b``c.indomain.yaml``` ([rendered](./a%60b%60%60c.indomain.md))\n",
 		// The deep link is assembled from escaped parts: escaping the finished
 		// link instead would put a backslash inside the destination.
-		"| `paidWith` | [payments.PaymentMethod](./p.modelith.yaml%29%20%3Cimg%20src%3Dx%20onerror%3Dalert%281%29%3E%20%5Bclick%20me%5D%28%23.md#paymentmethod) |  |\n",
+		"| `paidWith` | [payments.PaymentMethod](./p.indomain.yaml%29%20%3Cimg%20src%3Dx%20onerror%3Dalert%281%29%3E%20%5Bclick%20me%5D%28%23.md#paymentmethod) |  |\n",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("expected %q in:\n%s", want, got)
@@ -594,7 +594,7 @@ func TestCodeSpan_FencesAroundBackticks(t *testing.T) {
 func TestRenderEntity_QualifiedEntityReferences(t *testing.T) {
 	t.Parallel()
 	m := &model.Model{
-		Imports: []model.Import{{Scope: "payments", Path: "../payments/payments.modelith.yaml"}},
+		Imports: []model.Import{{Scope: "payments", Path: "../payments/payments.indomain.yaml"}},
 		Entities: map[string]model.Entity{
 			"Receipt": {Definition: "A receipt.", SubtypeOf: "payments.Invoice"},
 			"Visit": {Definition: "A visit.", Relationships: []model.Relationship{{
@@ -604,8 +604,8 @@ func TestRenderEntity_QualifiedEntityReferences(t *testing.T) {
 	}
 	got := render(m)
 	for _, want := range []string{
-		"**Subtype of** [payments.Invoice](../payments/payments.modelith.md#invoice)\n",
-		"- [payments.Invoice](../payments/payments.modelith.md#invoice) — 1:1 — owned\n",
+		"**Subtype of** [payments.Invoice](../payments/payments.indomain.md#invoice)\n",
+		"- [payments.Invoice](../payments/payments.indomain.md#invoice) — 1:1 — owned\n",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("expected %q in:\n%s", want, got)
@@ -906,7 +906,7 @@ func TestADR_0014_ProseRendersHTMLAsText(t *testing.T) {
 // goldmark measures a line's indent in columns and its length in bytes, so a
 // final line a tab can outrun is taken for a blank one and the fenced-code-block
 // parser indexes it at the -1 that marks one. Every input here lints clean and
-// crashed `modelith render` with a Go stack trace before the trailing newline
+// crashed `indomain render` with a Go stack trace before the trailing newline
 // went in; the first is upstream yuin/goldmark#556's own repro, which v1.8.4
 // still panics on despite carrying the fix for it.
 //

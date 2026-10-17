@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/StevenACoffman/indomain/internal/model"
+	"github.com/StevenACoffman/indomain/pkg/model"
 )
 
 // erMarkers renders a cardinality as Mermaid erDiagram crow's-foot notation,
@@ -138,7 +138,7 @@ func ER(m *model.Model) string {
 	// once: with two declarations on one end, which is the reciprocal of which
 	// is undeterminable, and folding either would drop the other's role
 	// depending on declaration order. model.EdgeGroups makes that call, and
-	// `modelith lint` warns about the same groups (ADR-0008).
+	// `indomain lint` warns about the same groups (ADR-0008).
 	ambiguous := map[string]bool{}
 	for _, g := range model.EdgeGroups(m) {
 		if g.AmbiguousPairing() {

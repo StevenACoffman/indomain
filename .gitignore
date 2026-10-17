@@ -1,6 +1,6 @@
 /bin/
 /dist/
-# The built binary at repo root (anchored so it does not match the cmd/modelith/ dir).
+# The built binary at repo root (anchored so it does not match the cmd/indomain/ dir).
 /modelith
 *.out
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/StevenACoffman/indomain/internal/schema"
+	"github.com/StevenACoffman/indomain/pkg/schema"
 )
 
 // TestSchemaStructSync guards against drift between the canonical JSON Schema
@@ -17,7 +17,7 @@ import (
 //
 // It does NOT check types (e.g. a schema enum vs a Go string); the schema
 // remains the source of truth for value-level constraints. If this test fails,
-// reconcile pkg/schema/v1/modelith.schema.json and pkg/model/model.go.
+// reconcile pkg/schema/v1/indomain.schema.json and pkg/model/model.go.
 func TestSchemaStructSync(t *testing.T) {
 	var root map[string]any
 	if err := json.Unmarshal(schema.JSON(), &root); err != nil {

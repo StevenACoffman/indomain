@@ -19,9 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: stacklok/modelith@v0.5.0
+      - uses: stacklok/indomain@v0.5.0
         with:
-          files: "model.modelith.yaml"
+          files: "model.indomain.yaml"
           version: v0.5.0
           completeness: warn
           check-rendered: true

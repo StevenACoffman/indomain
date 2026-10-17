@@ -1,6 +1,6 @@
 name: Action version pin
 
-# action.yml pins a specific modelith release as its `version` input default.
+# action.yml pins a specific indomain release as its `version` input default.
 # That bump is a manual step after every release (see CLAUDE.md's release
 # checklist) and nothing else catches a forgotten one — a stale default just
 # keeps installing an old release with no error. This guard compares the pinned

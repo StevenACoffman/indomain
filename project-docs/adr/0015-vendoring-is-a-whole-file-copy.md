@@ -47,14 +47,14 @@ a question `lint` has to answer without a network.
 `# yaml-language-server:` line already in every model:
 
 ```yaml
-# modelith-vendored: DO NOT EDIT — this file is a copy. Change it at its origin.
-# modelith-fetch: git
-# modelith-origin: https://github.com/stacklok/some-repo
-# modelith-path: docs/payments.modelith.yaml
-# modelith-ref: main
-# modelith-commit: 4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21
-# modelith-imported: 2026-07-27
-# modelith-digest: sha256:9a1f...
+# indomain-vendored: DO NOT EDIT — this file is a copy. Change it at its origin.
+# indomain-fetch: git
+# indomain-origin: https://github.com/stacklok/some-repo
+# indomain-path: docs/payments.indomain.yaml
+# indomain-ref: main
+# indomain-commit: 4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21
+# indomain-imported: 2026-07-27
+# indomain-digest: sha256:9a1f...
 ```
 
 Parsing and stripping are the *same* rule — lines matching

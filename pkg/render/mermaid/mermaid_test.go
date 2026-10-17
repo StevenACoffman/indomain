@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/StevenACoffman/indomain/internal/model"
+	"github.com/StevenACoffman/indomain/pkg/model"
 )
 
 // firstDiff reports the first line where want and got differ, so a golden
@@ -133,7 +133,7 @@ func TestERDedupesInverseCardinality(t *testing.T) {
 func TestERRendersConflictingReciprocalEdges(t *testing.T) {
 	// Contradictory reciprocal cardinalities (A "1:n" B, B "1:1" A) are NOT the
 	// same relationship inverted, so both edges render — the conflict stays
-	// visible in the diagram rather than one side silently winning. (`modelith lint`
+	// visible in the diagram rather than one side silently winning. (`indomain lint`
 	// reports it as an error.)
 	m := &model.Model{Entities: map[string]model.Entity{
 		"A": {Definition: "a", Relationships: []model.Relationship{{Entity: "B", Cardinality: "1:n", Role: "x"}}},
@@ -676,7 +676,7 @@ func TestERSelfRow_EntityNamedSelfDoesNotCollide(t *testing.T) {
 
 // TestER_UndeclaredRelationshipTarget pins that ER renders a well-formed edge
 // to a relationship target that has no entry in Entities at all. ER does not
-// validate references — that's modelith lint's job — so it must render
+// validate references — that's indomain lint's job — so it must render
 // without panicking, and the undeclared entity gets no {} block of its own
 // since it never appears in EntityNames().
 func TestER_UndeclaredRelationshipTarget(t *testing.T) {

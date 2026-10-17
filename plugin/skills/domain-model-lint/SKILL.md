@@ -20,13 +20,13 @@ First confirm `modelith` is installed (`modelith --version`); if it is not on
 YAML in its place:
 
 ```sh
-go install github.com/stacklok/modelith/cmd/modelith@latest
+go install github.com/stacklok/indomain/cmd/indomain@latest
 # or download a binary from https://github.com/stacklok/modelith/releases
 ```
 
 ```sh
-modelith lint <file>...            # human-readable
-modelith lint --format json <file> # when you need to parse findings
+indomain lint <file>...            # human-readable
+indomain lint --format json <file> # when you need to parse findings
 ```
 
 Use `--completeness error` only if the user wants gaps to be treated as hard

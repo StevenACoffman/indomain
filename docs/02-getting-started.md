@@ -20,7 +20,7 @@ The skills shell out to the `modelith` binary, so install it first.
 ### 1. Install the CLI
 
 ```sh
-brew install stacklok/tap/modelith
+brew install stacklok/tap/indomain
 ```
 
 Or download a prebuilt binary, or build from source with `go install` — see
@@ -34,7 +34,7 @@ The authoring skills ship in the repository's
 Install them with the [skills CLI](https://skills.sh):
 
 ```sh
-npx skills add stacklok/modelith
+npx skills add stacklok/indomain
 ```
 
 The skills require the `modelith` binary on your `PATH`.
@@ -46,7 +46,7 @@ clone this repository and launch Claude Code with the plugin directory:
 
 ```sh
 git clone https://github.com/stacklok/modelith.git
-claude --plugin-dir /path/to/modelith/plugin
+claude --plugin-dir /path/to/indomain/plugin
 ```
 
 Replace `/path/to/modelith` with the cloned checkout. The skills are namespaced

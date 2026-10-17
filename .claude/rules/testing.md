@@ -2,7 +2,7 @@
 paths:
   - "**/*_test.go"
   - "project-docs/adr/**"
-description: modelith testing discipline — naming, the guarded invariants, goldens
+description: indomain testing discipline — naming, the guarded invariants, goldens
 ---
 
 # Testing rules

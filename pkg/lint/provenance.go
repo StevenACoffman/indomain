@@ -3,7 +3,7 @@ package lint
 import (
 	"fmt"
 
-	"github.com/StevenACoffman/indomain/internal/provenance"
+	"github.com/StevenACoffman/indomain/pkg/provenance"
 )
 
 // runProvenance reports defects in the file's provenance header and verifies
@@ -43,7 +43,7 @@ func runProvenance(path string, src []byte, res *Result) bool {
 				Category: CategorySemantic,
 				Path:     "",
 				Message: fmt.Sprintf(
-					"this vendored file no longer matches the digest its provenance header records (recorded %s, computed %s) — it has been edited since it was imported. Restore it with `modelith deps update %s`, or delete the provenance header if the change is a deliberate fork, which makes this repository the file's home",
+					"this vendored file no longer matches the digest its provenance header records (recorded %s, computed %s) — it has been edited since it was imported. Restore it with `indomain deps update %s`, or delete the provenance header if the change is a deliberate fork, which makes this repository the file's home",
 					h.Digest, got, refreshTarget(path)),
 			})
 		}
@@ -51,7 +51,7 @@ func runProvenance(path string, src []byte, res *Result) bool {
 	return true
 }
 
-// refreshTarget is what to hand `modelith deps update` to restore this copy:
+// refreshTarget is what to hand `indomain deps update` to restore this copy:
 // its own path. The header already records where the file came from, so the
 // remedy needs nothing the user has to assemble by hand — and restoring a copy
 // whose origin has not moved rewrites it to exactly the bytes the import wrote.

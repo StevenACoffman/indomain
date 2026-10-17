@@ -53,7 +53,7 @@ check_file() {
 
 # extract_and_check_md pulls every ```mermaid fenced block out of a Markdown
 # file, writes each to its own temp file, and checks it. A line-oriented scan
-# is enough here: modelith's own fences are exactly ```mermaid / ``` on their
+# is enough here: indomain's own fences are exactly ```mermaid / ``` on their
 # own line, and no source under examples/ or docs/05-parking-garage/ nests
 # fences inside fences.
 extract_and_check_md() {

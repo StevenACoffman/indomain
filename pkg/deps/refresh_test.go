@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/StevenACoffman/indomain/internal/provenance"
+	"github.com/StevenACoffman/indomain/pkg/provenance"
 )
 
 // laterSHA is the commit an origin has moved to. It differs from sha in every
@@ -73,7 +73,7 @@ func update(t *testing.T, r Runner, ref string, paths ...string) []Report {
 }
 
 // moved is upstream with a real change to its content: an enum gains a value.
-const moved = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
+const moved = `# yaml-language-server: $schema=https://indomain.sh/schema/domain-model/v1.json
 kind: DomainModel
 version: v1
 title: Payments
@@ -143,9 +143,9 @@ func TestRefresh_ADOCopyIsFirstClass(t *testing.T) {
 		}
 		after := readFile(t, path)
 		for _, want := range []string{
-			"# modelith-ref-type: branch",
-			"# modelith-ref: main",
-			"# modelith-commit: " + laterSHA,
+			"# indomain-ref-type: branch",
+			"# indomain-ref: main",
+			"# indomain-commit: " + laterSHA,
 		} {
 			if !strings.Contains(after, want) {
 				t.Errorf("the refreshed copy does not contain %q:\n%s", want, after)
@@ -192,7 +192,7 @@ func vendoredOnHost(t *testing.T, origin, path, ref string) string {
 		Imported: "2026-07-27",
 		Digest:   provenance.Digest(content),
 	}
-	file := filepath.Join(t.TempDir(), "payments.modelith.yaml")
+	file := filepath.Join(t.TempDir(), "payments.indomain.yaml")
 	if err := os.WriteFile(file, provenance.Stamp(content, h), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -218,7 +218,7 @@ func TestRefresh_RefusesAnUnknownHost(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			path := vendoredOnHost(t, "https://gitlab.com/acme/billing", "docs/payments.modelith.yaml", "main")
+			path := vendoredOnHost(t, "https://gitlab.com/acme/billing", "docs/payments.indomain.yaml", "main")
 			before := readFile(t, path)
 
 			// A runner that would answer, and answer "moved", were the refusal
@@ -255,7 +255,7 @@ func TestRefresh_AnUnknownHostDoesNotStopTheRun(t *testing.T) {
 	t.Parallel()
 
 	ghPath, r := vendored(t, upstream)
-	otherPath := vendoredOnHost(t, "https://gitlab.com/acme/billing", "docs/payments.modelith.yaml", "main")
+	otherPath := vendoredOnHost(t, "https://gitlab.com/acme/billing", "docs/payments.indomain.yaml", "main")
 
 	reports := check(t, r, otherPath, ghPath)
 	if len(reports) != 2 {
@@ -280,7 +280,7 @@ func TestSurvey_ResolutionAbortsOnUnusableCLI(t *testing.T) {
 
 	path := vendoredFromADO(t)
 	// Drop the key, so the check has to resolve the type before it can fetch.
-	without := strings.Replace(readFile(t, path), "# modelith-ref-type: branch\n", "", 1)
+	without := strings.Replace(readFile(t, path), "# indomain-ref-type: branch\n", "", 1)
 	if err := os.WriteFile(path, []byte(without), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -401,7 +401,7 @@ func TestCheck_SkipsAFileWithNoProvenanceHeader(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	own := dir + "/ours.modelith.yaml"
+	own := dir + "/ours.indomain.yaml"
 	if err := os.WriteFile(own, []byte(upstream), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -422,7 +422,7 @@ func TestSurvey_ContinuesPastAFailure(t *testing.T) {
 	t.Parallel()
 
 	good, r := vendored(t, upstream)
-	missing := t.TempDir() + "/gone.modelith.yaml"
+	missing := t.TempDir() + "/gone.indomain.yaml"
 
 	reports := check(t, r, missing, good)
 	if len(reports) != 2 {
@@ -467,7 +467,7 @@ type unusableRunner struct{ calls int }
 
 func (u *unusableRunner) Run(context.Context, string, ...string) ([]byte, error) {
 	u.calls++
-	return nil, unusable{errors.New("gh is not installed — modelith delegates fetching to it")}
+	return nil, unusable{errors.New("gh is not installed — indomain delegates fetching to it")}
 }
 
 // TestUnauthenticatedMatchesTheClisOwnText pins the needles against the
@@ -590,7 +590,7 @@ func TestRefresh_ADORepinRetypesTheRef(t *testing.T) {
 	t.Parallel()
 
 	path := vendoredFromADO(t)
-	if got := readFile(t, path); !strings.Contains(got, "# modelith-ref-type: branch") {
+	if got := readFile(t, path); !strings.Contains(got, "# indomain-ref-type: branch") {
 		t.Fatalf("the fixture is not a branch-typed ADO copy:\n%s", got)
 	}
 
@@ -621,12 +621,12 @@ func TestRefresh_ADORepinRetypesTheRef(t *testing.T) {
 	}
 
 	after := readFile(t, path)
-	for _, want := range []string{"# modelith-ref: v1.0.0", "# modelith-ref-type: tag"} {
+	for _, want := range []string{"# indomain-ref: v1.0.0", "# indomain-ref-type: tag"} {
 		if !strings.Contains(after, want) {
 			t.Errorf("the re-pinned copy does not contain %q:\n%s", want, after)
 		}
 	}
-	if strings.Contains(after, "# modelith-ref-type: branch") {
+	if strings.Contains(after, "# indomain-ref-type: branch") {
 		t.Error("the header still claims the ref is a branch after a tag repin")
 	}
 }
@@ -656,7 +656,7 @@ func TestRefresh_ADORepinToACommitTypesItAsACommit(t *testing.T) {
 	if !sawCommit {
 		t.Error("the repin did not ask for a commit")
 	}
-	if after := readFile(t, path); !strings.Contains(after, "# modelith-ref-type: commit") {
+	if after := readFile(t, path); !strings.Contains(after, "# indomain-ref-type: commit") {
 		t.Errorf("the header did not record the commit type:\n%s", after)
 	}
 }
@@ -670,7 +670,7 @@ func TestRefresh_ADOHeaderWithoutRefTypeResolvesIt(t *testing.T) {
 
 	path := vendoredFromADO(t)
 	// Drop the key, as a header written by an earlier build would.
-	without := strings.Replace(readFile(t, path), "# modelith-ref-type: branch\n", "", 1)
+	without := strings.Replace(readFile(t, path), "# indomain-ref-type: branch\n", "", 1)
 	if err := os.WriteFile(path, []byte(without), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -712,7 +712,7 @@ func TestRefresh_ADOBareRefreshKeepsTheRecordedType(t *testing.T) {
 	if uri := azURI(r.calls[0]); !strings.Contains(uri, "versionType=branch") {
 		t.Errorf("a bare refresh dropped the recorded type: %s", uri)
 	}
-	if after := readFile(t, path); !strings.Contains(after, "# modelith-ref-type: branch") {
+	if after := readFile(t, path); !strings.Contains(after, "# indomain-ref-type: branch") {
 		t.Errorf("a bare refresh did not keep the recorded type:\n%s", after)
 	}
 }
@@ -738,7 +738,7 @@ func TestADR_0016_ACurrentCopyIsNotRewritten(t *testing.T) {
 	if after := readFile(t, path); after != before {
 		t.Errorf("update rewrote a current copy:\n before %q\n  after %q", before, after)
 	}
-	if !strings.Contains(before, "# modelith-imported: 2026-07-27") {
+	if !strings.Contains(before, "# indomain-imported: 2026-07-27") {
 		t.Errorf("the fixture's imported date is not the import's:\n%s", before)
 	}
 }
@@ -755,8 +755,8 @@ func TestUpdate_RefreshesAMovedOrigin(t *testing.T) {
 	}
 	after := readFile(t, path)
 	for _, want := range []string{
-		"# modelith-commit: " + laterSHA,
-		"# modelith-imported: 2026-07-28",
+		"# indomain-commit: " + laterSHA,
+		"# indomain-imported: 2026-07-28",
 		"- name: bank-transfer",
 	} {
 		if !strings.Contains(after, want) {
@@ -836,9 +836,9 @@ func TestUpdate_Repin(t *testing.T) {
 		}
 		after := readFile(t, path)
 		for _, want := range []string{
-			"# modelith-ref: v2.2.0",
-			"# modelith-commit: " + laterSHA,
-			"# modelith-imported: 2026-07-28",
+			"# indomain-ref: v2.2.0",
+			"# indomain-commit: " + laterSHA,
+			"# indomain-imported: 2026-07-28",
 		} {
 			if !strings.Contains(after, want) {
 				t.Errorf("the re-pinned copy does not contain %q:\n%s", want, after)
@@ -864,8 +864,8 @@ func TestUpdate_Repin(t *testing.T) {
 func TestUpdate_ReportsImportsItDidNotFollow(t *testing.T) {
 	t.Parallel()
 
-	path, r := vendored(t, upstream+"imports:\n  - ./ledger.modelith.yaml\n")
-	r.content = moved + "imports:\n  - ./ledger.modelith.yaml\n  - ./tax.modelith.yaml\n"
+	path, r := vendored(t, upstream+"imports:\n  - ./ledger.indomain.yaml\n")
+	r.content = moved + "imports:\n  - ./ledger.indomain.yaml\n  - ./tax.indomain.yaml\n"
 	r.sha = laterSHA
 
 	rep := update(t, r, "", path)[0]
@@ -874,7 +874,7 @@ func TestUpdate_ReportsImportsItDidNotFollow(t *testing.T) {
 	}
 	// Only the new one: the copy already declared ledger at import time, and
 	// re-warning about it on every update trains the reader to skip the note.
-	if want := []string{"./tax.modelith.yaml"}; strings.Join(rep.NewImports, ",") != strings.Join(want, ",") {
+	if want := []string{"./tax.indomain.yaml"}; strings.Join(rep.NewImports, ",") != strings.Join(want, ",") {
 		t.Errorf("NewImports = %v, want %v", rep.NewImports, want)
 	}
 	if len(r.calls) != 2 {
@@ -915,8 +915,8 @@ func TestADR_0016_HeaderDigestMismatchRequiresUpdate(t *testing.T) {
 	}
 	after := readFile(t, path)
 	for _, want := range []string{
-		"# modelith-commit: " + laterSHA,
-		"# modelith-imported: 2026-07-28",
+		"# indomain-commit: " + laterSHA,
+		"# indomain-imported: 2026-07-28",
 	} {
 		if !strings.Contains(after, want) {
 			t.Errorf("the repaired copy does not contain %q:\n%s", want, after)
@@ -1001,14 +1001,14 @@ func TestSourceFromHeader_RoundTripsWhatParseSourceDecoded(t *testing.T) {
 		path string
 		ref  string
 	}{
-		{name: "an ordinary path", path: "docs/payments.modelith.yaml", ref: "main"},
-		{name: "a percent", path: "docs/100%.modelith.yaml", ref: "main"},
-		{name: "a space and an ampersand", path: "docs/a b&c/payments.modelith.yaml", ref: "main"},
-		{name: "a question mark", path: "docs/q?.modelith.yaml", ref: "main"},
-		{name: "a hash", path: "docs/c#1.modelith.yaml", ref: "main"},
-		{name: "a slashed ref", path: "docs/payments.modelith.yaml", ref: "release/v2"},
-		{name: "a percent in the ref", path: "docs/payments.modelith.yaml", ref: "wip%2"},
-		{name: "an origin a hand wrote with a trailing slash", path: "docs/payments.modelith.yaml", ref: "main"},
+		{name: "an ordinary path", path: "docs/payments.indomain.yaml", ref: "main"},
+		{name: "a percent", path: "docs/100%.indomain.yaml", ref: "main"},
+		{name: "a space and an ampersand", path: "docs/a b&c/payments.indomain.yaml", ref: "main"},
+		{name: "a question mark", path: "docs/q?.indomain.yaml", ref: "main"},
+		{name: "a hash", path: "docs/c#1.indomain.yaml", ref: "main"},
+		{name: "a slashed ref", path: "docs/payments.indomain.yaml", ref: "release/v2"},
+		{name: "a percent in the ref", path: "docs/payments.indomain.yaml", ref: "wip%2"},
+		{name: "an origin a hand wrote with a trailing slash", path: "docs/payments.indomain.yaml", ref: "main"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1048,7 +1048,7 @@ func TestCheck_FollowsAPathThatNeededEscaping(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if h := res.Header; h.Path != "docs/100%.modelith.yaml" {
+	if h := res.Header; h.Path != "docs/100%.indomain.yaml" {
 		t.Fatalf("the header records path %q, want the decoded form", h.Path)
 	}
 	r.calls = nil
@@ -1060,7 +1060,7 @@ func TestCheck_FollowsAPathThatNeededEscaping(t *testing.T) {
 	if rep.Stale() {
 		t.Error("reported stale against an origin serving the same bytes")
 	}
-	const wantContents = "repos/acme/billing/contents/docs/100%25.modelith.yaml?ref=main"
+	const wantContents = "repos/acme/billing/contents/docs/100%25.indomain.yaml?ref=main"
 	if got := r.calls[0][len(r.calls[0])-1]; got != wantContents {
 		t.Errorf("content endpoint = %q, want %q", got, wantContents)
 	}
@@ -1082,21 +1082,21 @@ func TestVisit_RefusesAnUnusableHeader(t *testing.T) {
 		{
 			name: "a malformed digest",
 			mangle: func(s string) string {
-				return strings.Replace(s, "# modelith-digest: sha256:", "# modelith-digest: ", 1)
+				return strings.Replace(s, "# indomain-digest: sha256:", "# indomain-digest: ", 1)
 			},
 			wantErr: "sha256:<64 hex digits>",
 		},
 		{
 			name:    "an unknown key",
-			mangle:  func(s string) string { return "# modelith-source: elsewhere\n" + s },
+			mangle:  func(s string) string { return "# indomain-source: elsewhere\n" + s },
 			wantErr: "unknown provenance key",
 		},
 		{
 			name: "a missing origin",
 			mangle: func(s string) string {
-				return strings.Replace(s, "# modelith-origin: https://github.com/acme/billing\n", "", 1)
+				return strings.Replace(s, "# indomain-origin: https://github.com/acme/billing\n", "", 1)
 			},
-			wantErr: `missing "# modelith-origin"`,
+			wantErr: `missing "# indomain-origin"`,
 		},
 	}
 	for _, tc := range cases {
@@ -1114,7 +1114,7 @@ func TestVisit_RefusesAnUnusableHeader(t *testing.T) {
 			if rep.Err == nil {
 				t.Fatal("a copy with a broken header got a verdict")
 			}
-			for _, want := range []string{tc.wantErr, "modelith lint"} {
+			for _, want := range []string{tc.wantErr, "indomain lint"} {
 				if !strings.Contains(rep.Err.Error(), want) {
 					t.Errorf("error does not contain %q: %v", want, rep.Err)
 				}
@@ -1140,7 +1140,7 @@ func TestVisit_RefusesWhatTheOriginBecame(t *testing.T) {
 	}{
 		{
 			name:     "the origin is now itself a copy",
-			upstream: "# modelith-vendored: " + "DO NOT EDIT\n" + moved,
+			upstream: "# indomain-vendored: " + "DO NOT EDIT\n" + moved,
 			wantErr:  "somebody else's copy",
 		},
 		{
@@ -1186,7 +1186,7 @@ func TestMovedHint(t *testing.T) {
 	if rep.Err == nil {
 		t.Fatal("a failed fetch reported no error")
 	}
-	for _, want := range []string{"the model moved", "it was deleted", "docs/payments.modelith.yaml"} {
+	for _, want := range []string{"the model moved", "it was deleted", "docs/payments.indomain.yaml"} {
 		if !strings.Contains(rep.Err.Error(), want) {
 			t.Errorf("the 404 error does not contain %q: %v", want, rep.Err)
 		}
@@ -1202,8 +1202,8 @@ func TestSourceFromHeader(t *testing.T) {
 
 	path, r := vendored(t, upstream)
 	traversal := strings.Replace(readFile(t, path),
-		"# modelith-path: docs/payments.modelith.yaml",
-		"# modelith-path: docs/../../etc/passwd", 1)
+		"# indomain-path: docs/payments.indomain.yaml",
+		"# indomain-path: docs/../../etc/passwd", 1)
 	if err := os.WriteFile(path, []byte(traversal), 0o644); err != nil {
 		t.Fatal(err)
 	}

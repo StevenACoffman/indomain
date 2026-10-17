@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/StevenACoffman/indomain/internal/provenance"
+	"github.com/StevenACoffman/indomain/pkg/provenance"
 )
 
 // stamp returns src as a vendored copy: a well-formed provenance header whose
@@ -15,7 +15,7 @@ func stamp(t *testing.T, src string) string {
 		Vendored: provenance.Banner,
 		Fetch:    "git",
 		Origin:   "https://github.com/stacklok/some-repo",
-		Path:     "docs/payments.modelith.yaml",
+		Path:     "docs/payments.indomain.yaml",
 		Ref:      "main",
 		Commit:   "4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21",
 		Imported: "2026-07-27",
@@ -123,7 +123,7 @@ func TestVendored_ImportsRaiseNothing(t *testing.T) {
 	t.Parallel()
 
 	files := fakeFiles{".git": ""}
-	src := importer([]string{`"./nowhere.modelith.yaml"`}, "nowhere.PaymentMethod")
+	src := importer([]string{`"./nowhere.indomain.yaml"`}, "nowhere.PaymentMethod")
 
 	own := lintSource(t, src, files)
 	if len(importFindings(own.Findings)) == 0 {
@@ -143,8 +143,8 @@ func TestVendored_ImportsRaiseNothing(t *testing.T) {
 func TestVendored_ImportsStillResolveWhenTheyCan(t *testing.T) {
 	t.Parallel()
 
-	files := fakeFiles{".git": "", "docs/payments.modelith.yaml": paymentsModel}
-	src := importer([]string{`"./payments.modelith.yaml"`}, "payments.Nonexistent")
+	files := fakeFiles{".git": "", "docs/payments.indomain.yaml": paymentsModel}
+	src := importer([]string{`"./payments.indomain.yaml"`}, "payments.Nonexistent")
 
 	got := importFindings(lintSource(t, stamp(t, src), files).Findings)
 	if len(got) != 1 || !strings.Contains(got[0].Message, `names no enum "Nonexistent"`) {
@@ -192,7 +192,7 @@ func TestVendored_DigestMismatch(t *testing.T) {
 		// restoring a copy whose origin has not moved rewrites it to exactly
 		// the bytes the import wrote.
 		for _, want := range []string{
-			"modelith deps update docs/garage.modelith.yaml",
+			"indomain deps update docs/garage.indomain.yaml",
 			"delete the provenance header",
 		} {
 			if !strings.Contains(found.Message, want) {
@@ -211,9 +211,9 @@ func TestVendored_HeaderProblemsAreReported(t *testing.T) {
 		header   string
 		contains string
 	}{
-		{"unknown key", "# modelith-surface: sha256:x\n", "unknown provenance key"},
-		{"unknown fetch method", "# modelith-fetch: carrier-pigeon\n", `unknown fetch method "carrier-pigeon"`},
-		{"missing required key", "# modelith-fetch: git\n", `missing "# modelith-commit"`},
+		{"unknown key", "# indomain-surface: sha256:x\n", "unknown provenance key"},
+		{"unknown fetch method", "# indomain-fetch: carrier-pigeon\n", `unknown fetch method "carrier-pigeon"`},
+		{"missing required key", "# indomain-fetch: git\n", `missing "# indomain-commit"`},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -241,7 +241,7 @@ func TestVendored_MalformedHeaderStillSuppressesCompleteness(t *testing.T) {
 	t.Parallel()
 
 	files := fakeFiles{".git": ""}
-	for _, f := range lintSource(t, "# modelith-surface: sha256:x\n"+gappy, files).Findings {
+	for _, f := range lintSource(t, "# indomain-surface: sha256:x\n"+gappy, files).Findings {
 		if f.Category == CategoryCompleteness {
 			t.Errorf("completeness finding survived a malformed header: %s: %s", f.Path, f.Message)
 		}

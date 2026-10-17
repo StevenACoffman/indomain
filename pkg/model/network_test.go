@@ -14,7 +14,7 @@ import (
 //
 // os/exec is banned alongside the net packages on purpose: without it the rule
 // could be evaded by shelling out to curl. Commands that do use the network
-// live in cmd/modelith and delegate transport to git/gh.
+// live in cmd/indomain and delegate transport to git/gh.
 //
 // It lives here rather than in each package because the rule is one decision
 // about a set of packages, and splitting it would let a new offline package be

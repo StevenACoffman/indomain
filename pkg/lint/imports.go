@@ -8,8 +8,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/StevenACoffman/indomain/internal/model"
-	"github.com/StevenACoffman/indomain/internal/schema"
+	"github.com/StevenACoffman/indomain/pkg/model"
+	"github.com/StevenACoffman/indomain/pkg/schema"
 )
 
 // Files is the filesystem seam import resolution runs on: reading an imported
@@ -19,7 +19,7 @@ import (
 // confine imports on a filesystem the reads never touch.
 //
 // It is not an fs.FS: fs.ValidPath rejects "..", and peer models commonly sit
-// in sibling directories, so "../payments/payments.modelith.yaml" has to work.
+// in sibling directories, so "../payments/payments.indomain.yaml" has to work.
 type Files interface {
 	// ReadFile reads the named file.
 	ReadFile(path string) ([]byte, error)
@@ -208,9 +208,9 @@ func loadImports(modelPath string, m *model.Model, files Files, res *Result, ven
 			case importUnreadable:
 				reject("import %q cannot be read: %v", imp.Path, failure.err)
 			case importNotDomainModel:
-				reject("import %q is not a domain model — lint it on its own with `modelith lint` to see why", imp.Path)
+				reject("import %q is not a domain model — lint it on its own with `indomain lint` to see why", imp.Path)
 			case importUnsupportedSchema:
-				reject("import %q declares schema version %q, which this modelith does not support: %s (upgrade modelith, or move that model to a supported version)",
+				reject("import %q declares schema version %q, which this indomain does not support: %s (upgrade indomain, or move that model to a supported version)",
 					imp.Path, failure.version, strings.Join(schema.SupportedVersions(), ", "))
 			}
 			continue

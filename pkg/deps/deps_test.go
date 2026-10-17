@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/StevenACoffman/indomain/internal/provenance"
+	"github.com/StevenACoffman/indomain/pkg/provenance"
 )
 
 // fakeRunner answers the gh/az calls Import makes. It behaves like gh or az,
@@ -49,7 +49,7 @@ func (f *fakeRunner) runGh(args []string) ([]byte, error) {
 		}
 	}
 	if f.unusable != "" && strings.Contains(endpoint, f.unusable) {
-		return nil, unusable{fmt.Errorf("gh is not installed — modelith delegates fetching to it")}
+		return nil, unusable{fmt.Errorf("gh is not installed — indomain delegates fetching to it")}
 	}
 	if f.fail != "" && strings.Contains(endpoint, f.fail) {
 		return nil, fmt.Errorf("gh: HTTP 404: Not Found (%s)", endpoint)
@@ -130,7 +130,7 @@ func (f *fakeRunner) runAz(args []string) ([]byte, error) {
 		// rather than a surprise against a real endpoint.
 		body := []byte(f.content)
 		if !strings.Contains(uri, "download=true") {
-			body = []byte(`{"objectId":"` + f.sha + `","gitObjectType":"blob","path":"/payments.modelith.yaml"}`)
+			body = []byte(`{"objectId":"` + f.sha + `","gitObjectType":"blob","path":"/payments.indomain.yaml"}`)
 		}
 		if err := os.WriteFile(outPath, body, 0o644); err != nil {
 			return nil, err
@@ -225,7 +225,7 @@ func adoTypeLabel(vt string) string {
 	return vt
 }
 
-const upstream = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
+const upstream = `# yaml-language-server: $schema=https://indomain.sh/schema/domain-model/v1.json
 kind: DomainModel
 version: v1
 title: Payments
@@ -255,7 +255,7 @@ func TestParseSource(t *testing.T) {
 			want: Source{
 				Host:   HostGitHub,
 				Origin: "https://github.com/acme/billing", Owner: "acme", Repo: "billing",
-				Ref: "main", Path: "docs/payments.modelith.yaml",
+				Ref: "main", Path: "docs/payments.indomain.yaml",
 			},
 		},
 		{
@@ -264,7 +264,7 @@ func TestParseSource(t *testing.T) {
 			want: Source{
 				Host:   HostGitHub,
 				Origin: "https://github.com/acme/billing", Owner: "acme", Repo: "billing",
-				Ref: "main", Path: "docs/payments.modelith.yaml",
+				Ref: "main", Path: "docs/payments.indomain.yaml",
 			},
 		},
 		{
@@ -274,7 +274,7 @@ func TestParseSource(t *testing.T) {
 			want: Source{
 				Host:   HostGitHub,
 				Origin: "https://github.com/acme/billing", Owner: "acme", Repo: "billing",
-				Ref: "v2.1.0", Path: "docs/payments.modelith.yaml",
+				Ref: "v2.1.0", Path: "docs/payments.indomain.yaml",
 			},
 		},
 		{
@@ -286,7 +286,7 @@ func TestParseSource(t *testing.T) {
 			want: Source{
 				Host:   HostGitHub,
 				Origin: "https://github.com/acme/billing", Owner: "acme", Repo: "billing",
-				Ref: "release/v2", Path: "docs/payments.modelith.yaml",
+				Ref: "release/v2", Path: "docs/payments.indomain.yaml",
 			},
 		},
 		{
@@ -297,7 +297,7 @@ func TestParseSource(t *testing.T) {
 			want: Source{
 				Host:   HostGitHub,
 				Origin: "https://github.com/acme/billing", Owner: "acme", Repo: "billing",
-				Ref: "main", Path: "docs/payments.modelith.yaml",
+				Ref: "main", Path: "docs/payments.indomain.yaml",
 			},
 		},
 		{
@@ -321,7 +321,7 @@ func TestParseSource(t *testing.T) {
 		{
 			// The Raw button hands this one back, so it is easy to paste. Sending
 			// the reader off to ask for another host to be supported is advice
-			// about the wrong problem: the model is already where modelith looks.
+			// about the wrong problem: the model is already where indomain looks.
 			name:    "a raw URL is pointed at the blob view, not at an issue",
 			raw:     "https://raw.githubusercontent.com/acme/billing/main/docs/payments.modelith.yaml",
 			wantErr: "the same address with /blob/ in it",
@@ -385,7 +385,7 @@ func TestADR_0019_RefTypeIsRecordedOnlyWhereItIsNeeded(t *testing.T) {
 	if gh.Header.RefType != "" {
 		t.Errorf("a GitHub header carries a ref type (%q); its API needs none, and the key must be omitted", gh.Header.RefType)
 	}
-	if got := readImportFile(t, gh.Path); strings.Contains(got, "# modelith-ref-type:") {
+	if got := readImportFile(t, gh.Path); strings.Contains(got, "# indomain-ref-type:") {
 		t.Errorf("a GitHub copy was stamped with a ref-type line:\n%s", got)
 	}
 
@@ -423,7 +423,7 @@ func TestImport_StampsAVerifiableCopy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := res.Path, filepath.Join(dir, "payments.modelith.yaml"); got != want {
+	if got, want := res.Path, filepath.Join(dir, "payments.indomain.yaml"); got != want {
 		t.Errorf("wrote %s, want %s", got, want)
 	}
 	if res.Replaced {
@@ -438,7 +438,7 @@ func TestImport_StampsAVerifiableCopy(t *testing.T) {
 		Vendored: provenance.Banner,
 		Fetch:    "git",
 		Origin:   "https://github.com/acme/billing",
-		Path:     "docs/payments.modelith.yaml",
+		Path:     "docs/payments.indomain.yaml",
 		Ref:      "main",
 		Commit:   sha,
 		Imported: "2026-07-27",
@@ -477,9 +477,9 @@ func TestImport_CallsGhWithTheExpectedEndpoints(t *testing.T) {
 	}
 	want := [][]string{
 		{"gh", "api", "-H", "Accept: application/vnd.github.raw",
-			"repos/acme/billing/contents/docs/payments.modelith.yaml?ref=main"},
+			"repos/acme/billing/contents/docs/payments.indomain.yaml?ref=main"},
 		{"gh", "api",
-			"repos/acme/billing/commits?path=docs%2Fpayments.modelith.yaml&sha=main&per_page=1",
+			"repos/acme/billing/commits?path=docs%2Fpayments.indomain.yaml&sha=main&per_page=1",
 			"--jq", ".[0].sha"},
 	}
 	if len(r.calls) != len(want) {
@@ -498,11 +498,11 @@ func TestImport_EscapesAPathThatNeedsIt(t *testing.T) {
 	t.Parallel()
 
 	r := &fakeRunner{content: upstream, sha: sha}
-	url := "https://github.com/acme/billing/blob/main/docs/a b&c/payments.modelith.yaml"
+	url := "https://github.com/acme/billing/blob/main/docs/a b&c/payments.indomain.yaml"
 	if _, err := importInto(t, t.TempDir(), r, url); err != nil {
 		t.Fatal(err)
 	}
-	const wantContents = "repos/acme/billing/contents/docs/a%20b&c/payments.modelith.yaml?ref=main"
+	const wantContents = "repos/acme/billing/contents/docs/a%20b&c/payments.indomain.yaml?ref=main"
 	if got := r.calls[0][len(r.calls[0])-1]; got != wantContents {
 		t.Errorf("content endpoint = %q, want %q", got, wantContents)
 	}
@@ -515,13 +515,13 @@ func TestImport_EscapesAPathThatNeedsIt(t *testing.T) {
 func TestADR_0015_ImportFetchesOneFileNotATree(t *testing.T) {
 	t.Parallel()
 
-	chained := upstream + "imports:\n  - ./ledger.modelith.yaml\n  - ./tax.modelith.yaml\n"
+	chained := upstream + "imports:\n  - ./ledger.indomain.yaml\n  - ./tax.indomain.yaml\n"
 	r := &fakeRunner{content: chained, sha: sha}
 	res, err := importInto(t, t.TempDir(), r, blobURL)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"./ledger.modelith.yaml", "./tax.modelith.yaml"}
+	want := []string{"./ledger.indomain.yaml", "./tax.indomain.yaml"}
 	if strings.Join(res.TheirImports, ",") != strings.Join(want, ",") {
 		t.Errorf("TheirImports = %v, want %v", res.TheirImports, want)
 	}
@@ -542,7 +542,7 @@ func TestImport_Rejections(t *testing.T) {
 	}{
 		{
 			name:    "a file that is already a vendored copy",
-			runner:  &fakeRunner{content: "# modelith-origin: https://github.com/other/repo\n" + upstream, sha: sha},
+			runner:  &fakeRunner{content: "# indomain-origin: https://github.com/other/repo\n" + upstream, sha: sha},
 			url:     blobURL,
 			wantErr: "reads it as somebody else's copy",
 		},
@@ -559,7 +559,7 @@ func TestImport_Rejections(t *testing.T) {
 			wantErr: "it declares no kind",
 		},
 		{
-			// A model authored by a newer modelith parses strictly and fails.
+			// A model authored by a newer indomain parses strictly and fails.
 			// Collapsing that into "is not a domain model" sent the user to
 			// check the URL, which is not what went wrong.
 			name:    "a model this build cannot read says what the parser said",
@@ -586,7 +586,7 @@ func TestImport_Rejections(t *testing.T) {
 			name:    "a refused fetch says how the URL was split",
 			runner:  &fakeRunner{content: upstream, sha: sha, fail: "/contents/"},
 			url:     blobURL,
-			wantErr: `read "main" as the ref and "docs/payments.modelith.yaml" as the path`,
+			wantErr: `read "main" as the ref and "docs/payments.indomain.yaml" as the path`,
 		},
 	}
 	for _, tc := range cases {
@@ -630,13 +630,13 @@ func TestImport_RefusesToOverwriteWhatItDidNotWrite(t *testing.T) {
 		},
 		{
 			name: "a copy of a different model with the same filename",
-			existing: "# modelith-vendored: " + provenance.Banner + "\n" +
-				"# modelith-fetch: git\n" +
-				"# modelith-origin: https://github.com/other/repo\n" +
-				"# modelith-path: docs/payments.modelith.yaml\n" +
-				"# modelith-ref: main\n# modelith-commit: abc\n" +
-				"# modelith-imported: 2026-07-27\n" +
-				"# modelith-digest: " + provenance.Digest([]byte(own)) + "\n" + own,
+			existing: "# indomain-vendored: " + provenance.Banner + "\n" +
+				"# indomain-fetch: git\n" +
+				"# indomain-origin: https://github.com/other/repo\n" +
+				"# indomain-path: docs/payments.indomain.yaml\n" +
+				"# indomain-ref: main\n# indomain-commit: abc\n" +
+				"# indomain-imported: 2026-07-27\n" +
+				"# indomain-digest: " + provenance.Digest([]byte(own)) + "\n" + own,
 			wantErr: "is a vendored copy of https://github.com/other/repo",
 		},
 	}
@@ -644,7 +644,7 @@ func TestImport_RefusesToOverwriteWhatItDidNotWrite(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			dir := t.TempDir()
-			target := filepath.Join(dir, "payments.modelith.yaml")
+			target := filepath.Join(dir, "payments.indomain.yaml")
 			if err := os.WriteFile(target, []byte(tc.existing), 0o644); err != nil {
 				t.Fatal(err)
 			}
@@ -667,8 +667,8 @@ func TestImport_RefusesUnknownReservedPrefixAtTarget(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	target := filepath.Join(dir, "payments.modelith.yaml")
-	existing := "# modelith-note: locally owned\n" + strings.Replace(upstream, "title: Payments", "title: Ours", 1)
+	target := filepath.Join(dir, "payments.indomain.yaml")
+	existing := "# indomain-note: locally owned\n" + strings.Replace(upstream, "title: Payments", "title: Ours", 1)
 	if err := os.WriteFile(target, []byte(existing), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -703,7 +703,7 @@ func TestImport_RefusesUnknownReservedPrefixAtTarget(t *testing.T) {
 func TestSplitHint(t *testing.T) {
 	t.Parallel()
 
-	src := Source{Host: HostGitHub, Ref: "main", Path: "docs/payments.modelith.yaml"}
+	src := Source{Host: HostGitHub, Ref: "main", Path: "docs/payments.indomain.yaml"}
 	cases := []struct {
 		name string
 		src  Source
@@ -711,12 +711,12 @@ func TestSplitHint(t *testing.T) {
 		want bool
 	}{
 		{"a not-found", src, fmt.Errorf("gh: HTTP 404: Not Found"), true},
-		{"gh missing", src, fmt.Errorf("gh is not installed — modelith delegates fetching to it"), false},
+		{"gh missing", src, fmt.Errorf("gh is not installed — indomain delegates fetching to it"), false},
 		{"a rejected credential", src, fmt.Errorf("gh: HTTP 401: Bad credentials"), false},
 		{"a forbidden repository", src, fmt.Errorf("gh: HTTP 403: Forbidden"), false},
 		{"an unreachable network", src, fmt.Errorf("dial tcp: lookup api.github.com: no such host"), false},
 		{"a single-segment path has nothing to lose to the ref",
-			Source{Host: HostGitHub, Ref: "main", Path: "payments.modelith.yaml"}, fmt.Errorf("gh: HTTP 404: Not Found"), false},
+			Source{Host: HostGitHub, Ref: "main", Path: "payments.indomain.yaml"}, fmt.Errorf("gh: HTTP 404: Not Found"), false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -843,7 +843,7 @@ func TestImport_ReplacesAnEarlierCopy(t *testing.T) {
 
 const adoBlobURL = "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/payments.modelith.yaml&version=GBmain"
 
-const adoContent = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
+const adoContent = `# yaml-language-server: $schema=https://indomain.sh/schema/domain-model/v1.json
 kind: DomainModel
 version: v1
 title: Payments
@@ -890,7 +890,7 @@ func TestParseSource_ADO(t *testing.T) {
 				Repo:    "myrepo",
 				Ref:     "main",
 				RefType: "branch",
-				Path:    "docs/payments.modelith.yaml",
+				Path:    "docs/payments.indomain.yaml",
 			},
 		},
 		{
@@ -905,7 +905,7 @@ func TestParseSource_ADO(t *testing.T) {
 				Repo:    "myrepo",
 				Ref:     "release/v2",
 				RefType: "",
-				Path:    "docs/payments.modelith.yaml",
+				Path:    "docs/payments.indomain.yaml",
 			},
 		},
 		{
@@ -920,7 +920,7 @@ func TestParseSource_ADO(t *testing.T) {
 				Repo:    "myrepo",
 				Ref:     "v1.0.0",
 				RefType: "",
-				Path:    "docs/payments.modelith.yaml",
+				Path:    "docs/payments.indomain.yaml",
 			},
 		},
 		{
@@ -934,7 +934,7 @@ func TestParseSource_ADO(t *testing.T) {
 				Repo:    "myrepo",
 				Ref:     "v1.0.0",
 				RefType: "tag",
-				Path:    "docs/payments.modelith.yaml",
+				Path:    "docs/payments.indomain.yaml",
 			},
 		},
 		{
@@ -948,7 +948,7 @@ func TestParseSource_ADO(t *testing.T) {
 				Repo:    "myrepo",
 				Ref:     adoCommit,
 				RefType: "commit",
-				Path:    "docs/payments.modelith.yaml",
+				Path:    "docs/payments.indomain.yaml",
 			},
 		},
 		{
@@ -962,7 +962,7 @@ func TestParseSource_ADO(t *testing.T) {
 				Repo:    "myrepo",
 				Ref:     "main",
 				RefType: "branch",
-				Path:    "docs/payments.modelith.yaml",
+				Path:    "docs/payments.indomain.yaml",
 			},
 		},
 		{
@@ -976,7 +976,7 @@ func TestParseSource_ADO(t *testing.T) {
 				Repo:    "myrepo",
 				Ref:     "main",
 				RefType: "branch",
-				Path:    "docs/payments.modelith.yaml",
+				Path:    "docs/payments.indomain.yaml",
 			},
 		},
 		{
@@ -1017,12 +1017,12 @@ func TestParseSource_ADO(t *testing.T) {
 		{
 			name:    "backslash in path segment is rejected",
 			raw:     "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs\\payments.modelith.yaml&version=GBmain",
-			wantErr: `has a "docs\\payments.modelith.yaml" path segment`,
+			wantErr: `has a "docs\\payments.indomain.yaml" path segment`,
 		},
 		{
 			name:    "untrimmed whitespace in path segment is rejected",
-			raw:     "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/ payments.modelith.yaml&version=GBmain",
-			wantErr: `has a " payments.modelith.yaml" path segment`,
+			raw:     "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/ payments.indomain.yaml&version=GBmain",
+			wantErr: `has a " payments.indomain.yaml" path segment`,
 		},
 		{
 			name:    "legacy visualstudio.com URL offers migration hint to dev.azure.com",
@@ -1045,7 +1045,7 @@ func TestParseSource_ADO(t *testing.T) {
 				Repo:    "myrepo",
 				Ref:     "main",
 				RefType: "",
-				Path:    "docs/payments.modelith.yaml",
+				Path:    "docs/payments.indomain.yaml",
 			},
 		},
 	}
@@ -1083,7 +1083,7 @@ func TestImport_ADO_StampsAVerifiableCopy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := res.Path, filepath.Join(dir, "payments.modelith.yaml"); got != want {
+	if got, want := res.Path, filepath.Join(dir, "payments.indomain.yaml"); got != want {
 		t.Errorf("wrote %s, want %s", got, want)
 	}
 	if res.Replaced {
@@ -1098,7 +1098,7 @@ func TestImport_ADO_StampsAVerifiableCopy(t *testing.T) {
 		Vendored: provenance.Banner,
 		Fetch:    "git",
 		Origin:   "https://dev.azure.com/myorg/myproject/_git/myrepo",
-		Path:     "docs/payments.modelith.yaml",
+		Path:     "docs/payments.indomain.yaml",
 		Ref:      "main",
 		RefType:  "branch",
 		Commit:   adoCommit,
@@ -1299,7 +1299,7 @@ func TestImport_ADO_OverrideRefCommitNeedsNoRefsLookup(t *testing.T) {
 func TestImport_ADO_RejectsAlreadyVendored(t *testing.T) {
 	t.Parallel()
 
-	r := adoRunner("# modelith-origin: https://dev.azure.com/other/proj/_git/repo\n"+adoContent, adoCommit)
+	r := adoRunner("# indomain-origin: https://dev.azure.com/other/proj/_git/repo\n"+adoContent, adoCommit)
 	_, err := importAdoInto(t, t.TempDir(), r, adoBlobURL)
 	if err == nil || !strings.Contains(err.Error(), "reads it as somebody else's copy") {
 		t.Fatalf("want 'reads it as somebody else's copy', got %v", err)
@@ -1386,7 +1386,7 @@ func TestSplitHint_ADO(t *testing.T) {
 		Host:    HostADO,
 		Project: "myproject",
 		Ref:     "main",
-		Path:    "docs/payments.modelith.yaml",
+		Path:    "docs/payments.indomain.yaml",
 	}
 	if got := splitHint(src, fmt.Errorf("HTTP 404: Not Found")); got != "" {
 		t.Errorf("splitHint for ADO source should be empty, got %q", got)

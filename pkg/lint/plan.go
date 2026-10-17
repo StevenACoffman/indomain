@@ -5,8 +5,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/StevenACoffman/indomain/internal/model"
-	"github.com/StevenACoffman/indomain/internal/schema"
+	"github.com/StevenACoffman/indomain/pkg/model"
+	"github.com/StevenACoffman/indomain/pkg/schema"
 )
 
 // Input is one explicitly requested model and the bytes read for it.

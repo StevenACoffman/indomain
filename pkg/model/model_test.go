@@ -173,9 +173,9 @@ func TestParseImportForms(t *testing.T) {
 kind: DomainModel
 version: v1
 imports:
-  - ./payments.modelith.yaml
+  - ./payments.indomain.yaml
   - scope: billing
-    path: ./legacy/pay-v2.modelith.yaml
+    path: ./legacy/pay-v2.indomain.yaml
 entities:
   Project:
     definition: A thing.
@@ -185,8 +185,8 @@ entities:
 		t.Fatalf("unexpected error: %v", err)
 	}
 	want := []Import{
-		{Scope: "payments", Path: "./payments.modelith.yaml"},
-		{Scope: "billing", Path: "./legacy/pay-v2.modelith.yaml"},
+		{Scope: "payments", Path: "./payments.indomain.yaml"},
+		{Scope: "billing", Path: "./legacy/pay-v2.indomain.yaml"},
 	}
 	if len(m.Imports) != len(want) {
 		t.Fatalf("expected %d imports, got %+v", len(want), m.Imports)
@@ -204,7 +204,7 @@ func TestParseRejectsMalformedImport(t *testing.T) {
 	cases := map[string]string{
 		"null entry":      "imports:\n  - ~\n",
 		"unknown field":   "imports:\n  - {scope: a, path: b, extra: c}\n",
-		"wrong item type": "imports:\n  - [./a.modelith.yaml]\n",
+		"wrong item type": "imports:\n  - [./a.indomain.yaml]\n",
 	}
 	for name, block := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -220,13 +220,13 @@ func TestScopeFromPath(t *testing.T) {
 	t.Parallel()
 
 	cases := map[string]string{
-		"./payments.modelith.yaml":        "payments",
-		"../shared/billing.modelith.yaml": "billing",
+		"./payments.indomain.yaml":        "payments",
+		"../shared/billing.indomain.yaml": "billing",
 		// RenderedPath treats .yml as a model file, so the scope has to come out
-		// of one too: trimming only the extension would leave "payments.modelith".
-		"./payments.modelith.yml":  "payments",
+		// of one too: trimming only the extension would leave "payments.indomain".
+		"./payments.indomain.yml":  "payments",
 		"./legacy/pay-v2.yaml":     "pay-v2",
-		"./Payments.modelith.yaml": "Payments",
+		"./Payments.indomain.yaml": "Payments",
 		"noextension":              "noextension",
 	}
 	for in, want := range cases {
@@ -240,7 +240,7 @@ func TestRenderedPath(t *testing.T) {
 	t.Parallel()
 
 	cases := map[string]string{
-		"./payments.modelith.yaml": "./payments.modelith.md",
+		"./payments.indomain.yaml": "./payments.indomain.md",
 		"../a/b.yml":               "../a/b.md",
 		"weird":                    "weird.md",
 	}

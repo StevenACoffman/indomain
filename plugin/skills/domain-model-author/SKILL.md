@@ -219,8 +219,8 @@ bugs, so steer around them:
 After any edit:
 
 ```sh
-modelith lint <file>           # resolve errors; explain remaining warnings to the user
-modelith render <file>         # regenerate the committed Markdown
+indomain lint <file>           # resolve errors; explain remaining warnings to the user
+indomain render <file>         # regenerate the committed Markdown
 ```
 
 **Reading exit codes:** `modelith lint` exits non-zero when there are errors (or, with

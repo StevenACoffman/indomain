@@ -1,6 +1,6 @@
 ---
 sidebar_position: 7
-title: The modelith CLI
+title: The indomain CLI
 description: Lint and render domain models from the command line.
 ---
 
@@ -16,7 +16,7 @@ commands.
 Install the latest release with Homebrew:
 
 ```sh
-brew install stacklok/tap/modelith
+brew install stacklok/tap/indomain
 ```
 
 Or download a prebuilt binary from the
@@ -24,13 +24,13 @@ Or download a prebuilt binary from the
 source with `go install`, or build from a checkout with `task build`:
 
 ```sh
-go install github.com/stacklok/modelith/cmd/modelith@latest
+go install github.com/stacklok/indomain/cmd/indomain@latest
 ```
 
 ## `modelith lint`
 
 ```sh
-modelith lint <file>...
+indomain lint <file>...
 ```
 
 Validates one or more files across three layers — structural (JSON Schema),
@@ -45,14 +45,14 @@ Exit code is non-zero when there are errors, or when completeness gaps exist and
 `--completeness=error`. `--format json` is for CI annotations.
 
 ```sh
-modelith lint examples/example.modelith.yaml
-modelith lint --completeness error --format json model.modelith.yaml
+indomain lint examples/example.indomain.yaml
+indomain lint --completeness error --format json model.indomain.yaml
 ```
 
 ## `modelith render`
 
 ```sh
-modelith render <file>
+indomain render <file>
 ```
 
 Renders the model to a single Markdown document with an embedded Mermaid
@@ -77,8 +77,8 @@ The committed Markdown is the day-to-day read. `--check` is the CI gate that
 keeps it honest:
 
 ```sh
-modelith render model.modelith.yaml          # regenerate
-modelith render --check model.modelith.yaml  # fail if model.modelith.md is stale
+indomain render model.indomain.yaml          # regenerate
+indomain render --check model.indomain.yaml  # fail if model.indomain.md is stale
 ```
 
 ## `modelith schema`
@@ -87,7 +87,7 @@ Prints the canonical JSON Schema to stdout — handy for editor setup or piping
 into another validator.
 
 ```sh
-modelith schema > modelith.schema.json
+indomain schema > indomain.schema.json
 ```
 
 ## `modelith deps`
@@ -122,8 +122,8 @@ both select a different ref and disambiguate a URL whose ref contains `/`; in
 that case, copy the browser URL for the file at the target ref.
 
 ```sh
-modelith deps import https://github.com/acme/billing/blob/main/docs/payments.modelith.yaml docs/
-modelith deps import "https://dev.azure.com/acme/billing/_git/models?path=docs/payments.modelith.yaml&version=GBmain" docs/
+indomain deps import https://github.com/acme/billing/blob/main/docs/payments.modelith.yaml docs/
+indomain deps import "https://dev.azure.com/acme/billing/_git/models?path=docs/payments.modelith.yaml&version=GBmain" docs/
 ```
 
 ### `modelith deps check <file>...`
@@ -137,7 +137,7 @@ headers. Copies from github.com and dev.azure.com are both checked.
 | `--timeout` | `60s` | Maximum duration for each delegated `gh` or `az` fetch; `0` disables the limit. |
 
 ```sh
-modelith deps check docs/*.modelith.yaml
+indomain deps check docs/*.indomain.yaml
 ```
 
 ### `modelith deps update [--ref <ref>] <file>...`
@@ -152,8 +152,8 @@ exactly one file. The command does not edit `imports:` or lint the result.
 | `--timeout` | `60s` | Maximum duration for each delegated `gh` or `az` fetch; `0` disables the limit. |
 
 ```sh
-modelith deps update docs/*.modelith.yaml
-modelith deps update --ref v2.2.0 docs/payments.modelith.yaml
+indomain deps update docs/*.indomain.yaml
+indomain deps update --ref v2.2.0 docs/payments.indomain.yaml
 ```
 
 Use `modelith lint` after an update to find references that changed upstream.

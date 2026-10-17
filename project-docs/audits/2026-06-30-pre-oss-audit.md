@@ -110,11 +110,11 @@ License/legal and CLI/DX came back **clean**.
 
 - **[go]** `../../pkg/lint/lint.go:171` · easy · Schema recompiled on every `lint.Run` call — use `sync.Once` in schema package to cache the compiled schema
 
-- **[go]** `cmd/modelith/main.go:128` · easy · `os.ReadFile` error returned bare (inconsistent with adjacent `lint.Run` error which wraps with path). Same in renderCmd:206.
+- **[go]** `../../cmd/indomain/main.go:128` · easy · `os.ReadFile` error returned bare (inconsistent with adjacent `lint.Run` error which wraps with path). Same in renderCmd:206.
 
-- **[go]** `cmd/modelith/main_test.go:1` · easy · No CLI-level test for `--completeness=error` promoting completeness warnings to blocking exit
+- **[go]** `../../cmd/indomain/main_test.go:1` · easy · No CLI-level test for `--completeness=error` promoting completeness warnings to blocking exit
 
-- **[go]** `cmd/modelith/main_test.go:1` · easy · No test for `render --check` when committed .md file doesn't yet exist
+- **[go]** `../../cmd/indomain/main_test.go:1` · easy · No test for `render --check` when committed .md file doesn't yet exist
 
 - **[go]** `../../pkg/schema/schema.go:52` · — · `var URL` is set-once but declared as var — document as immutable; not actionable until package is public API
 
