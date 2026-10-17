@@ -45,8 +45,8 @@ Exit code is non-zero when there are errors, or when completeness gaps exist and
 `--completeness=error`. `--format json` is for CI annotations.
 
 ```sh
-indomain lint examples/example.indomain.yaml
-indomain lint --completeness error --format json model.indomain.yaml
+indomain lint examples/example.modelith.yaml
+indomain lint --completeness error --format json model.modelith.yaml
 ```
 
 ## `modelith render`
@@ -77,8 +77,8 @@ The committed Markdown is the day-to-day read. `--check` is the CI gate that
 keeps it honest:
 
 ```sh
-indomain render model.indomain.yaml          # regenerate
-indomain render --check model.indomain.yaml  # fail if model.indomain.md is stale
+indomain render model.modelith.yaml          # regenerate
+indomain render --check model.modelith.yaml  # fail if model.modelith.md is stale
 ```
 
 ## `modelith schema`
@@ -87,7 +87,7 @@ Prints the canonical JSON Schema to stdout — handy for editor setup or piping
 into another validator.
 
 ```sh
-indomain schema > indomain.schema.json
+indomain schema > modelith.schema.json
 ```
 
 ## `modelith deps`
@@ -137,7 +137,7 @@ headers. Copies from github.com and dev.azure.com are both checked.
 | `--timeout` | `60s` | Maximum duration for each delegated `gh` or `az` fetch; `0` disables the limit. |
 
 ```sh
-indomain deps check docs/*.indomain.yaml
+indomain deps check docs/*.modelith.yaml
 ```
 
 ### `modelith deps update [--ref <ref>] <file>...`
@@ -152,8 +152,8 @@ exactly one file. The command does not edit `imports:` or lint the result.
 | `--timeout` | `60s` | Maximum duration for each delegated `gh` or `az` fetch; `0` disables the limit. |
 
 ```sh
-indomain deps update docs/*.indomain.yaml
-indomain deps update --ref v2.2.0 docs/payments.indomain.yaml
+indomain deps update docs/*.modelith.yaml
+indomain deps update --ref v2.2.0 docs/payments.modelith.yaml
 ```
 
 Use `modelith lint` after an update to find references that changed upstream.

@@ -59,9 +59,9 @@ type Import struct {
 	Path  string `json:"path"`
 }
 
-// UnmarshalJSON lets an import be written as a bare path ("./payments.indomain.yaml",
+// UnmarshalJSON lets an import be written as a bare path ("./payments.modelith.yaml",
 // whose basename gives the scope) or as an object naming the scope explicitly
-// ({scope: billing, path: ./legacy/pay-v2.indomain.yaml}).
+// ({scope: billing, path: ./legacy/pay-v2.modelith.yaml}).
 func (i *Import) UnmarshalJSON(data []byte) error {
 	trimmed := bytes.TrimSpace(data)
 	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
@@ -87,14 +87,14 @@ func (i *Import) UnmarshalJSON(data []byte) error {
 }
 
 // ScopeFromPath derives the scope a bare import path binds: the basename with
-// ".indomain.yaml" or ".indomain.yml" — or failing that, the final extension —
+// ".modelith.yaml" or ".modelith.yml" — or failing that, the final extension —
 // stripped. Both spellings are stripped whole, because trimming ".yml" alone
-// leaves "payments.indomain", which is no slug at all. The result is not
+// leaves "payments.modelith", which is no slug at all. The result is not
 // guaranteed to be a valid slug; the linter reports one that isn't, since only
 // an explicitly written scope passes through the schema.
 func ScopeFromPath(p string) string {
 	base := path.Base(p)
-	for _, suffix := range []string{".indomain.yaml", ".indomain.yml"} {
+	for _, suffix := range []string{".modelith.yaml", ".modelith.yml"} {
 		if trimmed, ok := strings.CutSuffix(base, suffix); ok {
 			return trimmed
 		}

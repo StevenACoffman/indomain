@@ -27,10 +27,10 @@ func editedVendored(t *testing.T) string {
 func TestPlan_DirectVendoredChild(t *testing.T) {
 	t.Parallel()
 
-	const root = "models/root.indomain.yaml"
-	const child = "models/child.indomain.yaml"
+	const root = "models/root.modelith.yaml"
+	const child = "models/child.modelith.yaml"
 	childSource := editedVendored(t)
-	files := fakeFiles{".git": "", root: importer([]string{`"./child.indomain.yaml"`}, "child.PaymentMethod"), child: childSource}
+	files := fakeFiles{".git": "", root: importer([]string{`"./child.modelith.yaml"`}, "child.PaymentMethod"), child: childSource}
 
 	results := planned(t, []Input{{Path: root, Source: []byte(files[root])}}, files)
 	if len(results) != 2 || results[1].File != child {
@@ -44,14 +44,14 @@ func TestPlan_DirectVendoredChild(t *testing.T) {
 func TestPlan_OwnedIntermediaryReachesVendoredGrandchild(t *testing.T) {
 	t.Parallel()
 
-	const root = "models/root.indomain.yaml"
-	const middle = "models/middle.indomain.yaml"
-	const child = "models/child.indomain.yaml"
+	const root = "models/root.modelith.yaml"
+	const middle = "models/middle.modelith.yaml"
+	const child = "models/child.modelith.yaml"
 	childSource := editedVendored(t)
 	files := fakeFiles{
 		".git": "",
-		root:   importer([]string{`{scope: middle, path: "./middle.indomain.yaml"}`}, "middle.PaymentMethod"),
-		middle: importer([]string{`{scope: child, path: "./child.indomain.yaml"}`}, "child.PaymentMethod"),
+		root:   importer([]string{`{scope: middle, path: "./middle.modelith.yaml"}`}, "middle.PaymentMethod"),
+		middle: importer([]string{`{scope: child, path: "./child.modelith.yaml"}`}, "child.PaymentMethod"),
 		child:  childSource,
 	}
 
@@ -67,13 +67,13 @@ func TestPlan_OwnedIntermediaryReachesVendoredGrandchild(t *testing.T) {
 func TestPlan_SharedChildIsVerifiedOnce(t *testing.T) {
 	t.Parallel()
 
-	const root = "models/root.indomain.yaml"
-	const child = "models/child.indomain.yaml"
+	const root = "models/root.modelith.yaml"
+	const child = "models/child.modelith.yaml"
 	files := fakeFiles{
 		".git": "",
 		root: importer([]string{
-			`{scope: first, path: "./child.indomain.yaml"}`,
-			`{scope: second, path: "./child.indomain.yaml"}`,
+			`{scope: first, path: "./child.modelith.yaml"}`,
+			`{scope: second, path: "./child.modelith.yaml"}`,
 		}, "first.PaymentMethod"),
 		child: editedVendored(t),
 	}
@@ -87,13 +87,13 @@ func TestPlan_SharedChildIsVerifiedOnce(t *testing.T) {
 func TestPlan_CycleTerminates(t *testing.T) {
 	t.Parallel()
 
-	const first = "models/first.indomain.yaml"
-	const second = "models/second.indomain.yaml"
-	secondSource := stamp(t, importer([]string{`{scope: first, path: "./first.indomain.yaml"}`}, "first.PaymentMethod"))
+	const first = "models/first.modelith.yaml"
+	const second = "models/second.modelith.yaml"
+	secondSource := stamp(t, importer([]string{`{scope: first, path: "./first.modelith.yaml"}`}, "first.PaymentMethod"))
 	secondSource = strings.Replace(secondSource, "PaymentMethod", "EditedMethod", 1)
 	files := fakeFiles{
 		".git": "",
-		first:  importer([]string{`{scope: second, path: "./second.indomain.yaml"}`}, "second.PaymentMethod"),
+		first:  importer([]string{`{scope: second, path: "./second.modelith.yaml"}`}, "second.PaymentMethod"),
 		second: secondSource,
 	}
 
@@ -106,12 +106,12 @@ func TestPlan_CycleTerminates(t *testing.T) {
 func TestPlan_BrokenNestedEdgeIsSilent(t *testing.T) {
 	t.Parallel()
 
-	const root = "models/root.indomain.yaml"
-	const middle = "models/middle.indomain.yaml"
+	const root = "models/root.modelith.yaml"
+	const middle = "models/middle.modelith.yaml"
 	files := fakeFiles{
 		".git": "",
-		root:   importer([]string{`{scope: middle, path: "./middle.indomain.yaml"}`}, "middle.PaymentMethod"),
-		middle: importer([]string{`{scope: missing, path: "./missing.indomain.yaml"}`}, "missing.PaymentMethod"),
+		root:   importer([]string{`{scope: middle, path: "./middle.modelith.yaml"}`}, "middle.PaymentMethod"),
+		middle: importer([]string{`{scope: missing, path: "./missing.modelith.yaml"}`}, "missing.PaymentMethod"),
 	}
 
 	results := planned(t, []Input{{Path: root, Source: []byte(files[root])}}, files)
@@ -123,11 +123,11 @@ func TestPlan_BrokenNestedEdgeIsSilent(t *testing.T) {
 func TestPlan_ExplicitRootDiscoveredThroughImportRunsFullLintOnce(t *testing.T) {
 	t.Parallel()
 
-	const root = "models/root.indomain.yaml"
-	const child = "models/child.indomain.yaml"
+	const root = "models/root.modelith.yaml"
+	const child = "models/child.modelith.yaml"
 	files := fakeFiles{
 		".git": "",
-		root:   importer([]string{`{scope: child, path: "./child.indomain.yaml"}`}, "child.PaymentMethod"),
+		root:   importer([]string{`{scope: child, path: "./child.modelith.yaml"}`}, "child.PaymentMethod"),
 		child:  gappy,
 	}
 
@@ -149,8 +149,8 @@ func TestPlan_ExplicitRootDiscoveredThroughImportRunsFullLintOnce(t *testing.T) 
 func TestPlan_ExplicitAliasesRunFullLintInArgumentOrder(t *testing.T) {
 	t.Parallel()
 
-	const first = "./models/root.indomain.yaml"
-	const second = "models/root.indomain.yaml"
+	const first = "./models/root.modelith.yaml"
+	const second = "models/root.modelith.yaml"
 	results := planned(t, []Input{
 		{Path: first, Source: []byte(gappy)},
 		{Path: second, Source: []byte(gappy)},
@@ -175,9 +175,9 @@ func TestPlan_ExplicitAliasesRunFullLintInArgumentOrder(t *testing.T) {
 func TestPlan_StructurallyInvalidExplicitRootDoesNotSeedTraversal(t *testing.T) {
 	t.Parallel()
 
-	const root = "models/root.indomain.yaml"
-	const child = "models/child.indomain.yaml"
-	rootSource := importer([]string{`{scope: child, path: "./child.indomain.yaml"}`}, "child.PaymentMethod") + "unexpected: true\n"
+	const root = "models/root.modelith.yaml"
+	const child = "models/child.modelith.yaml"
+	rootSource := importer([]string{`{scope: child, path: "./child.modelith.yaml"}`}, "child.PaymentMethod") + "unexpected: true\n"
 	files := fakeFiles{
 		".git": "",
 		root:   rootSource,
@@ -206,13 +206,13 @@ func TestPlan_StructurallyInvalidExplicitRootDoesNotSeedTraversal(t *testing.T) 
 func TestADR_0017_VendoredIntermediaryReachesMismatchedVendoredGrandchild(t *testing.T) {
 	t.Parallel()
 
-	const root = "models/root.indomain.yaml"
-	const middle = "models/middle.indomain.yaml"
-	const child = "models/child.indomain.yaml"
+	const root = "models/root.modelith.yaml"
+	const middle = "models/middle.modelith.yaml"
+	const child = "models/child.modelith.yaml"
 	files := fakeFiles{
 		".git": "",
-		root:   importer([]string{`{scope: middle, path: "./middle.indomain.yaml"}`}, "middle.PaymentMethod"),
-		middle: stamp(t, importer([]string{`{scope: child, path: "./child.indomain.yaml"}`}, "child.PaymentMethod")),
+		root:   importer([]string{`{scope: middle, path: "./middle.modelith.yaml"}`}, "middle.PaymentMethod"),
+		middle: stamp(t, importer([]string{`{scope: child, path: "./child.modelith.yaml"}`}, "child.PaymentMethod")),
 		child:  editedVendored(t),
 	}
 
@@ -228,10 +228,10 @@ func TestADR_0017_VendoredIntermediaryReachesMismatchedVendoredGrandchild(t *tes
 func TestPlan_ReportsReadableUnsupportedVendoredChild(t *testing.T) {
 	t.Parallel()
 
-	const root = "models/root.indomain.yaml"
-	const child = "models/child.indomain.yaml"
+	const root = "models/root.modelith.yaml"
+	const child = "models/child.modelith.yaml"
 	childSource := strings.Replace(stamp(t, gappy), "version: v1", "version: v99", 1)
-	files := fakeFiles{".git": "", root: importer([]string{`"./child.indomain.yaml"`}, "child.PaymentMethod"), child: childSource}
+	files := fakeFiles{".git": "", root: importer([]string{`"./child.modelith.yaml"`}, "child.PaymentMethod"), child: childSource}
 
 	results := planned(t, []Input{{Path: root, Source: []byte(files[root])}}, files)
 	if len(results) != 2 || results[1].File != child || len(results[1].Findings) != 1 {
@@ -242,7 +242,7 @@ func TestPlan_ReportsReadableUnsupportedVendoredChild(t *testing.T) {
 func TestPlan_PreservesExplicitInputPath(t *testing.T) {
 	t.Parallel()
 
-	const path = "./models/root.indomain.yaml"
+	const path = "./models/root.modelith.yaml"
 	results := planned(t, []Input{{Path: path, Source: []byte(gappy)}}, fakeFiles{".git": ""})
 	if len(results) != 1 || results[0].File != path {
 		t.Errorf("results = %+v, want explicit path %q", results, path)
@@ -252,11 +252,11 @@ func TestPlan_PreservesExplicitInputPath(t *testing.T) {
 func TestPlan_UsesResolvedPathForDiscoveredFinding(t *testing.T) {
 	t.Parallel()
 
-	const root = "models/root.indomain.yaml"
-	const child = "models/vendor/child.indomain.yaml"
+	const root = "models/root.modelith.yaml"
+	const child = "models/vendor/child.modelith.yaml"
 	files := fakeFiles{
 		".git": "",
-		root:   importer([]string{`{scope: child, path: "./vendor/../vendor/child.indomain.yaml"}`}, "child.PaymentMethod"),
+		root:   importer([]string{`{scope: child, path: "./vendor/../vendor/child.modelith.yaml"}`}, "child.PaymentMethod"),
 		child:  editedVendored(t),
 	}
 

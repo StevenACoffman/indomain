@@ -33,14 +33,14 @@ top:
 
 ```yaml
 # yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
-# indomain-vendored: DO NOT EDIT — this file is a copy. Change it at its origin.
-# indomain-fetch: git
-# indomain-origin: https://github.com/acme/billing
-# indomain-path: docs/payments.indomain.yaml
-# indomain-ref: main
-# indomain-commit: 4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21
-# indomain-imported: 2026-07-27
-# indomain-digest: sha256:9a1f…
+# modelith-vendored: DO NOT EDIT — this file is a copy. Change it at its origin.
+# modelith-fetch: git
+# modelith-origin: https://github.com/acme/billing
+# modelith-path: docs/payments.modelith.yaml
+# modelith-ref: main
+# modelith-commit: 4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21
+# modelith-imported: 2026-07-27
+# modelith-digest: sha256:9a1f…
 ```
 
 The header is a comment, not part of the schema — a model you write yourself
@@ -63,7 +63,7 @@ never has one, and never meets any of this.
 
 ```yaml
 imports:
-  - ./docs/payments.indomain.yaml
+  - ./docs/payments.modelith.yaml
 ```
 
 The printed path is relative to the directory you ran the command in, because
@@ -166,7 +166,7 @@ The section above is about your copy. This one is about the model it came from,
 which moves on without you.
 
 ```sh
-indomain deps check docs/*.indomain.yaml
+indomain deps check docs/*.modelith.yaml
 ```
 
 ```
@@ -181,7 +181,7 @@ works as a scheduled CI job. `deps update` takes the same arguments and brings
 the copies forward:
 
 ```sh
-indomain deps update docs/ledger.indomain.yaml
+indomain deps update docs/ledger.modelith.yaml
 ```
 
 ```
@@ -201,7 +201,7 @@ unchanged; the closing line tells you how many files were skipped, so a glob
 that matched none of your copies does not read as good news. To find them:
 
 ```sh
-git grep -l '# indomain-vendored'
+git grep -l '# modelith-vendored'
 ```
 
 :::note[Azure DevOps copies record how pinned they are]
@@ -230,7 +230,7 @@ Which one you are on is whatever `# modelith-ref:` records.
   points where it did. Moving to a new version is explicit:
 
   ```sh
-  indomain deps update --ref v2.2.0 docs/payments.indomain.yaml
+  indomain deps update --ref v2.2.0 docs/payments.modelith.yaml
   ```
 
   `--ref` re-pins one copy at a time. A single ref names a different version in

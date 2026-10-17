@@ -9,22 +9,22 @@ import (
 
 // vendored is a stamped file: the editor directive, then the header, then a
 // model. Tests that need the unstamped content use plain.
-const vendored = `# yaml-language-server: $schema=https://indomain.sh/schema/domain-model/v1.json
-# indomain-vendored: DO NOT EDIT — this file is a copy. Change it at its origin.
-# indomain-fetch: git
-# indomain-origin: https://github.com/stacklok/some-repo
-# indomain-path: docs/payments.indomain.yaml
-# indomain-ref: main
-# indomain-ref-type: branch
-# indomain-commit: 4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21
-# indomain-imported: 2026-07-27
-# indomain-digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+const vendored = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
+# modelith-vendored: DO NOT EDIT — this file is a copy. Change it at its origin.
+# modelith-fetch: git
+# modelith-origin: https://github.com/stacklok/some-repo
+# modelith-path: docs/payments.modelith.yaml
+# modelith-ref: main
+# modelith-ref-type: branch
+# modelith-commit: 4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21
+# modelith-imported: 2026-07-27
+# modelith-digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
 kind: DomainModel
 version: v1
 title: Payments
 `
 
-const plain = `# yaml-language-server: $schema=https://indomain.sh/schema/domain-model/v1.json
+const plain = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
 kind: DomainModel
 version: v1
 title: Payments
@@ -40,10 +40,10 @@ func TestPresent(t *testing.T) {
 	}{
 		{"a stamped file", vendored, true},
 		{"a model this repo owns", plain, false},
-		{"an ordinary comment that only looks like one", "#indomain-fetch: git\nkind: DomainModel\n", false},
-		{"an indented provenance line is an ordinary comment", "  # indomain-fetch: git\nkind: DomainModel\n", false},
-		{"a broken header is still a header", "# indomain-nonsense: x\nkind: DomainModel\n", true},
-		{"a header displaced below the model content is still a header", plain + "# indomain-fetch: git\n", true},
+		{"an ordinary comment that only looks like one", "#modelith-fetch: git\nkind: DomainModel\n", false},
+		{"an indented provenance line is an ordinary comment", "  # modelith-fetch: git\nkind: DomainModel\n", false},
+		{"a broken header is still a header", "# modelith-nonsense: x\nkind: DomainModel\n", true},
+		{"a header displaced below the model content is still a header", plain + "# modelith-fetch: git\n", true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -66,7 +66,7 @@ func TestParse_Valid(t *testing.T) {
 		Vendored: Banner,
 		Fetch:    "git",
 		Origin:   "https://github.com/stacklok/some-repo",
-		Path:     "docs/payments.indomain.yaml",
+		Path:     "docs/payments.modelith.yaml",
 		Ref:      "main",
 		RefType:  "branch",
 		Commit:   "4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21",
@@ -100,7 +100,7 @@ func TestParse_Problems(t *testing.T) {
 				"vendored": Banner,
 				"fetch":    "git",
 				"origin":   "https://github.com/stacklok/some-repo",
-				"path":     "docs/payments.indomain.yaml",
+				"path":     "docs/payments.modelith.yaml",
 				"ref":      "main",
 				"ref-type": "branch",
 				"commit":   "4f2c1e9",
@@ -127,13 +127,13 @@ func TestParse_Problems(t *testing.T) {
 	}{
 		{
 			name:     "an unknown key names the ones that exist",
-			src:      "# indomain-surface: sha256:x\n" + plain,
+			src:      "# modelith-surface: sha256:x\n" + plain,
 			wantLine: 1,
-			contains: `unknown provenance key "# indomain-surface"`,
+			contains: `unknown provenance key "# modelith-surface"`,
 		},
 		{
 			name:     "a duplicate key names both lines",
-			src:      "# indomain-ref: main\n# indomain-ref: other\n" + plain,
+			src:      "# modelith-ref: main\n# modelith-ref: other\n" + plain,
 			wantLine: 2,
 			contains: `appears twice, on lines 1 and 2`,
 		},
@@ -141,7 +141,7 @@ func TestParse_Problems(t *testing.T) {
 			name:     "a missing required key is reported without a line",
 			src:      header(map[string]string{"commit": ""}),
 			wantLine: 0,
-			contains: `missing "# indomain-commit"`,
+			contains: `missing "# modelith-commit"`,
 		},
 		{
 			name:     "an unknown fetch method points at the issue tracker",
@@ -163,7 +163,7 @@ func TestParse_Problems(t *testing.T) {
 		},
 		{
 			name:     "a provenance line below the model content is misplaced",
-			src:      "# indomain-fetch: git\n" + plain + "# indomain-origin: https://github.com/stacklok/some-repo\n",
+			src:      "# modelith-fetch: git\n" + plain + "# modelith-origin: https://github.com/stacklok/some-repo\n",
 			wantLine: 6,
 			contains: "below the leading comment block",
 		},
@@ -270,7 +270,7 @@ func TestDigest_IgnoresEveryHeaderChange(t *testing.T) {
 }
 
 // TestDigest_CoversALineBelowTheHeader pins the other half of the strip rule:
-// only the leading comment block is header, so a "# indomain-" line anywhere
+// only the leading comment block is header, so a "# modelith-" line anywhere
 // below it is content the digest covers. Stripping it there would make an edit
 // that adds or removes one invisible to drift detection — and would make a model
 // this repository owns, which happened to carry such a comment, read as
@@ -278,11 +278,11 @@ func TestDigest_IgnoresEveryHeaderChange(t *testing.T) {
 func TestDigest_CoversALineBelowTheHeader(t *testing.T) {
 	t.Parallel()
 
-	added := vendored + "# indomain-fetch: git\n"
+	added := vendored + "# modelith-fetch: git\n"
 	if Digest([]byte(added)) == Digest([]byte(vendored)) {
 		t.Error("a provenance-looking line added below the model left the digest unchanged")
 	}
-	if !strings.Contains(string(Strip([]byte(added))), "# indomain-fetch: git") {
+	if !strings.Contains(string(Strip([]byte(added))), "# modelith-fetch: git") {
 		t.Error("Strip removed a line below the leading comment block")
 	}
 }
@@ -350,7 +350,7 @@ func TestStamp(t *testing.T) {
 		Vendored: Banner,
 		Fetch:    "git",
 		Origin:   "https://github.com/stacklok/some-repo",
-		Path:     "docs/payments.indomain.yaml",
+		Path:     "docs/payments.modelith.yaml",
 		Ref:      "main",
 		Commit:   "4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21",
 		Imported: "2026-07-27",

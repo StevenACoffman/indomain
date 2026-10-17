@@ -38,7 +38,7 @@ func TestURLConsistency(t *testing.T) {
 	}
 
 	// The worked example's header must point at the current canonical URL.
-	const example = "../../examples/example.indomain.yaml"
+	const example = "../../examples/example.modelith.yaml"
 	data, err := os.ReadFile(example)
 	if err != nil {
 		t.Fatalf("reading %s: %v", example, err)

@@ -21,12 +21,12 @@ import (
 //
 // Present asks a different question and deliberately answers it more broadly;
 // see its own comment.
-const LinePrefix = "# indomain-"
+const LinePrefix = "# modelith-"
 
 // lineRE matches one provenance line and splits it into key and value. The
 // value is everything after the colon, trimmed; a free-text value such as the
 // vendored banner is deliberately unconstrained.
-var lineRE = regexp.MustCompile(`^# indomain-([a-z][a-z0-9-]*):(.*)$`)
+var lineRE = regexp.MustCompile(`^# modelith-([a-z][a-z0-9-]*):(.*)$`)
 
 // digestRE is the recorded digest's shape.
 var digestRE = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
@@ -241,7 +241,7 @@ func (h *Header) Verify(src []byte) (ok bool, got string) {
 }
 
 // Strip returns src with its header removed, which is the content the digest
-// covers. Only the leading comment block is stripped: a "# indomain-" line
+// covers. Only the leading comment block is stripped: a "# modelith-" line
 // below it is not header, and Parse reports it as misplaced rather than reading
 // it (see LinePrefix). Removing it here would let an edit that added or removed
 // one leave the digest untouched, which is the drift the digest exists to see.

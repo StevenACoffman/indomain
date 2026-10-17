@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: stacklok/indomain@v0.5.0
         with:
-          files: "model.indomain.yaml"
+          files: "model.modelith.yaml"
           version: v0.5.0
           completeness: warn
           check-rendered: true

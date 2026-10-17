@@ -151,7 +151,7 @@ this command prints the entry to add.`),
   indomain deps import https://github.com/acme/billing/blob/main/docs/payments.modelith.yaml
   indomain deps import https://github.com/acme/billing/blob/main/docs/payments.modelith.yaml docs/
   indomain deps import --ref v2.1.0 https://github.com/acme/billing/blob/main/docs/payments.modelith.yaml
-  indomain deps import "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/payments.indomain.yaml&version=GBmain"`),
+  indomain deps import "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/payments.modelith.yaml&version=GBmain"`),
 		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir := "."
@@ -271,8 +271,8 @@ is written.
 Each fetch is bounded by --timeout (default 60s, 0 disables the bound): a hung
 CLI fails fast instead of stalling the run.`),
 		Example: strings.TrimSpace(`
-  indomain deps check docs/payments.indomain.yaml
-  indomain deps check docs/*.indomain.yaml`),
+  indomain deps check docs/payments.modelith.yaml
+  indomain deps check docs/*.modelith.yaml`),
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			reports, err := deps.Check(cmd.Context(), deps.CheckOptions{Paths: args, Timeout: timeout})
@@ -324,9 +324,9 @@ dev.azure.com ones, each of which must be installed and authenticated.
 Each fetch is bounded by --timeout (default 60s, 0 disables the bound): a hung
 CLI fails fast instead of stalling the run.`),
 		Example: strings.TrimSpace(`
-  indomain deps update docs/payments.indomain.yaml
-  indomain deps update docs/*.indomain.yaml
-  indomain deps update --ref v2.2.0 docs/payments.indomain.yaml`),
+  indomain deps update docs/payments.modelith.yaml
+  indomain deps update docs/*.modelith.yaml
+  indomain deps update --ref v2.2.0 docs/payments.modelith.yaml`),
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			reports, err := deps.Update(cmd.Context(), deps.UpdateOptions{
@@ -515,10 +515,10 @@ func lintCmd() *cobra.Command {
 		Use:   "lint <file>...",
 		Short: "Validate domain-model files (structural, semantic, completeness)",
 		Example: strings.TrimSpace(`
-  indomain lint model.indomain.yaml
-  indomain lint services/*.indomain.yaml            # multiple files / globs
-  indomain lint --completeness error model.indomain.yaml
-  indomain lint --format json model.indomain.yaml   # machine-readable for CI`),
+  indomain lint model.modelith.yaml
+  indomain lint services/*.modelith.yaml            # multiple files / globs
+  indomain lint --completeness error model.modelith.yaml
+  indomain lint --format json model.modelith.yaml   # machine-readable for CI`),
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			switch completeness {
@@ -610,10 +610,10 @@ func renderCmd() *cobra.Command {
 		Use:   "render <file>",
 		Short: "Render a domain-model file to Markdown (with embedded Mermaid)",
 		Example: strings.TrimSpace(`
-  indomain render model.indomain.yaml            # write model.indomain.md beside the source
-  indomain render -o out.md model.indomain.yaml  # write to a specific path
-  indomain render --stdout model.indomain.yaml   # write to stdout instead of a file
-  indomain render --check model.indomain.yaml    # CI gate: fail if the committed .md is stale`),
+  indomain render model.modelith.yaml            # write model.modelith.md beside the source
+  indomain render -o out.md model.modelith.yaml  # write to a specific path
+  indomain render --stdout model.modelith.yaml   # write to stdout instead of a file
+  indomain render --check model.modelith.yaml    # CI gate: fail if the committed .md is stale`),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			in := args[0]
@@ -655,7 +655,7 @@ func renderCmd() *cobra.Command {
 			// copy, which is right for lint: the header defects are reported and
 			// the completeness noise is suppressed. Skipping on that same answer
 			// would be silent, and would hand the exemption to a model this
-			// repository owns that merely carries a "# indomain-" comment. An
+			// repository owns that merely carries a "# modelith-" comment. An
 			// exemption needs a valid claim, so a file whose header does not
 			// parse cleanly is checked like any other — its defects are already
 			// failing `indomain lint`.
@@ -765,7 +765,7 @@ func schemaCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "schema",
 		Short:   "Print the canonical JSON Schema",
-		Example: "  indomain schema > indomain.schema.json",
+		Example: "  indomain schema > modelith.schema.json",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, err := cmd.OutOrStdout().Write(schema.JSON())

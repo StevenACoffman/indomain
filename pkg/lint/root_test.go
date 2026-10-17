@@ -57,7 +57,7 @@ func m5Tree(t *testing.T) string {
 		t.Fatal(err)
 	}
 	for _, dir := range []string{"repo", "repo/docs", "repo-evil", "outside", "wt", "loose/a", "loose/ab", "loose/b", "inner/models"} {
-		if err := os.WriteFile(filepath.Join(base, dir, "p.indomain.yaml"), []byte(paymentsModel), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(base, dir, "p.modelith.yaml"), []byte(paymentsModel), 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -66,10 +66,10 @@ func m5Tree(t *testing.T) string {
 	if err := os.Symlink(filepath.Join(base, "inner", "models"), filepath.Join(base, "outer", "work")); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(base, "outside", "p.indomain.yaml"), filepath.Join(base, "repo/docs", "link.indomain.yaml")); err != nil {
+	if err := os.Symlink(filepath.Join(base, "outside", "p.modelith.yaml"), filepath.Join(base, "repo/docs", "link.modelith.yaml")); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(base, "outside", "gone.indomain.yaml"), filepath.Join(base, "repo/docs", "dangle.indomain.yaml")); err != nil {
+	if err := os.Symlink(filepath.Join(base, "outside", "gone.modelith.yaml"), filepath.Join(base, "repo/docs", "dangle.modelith.yaml")); err != nil {
 		t.Fatal(err)
 	}
 	return base
@@ -98,28 +98,28 @@ func TestADR_0013_ImportsConfinedToTheRepository(t *testing.T) {
 		{
 			name:  "peer inside the repository",
 			dir:   "repo/docs",
-			entry: "{scope: p, path: ./p.indomain.yaml}",
+			entry: "{scope: p, path: ./p.modelith.yaml}",
 		},
 		{
 			name:  "parent-relative inside the repository",
 			dir:   "repo/docs",
-			entry: "{scope: p, path: ../p.indomain.yaml}",
+			entry: "{scope: p, path: ../p.modelith.yaml}",
 		},
 		{
 			name:  "model sitting at the repository root",
 			dir:   "repo",
-			entry: "{scope: p, path: ./p.indomain.yaml}",
+			entry: "{scope: p, path: ./p.modelith.yaml}",
 		},
 		{
 			name:  "linked worktree, where .git is a file",
 			dir:   "wt/docs",
-			entry: "{scope: p, path: ../p.indomain.yaml}",
+			entry: "{scope: p, path: ../p.modelith.yaml}",
 		},
 		{
 			name:     "escaping the repository root",
 			dir:      "repo/docs",
-			entry:    "{scope: p, path: ../../outside/p.indomain.yaml}",
-			resolved: "outside/p.indomain.yaml",
+			entry:    "{scope: p, path: ../../outside/p.modelith.yaml}",
+			resolved: "outside/p.modelith.yaml",
 			root:     "repo",
 			inRepo:   true,
 		},
@@ -127,8 +127,8 @@ func TestADR_0013_ImportsConfinedToTheRepository(t *testing.T) {
 			// Judged by where the link points, not by where the link file sits.
 			name:     "symlink inside the repository pointing outside",
 			dir:      "repo/docs",
-			entry:    "{scope: p, path: ./link.indomain.yaml}",
-			resolved: "outside/p.indomain.yaml",
+			entry:    "{scope: p, path: ./link.modelith.yaml}",
+			resolved: "outside/p.modelith.yaml",
 			root:     "repo",
 			inRepo:   true,
 		},
@@ -137,8 +137,8 @@ func TestADR_0013_ImportsConfinedToTheRepository(t *testing.T) {
 			// as unreadable, which is the oracle answer the boundary removes.
 			name:     "dangling symlink pointing outside",
 			dir:      "repo/docs",
-			entry:    "{scope: p, path: ./dangle.indomain.yaml}",
-			resolved: "outside/gone.indomain.yaml",
+			entry:    "{scope: p, path: ./dangle.modelith.yaml}",
+			resolved: "outside/gone.modelith.yaml",
 			root:     "repo",
 			inRepo:   true,
 		},
@@ -146,8 +146,8 @@ func TestADR_0013_ImportsConfinedToTheRepository(t *testing.T) {
 			// A string prefix would read "…/repo-evil" as inside "…/repo".
 			name:     "sibling whose name shares a prefix with the root",
 			dir:      "repo/docs",
-			entry:    "{scope: p, path: ../../repo-evil/p.indomain.yaml}",
-			resolved: "repo-evil/p.indomain.yaml",
+			entry:    "{scope: p, path: ../../repo-evil/p.modelith.yaml}",
+			resolved: "repo-evil/p.modelith.yaml",
 			root:     "repo",
 			inRepo:   true,
 		},
@@ -157,35 +157,35 @@ func TestADR_0013_ImportsConfinedToTheRepository(t *testing.T) {
 			// model nor its peer, and refuses a file in the same directory.
 			name:  "model reached through a symlinked directory",
 			dir:   "outer/work",
-			entry: "{scope: p, path: ./p.indomain.yaml}",
+			entry: "{scope: p, path: ./p.modelith.yaml}",
 		},
 		{
 			// The boundary still holds from there, and names the real tree's
 			// root rather than the one the link was written under.
 			name:     "escaping from a symlinked directory",
 			dir:      "outer/work",
-			entry:    "{scope: p, path: ../../outside/p.indomain.yaml}",
-			resolved: "outside/p.indomain.yaml",
+			entry:    "{scope: p, path: ../../outside/p.modelith.yaml}",
+			resolved: "outside/p.modelith.yaml",
 			root:     "inner",
 			inRepo:   true,
 		},
 		{
 			name:  "no repository, same directory",
 			dir:   "loose/a",
-			entry: "{scope: p, path: ./p.indomain.yaml}",
+			entry: "{scope: p, path: ./p.modelith.yaml}",
 		},
 		{
 			name:     "no repository, sibling directory",
 			dir:      "loose/a",
-			entry:    "{scope: p, path: ../b/p.indomain.yaml}",
-			resolved: "loose/b/p.indomain.yaml",
+			entry:    "{scope: p, path: ../b/p.modelith.yaml}",
+			resolved: "loose/b/p.modelith.yaml",
 			root:     "loose/a",
 		},
 		{
 			name:     "no repository, sibling sharing a prefix",
 			dir:      "loose/a",
-			entry:    "{scope: p, path: ../ab/p.indomain.yaml}",
-			resolved: "loose/ab/p.indomain.yaml",
+			entry:    "{scope: p, path: ../ab/p.modelith.yaml}",
+			resolved: "loose/ab/p.modelith.yaml",
 			root:     "loose/a",
 		},
 	}
@@ -194,7 +194,7 @@ func TestADR_0013_ImportsConfinedToTheRepository(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			modelPath := filepath.Join(base, tc.dir, fmt.Sprintf("g%d.indomain.yaml", i))
+			modelPath := filepath.Join(base, tc.dir, fmt.Sprintf("g%d.modelith.yaml", i))
 			src := importer([]string{tc.entry}, "p.PaymentMethod")
 			if err := os.WriteFile(modelPath, []byte(src), 0o600); err != nil {
 				t.Fatal(err)
@@ -240,13 +240,13 @@ func TestWithinRoot(t *testing.T) {
 		root, candidate string
 		want            bool
 	}{
-		{"/repo", "/repo/docs/p.indomain.yaml", true},
+		{"/repo", "/repo/docs/p.modelith.yaml", true},
 		{"/repo", "/repo", true},
-		{"/repo", "/repo-evil/p.indomain.yaml", false},
-		{"/repo", "/repository/p.indomain.yaml", false},
+		{"/repo", "/repo-evil/p.modelith.yaml", false},
+		{"/repo", "/repository/p.modelith.yaml", false},
 		{"/repo", "/etc/passwd", false},
 		{"/repo", "/", false},
-		{"/repo/docs", "/repo/p.indomain.yaml", false},
+		{"/repo/docs", "/repo/p.modelith.yaml", false},
 	}
 	for _, tc := range cases {
 		root, candidate := filepath.FromSlash(tc.root), filepath.FromSlash(tc.candidate)

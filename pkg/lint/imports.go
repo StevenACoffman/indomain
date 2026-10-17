@@ -19,7 +19,7 @@ import (
 // confine imports on a filesystem the reads never touch.
 //
 // It is not an fs.FS: fs.ValidPath rejects "..", and peer models commonly sit
-// in sibling directories, so "../payments/payments.indomain.yaml" has to work.
+// in sibling directories, so "../payments/payments.modelith.yaml" has to work.
 type Files interface {
 	// ReadFile reads the named file.
 	ReadFile(path string) ([]byte, error)

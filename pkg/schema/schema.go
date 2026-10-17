@@ -1,6 +1,6 @@
 // Package schema holds the canonical JSON Schemas for a Stacklok domain model,
 // one per format version, and helpers to compile them. The schema files
-// themselves (vN/indomain.schema.json) are the source of truth. Each has a
+// themselves (vN/modelith.schema.json) are the source of truth. Each has a
 // canonical URL (see URLFor) for use in a
 // "# yaml-language-server: $schema=" header.
 //

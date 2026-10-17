@@ -10,7 +10,7 @@ import (
 )
 
 // TestADR_0009_NoSelfModel guards ADR-0009: indomain's own domain is not
-// modelled in a *.indomain.yaml. The vocabulary lives in the schema, these
+// modelled in a *.modelith.yaml. The vocabulary lives in the schema, these
 // structs, and docs/06-schema-reference.md, two of which TestSchemaStructSync
 // holds in sync; a self-model would be a fourth, unchecked copy.
 //
@@ -20,9 +20,9 @@ func TestADR_0009_NoSelfModel(t *testing.T) {
 	t.Parallel()
 
 	allowed := map[string]string{
-		"examples/example.indomain.yaml":                "the worked example (golden fixture)",
-		"docs/05-parking-garage/garage.indomain.yaml":   "the docs example (golden fixture)",
-		"docs/05-parking-garage/payments.indomain.yaml": "the docs example's imported peer model (golden fixture)",
+		"examples/example.modelith.yaml":                "the worked example (golden fixture)",
+		"docs/05-parking-garage/garage.modelith.yaml":   "the docs example (golden fixture)",
+		"docs/05-parking-garage/payments.modelith.yaml": "the docs example's imported peer model (golden fixture)",
 	}
 
 	root := repoRoot(t)
@@ -36,7 +36,7 @@ func TestADR_0009_NoSelfModel(t *testing.T) {
 		if d.IsDir() && strings.HasPrefix(d.Name(), ".") && path != root {
 			return fs.SkipDir
 		}
-		if d.IsDir() || !strings.HasSuffix(d.Name(), ".indomain.yaml") {
+		if d.IsDir() || !strings.HasSuffix(d.Name(), ".modelith.yaml") {
 			return nil
 		}
 		rel, err := filepath.Rel(root, path)
@@ -54,7 +54,7 @@ func TestADR_0009_NoSelfModel(t *testing.T) {
 	for _, rel := range found {
 		if _, ok := allowed[rel]; !ok {
 			t.Errorf("unexpected model file %s\n"+
-				"indomain does not model itself: see project-docs/adr/0009-indomain-is-not-modelled-in-indomain.md.\n"+
+				"indomain does not model itself: see project-docs/adr/0009-modelith-is-not-modelled-in-modelith.md.\n"+
 				"If this is a legitimate new example, add it to the allowlist in this test.", rel)
 		}
 	}

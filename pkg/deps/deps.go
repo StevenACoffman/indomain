@@ -193,7 +193,7 @@ func parseGitHubSource(u *url.URL, ref string) (Source, error) {
 	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
 	if len(parts) < 5 || parts[2] != "blob" {
 		return Source{}, fmt.Errorf(
-			"%q is not a GitHub file URL — it should look like https://github.com/<owner>/<repo>/blob/<ref>/<path to the .indomain.yaml>, which is the address you get by opening the file on github.com",
+			"%q is not a GitHub file URL — it should look like https://github.com/<owner>/<repo>/blob/<ref>/<path to the .modelith.yaml>, which is the address you get by opening the file on github.com",
 			u.String())
 	}
 	for _, p := range parts {
@@ -375,7 +375,7 @@ func Import(ctx context.Context, opts Options) (*Result, error) {
 	m, err := model.Parse(content)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"%s did not parse as a domain model — check that the URL names a *.indomain.yaml file, and that this indomain is new enough to read it: %w",
+			"%s did not parse as a domain model — check that the URL names a *.modelith.yaml file, and that this indomain is new enough to read it: %w",
 			opts.URL, err)
 	}
 	if m.Kind != "DomainModel" {

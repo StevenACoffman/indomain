@@ -260,7 +260,7 @@ the payments model. The payments model needs no changes at all — it doesn't kn
 it is being referenced:
 
 ```yaml
-# payments.indomain.yaml — an ordinary model that happens to define the enum
+# payments.modelith.yaml — an ordinary model that happens to define the enum
 enums:
   PaymentMethod:
     values:
@@ -274,9 +274,9 @@ importing model derives the scope `payments` from
 `./payments.modelith.yaml`; `payments.PaymentMethod` uses that scope:
 
 ```yaml
-# garage.indomain.yaml
+# garage.modelith.yaml
 imports:
-  - ./payments.indomain.yaml
+  - ./payments.modelith.yaml
 
 # ... in Ticket:
       - name: paidWith

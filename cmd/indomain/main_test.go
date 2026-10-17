@@ -46,7 +46,7 @@ func writeTemp(t *testing.T, dir, name, content string) string {
 }
 
 func TestLintCleanFileSucceeds(t *testing.T) {
-	f := writeTemp(t, t.TempDir(), "ok.indomain.yaml", minimalValid)
+	f := writeTemp(t, t.TempDir(), "ok.modelith.yaml", minimalValid)
 	out, err := run(t, "lint", f)
 	if err != nil {
 		t.Fatalf("expected clean lint, got error: %v\noutput:\n%s", err, out)
@@ -66,7 +66,7 @@ entities:
       - entity: Nonexistent
         cardinality: "1:1"
 `
-	f := writeTemp(t, t.TempDir(), "bad.indomain.yaml", bad)
+	f := writeTemp(t, t.TempDir(), "bad.modelith.yaml", bad)
 	_, err := run(t, "lint", f)
 	if !errors.Is(err, errBlocking) {
 		t.Fatalf("expected errBlocking (non-zero exit), got %v", err)
@@ -83,7 +83,7 @@ entities:
       - entity: Nonexistent
         cardinality: "1:1"
 `
-	f := writeTemp(t, t.TempDir(), "bad.indomain.yaml", bad)
+	f := writeTemp(t, t.TempDir(), "bad.modelith.yaml", bad)
 	// Blocking findings still return errBlocking; we only assert the JSON shape.
 	out, _ := run(t, "lint", "--format", "json", f)
 	var payload struct {
@@ -105,7 +105,7 @@ entities:
 }
 
 func TestLintInvalidFlagValues(t *testing.T) {
-	f := writeTemp(t, t.TempDir(), "ok.indomain.yaml", minimalValid)
+	f := writeTemp(t, t.TempDir(), "ok.modelith.yaml", minimalValid)
 	for _, tc := range []struct {
 		name, flag, val, want string
 	}{
@@ -130,13 +130,13 @@ func TestLintMissingFileErrors(t *testing.T) {
 
 func TestLintReportsDiscoveredVendoredChildUnderChildPath(t *testing.T) {
 	dir := t.TempDir()
-	childPath := filepath.Join(dir, "child.indomain.yaml")
+	childPath := filepath.Join(dir, "child.modelith.yaml")
 	child := strings.Replace(minimalValid, "A thing that exists in the model.", "A changed thing.", 1)
-	writeTemp(t, dir, "child.indomain.yaml", vendorHeader(minimalValid)+child)
-	rootPath := writeTemp(t, dir, "root.indomain.yaml", `kind: DomainModel
+	writeTemp(t, dir, "child.modelith.yaml", vendorHeader(minimalValid)+child)
+	rootPath := writeTemp(t, dir, "root.modelith.yaml", `kind: DomainModel
 version: v1
 imports:
-  - ./child.indomain.yaml
+  - ./child.modelith.yaml
 entities:
   Root:
     definition: The root model.
@@ -153,13 +153,13 @@ entities:
 
 func TestLintDoesNotDuplicateExplicitDiscoveredChild(t *testing.T) {
 	dir := t.TempDir()
-	childPath := filepath.Join(dir, "child.indomain.yaml")
+	childPath := filepath.Join(dir, "child.modelith.yaml")
 	child := strings.Replace(minimalValid, "A thing that exists in the model.", "A changed thing.", 1)
-	writeTemp(t, dir, "child.indomain.yaml", vendorHeader(minimalValid)+child)
-	rootPath := writeTemp(t, dir, "root.indomain.yaml", `kind: DomainModel
+	writeTemp(t, dir, "child.modelith.yaml", vendorHeader(minimalValid)+child)
+	rootPath := writeTemp(t, dir, "root.modelith.yaml", `kind: DomainModel
 version: v1
 imports:
-  - ./child.indomain.yaml
+  - ./child.modelith.yaml
 entities:
   Root:
     definition: The root model.
@@ -194,12 +194,12 @@ entities:
 
 func TestRenderWritesFileBesideSource(t *testing.T) {
 	dir := t.TempDir()
-	yamlPath := writeTemp(t, dir, "m.indomain.yaml", minimalValid)
+	yamlPath := writeTemp(t, dir, "m.modelith.yaml", minimalValid)
 	out, err := run(t, "render", yamlPath)
 	if err != nil {
 		t.Fatalf("render failed: %v\noutput:\n%s", err, out)
 	}
-	mdPath := filepath.Join(dir, "m.indomain.md")
+	mdPath := filepath.Join(dir, "m.modelith.md")
 	rendered, err := os.ReadFile(mdPath)
 	if err != nil {
 		t.Fatalf("expected %s to be written: %v", mdPath, err)
@@ -215,7 +215,7 @@ func TestRenderWritesFileBesideSource(t *testing.T) {
 
 func TestRenderOutFlagWritesToPath(t *testing.T) {
 	dir := t.TempDir()
-	yamlPath := writeTemp(t, dir, "m.indomain.yaml", minimalValid)
+	yamlPath := writeTemp(t, dir, "m.modelith.yaml", minimalValid)
 	target := filepath.Join(dir, "custom.md")
 	if _, err := run(t, "render", "-o", target, yamlPath); err != nil {
 		t.Fatalf("render -o failed: %v", err)
@@ -227,7 +227,7 @@ func TestRenderOutFlagWritesToPath(t *testing.T) {
 
 func TestRenderStdoutDoesNotWriteFile(t *testing.T) {
 	dir := t.TempDir()
-	yamlPath := writeTemp(t, dir, "m.indomain.yaml", minimalValid)
+	yamlPath := writeTemp(t, dir, "m.modelith.yaml", minimalValid)
 	out, err := run(t, "render", "--stdout", yamlPath)
 	if err != nil {
 		t.Fatalf("render --stdout failed: %v", err)
@@ -235,7 +235,7 @@ func TestRenderStdoutDoesNotWriteFile(t *testing.T) {
 	if !strings.Contains(out, "Thing") {
 		t.Fatalf("expected rendered Markdown on stdout, got:\n%s", out)
 	}
-	if _, err := os.Stat(filepath.Join(dir, "m.indomain.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(dir, "m.modelith.md")); !os.IsNotExist(err) {
 		t.Fatal("--stdout should not write a file beside the source")
 	}
 }
@@ -259,7 +259,7 @@ enums:
     values:
       - {name: card, definition: A card payment.}
 `
-	paymentsYAML := writeTemp(t, srcDir, "payments.indomain.yaml", payments)
+	paymentsYAML := writeTemp(t, srcDir, "payments.modelith.yaml", payments)
 	if _, err := run(t, "render", paymentsYAML); err != nil {
 		t.Fatalf("rendering the imported model failed: %v", err)
 	}
@@ -267,14 +267,14 @@ enums:
 	const main = `kind: DomainModel
 version: v1
 imports:
-  - ./payments.indomain.yaml
+  - ./payments.modelith.yaml
 entities:
   Ticket:
     definition: A parking ticket.
     attributes:
       - {name: paidWith, type: payments.PaymentMethod, description: how the fee was paid}
 `
-	mainYAML := writeTemp(t, srcDir, "main.indomain.yaml", main)
+	mainYAML := writeTemp(t, srcDir, "main.modelith.yaml", main)
 
 	outDir := t.TempDir() // a distinct temp dir: no shared ancestor but the OS temp root.
 	target := filepath.Join(outDir, "rendered.md")
@@ -317,7 +317,7 @@ version: v1
 entities:
   Thing: {}
 `
-	f := writeTemp(t, t.TempDir(), "invalid.indomain.yaml", invalid)
+	f := writeTemp(t, t.TempDir(), "invalid.modelith.yaml", invalid)
 	_, err := run(t, "render", f)
 	if err == nil {
 		t.Fatal("expected a structural error rendering an invalid file, got nil")
@@ -329,8 +329,8 @@ entities:
 
 func TestRenderCheckDetectsDrift(t *testing.T) {
 	dir := t.TempDir()
-	yamlPath := writeTemp(t, dir, "m.indomain.yaml", minimalValid)
-	writeTemp(t, dir, "m.indomain.md", "stale content\n")
+	yamlPath := writeTemp(t, dir, "m.modelith.yaml", minimalValid)
+	writeTemp(t, dir, "m.modelith.md", "stale content\n")
 	_, err := run(t, "render", "--check", yamlPath)
 	if err == nil {
 		t.Fatal("expected a drift error, got nil")
@@ -343,14 +343,14 @@ func TestRenderCheckDetectsDrift(t *testing.T) {
 // vendorHeader stamps content the way `deps import` does, so a test fixture is
 // a vendored copy that verifies against its own digest.
 func vendorHeader(content string) string {
-	return "# indomain-vendored: " + provenance.Banner + "\n" +
-		"# indomain-fetch: git\n" +
-		"# indomain-origin: https://github.com/stacklok/some-repo\n" +
-		"# indomain-path: docs/m.indomain.yaml\n" +
-		"# indomain-ref: main\n" +
-		"# indomain-commit: 4f2c1e9\n" +
-		"# indomain-imported: 2026-07-27\n" +
-		"# indomain-digest: " + provenance.Digest([]byte(content)) + "\n"
+	return "# modelith-vendored: " + provenance.Banner + "\n" +
+		"# modelith-fetch: git\n" +
+		"# modelith-origin: https://github.com/stacklok/some-repo\n" +
+		"# modelith-path: docs/m.modelith.yaml\n" +
+		"# modelith-ref: main\n" +
+		"# modelith-commit: 4f2c1e9\n" +
+		"# modelith-imported: 2026-07-27\n" +
+		"# modelith-digest: " + provenance.Digest([]byte(content)) + "\n"
 }
 
 // TestRenderCheckSkipsAVendoredCopy covers the half of ADR-0015 that lives in
@@ -359,7 +359,7 @@ func vendorHeader(content string) string {
 // Rendering it by name still works — that is what a deep link points at.
 func TestRenderCheckSkipsAVendoredCopy(t *testing.T) {
 	dir := t.TempDir()
-	yamlPath := writeTemp(t, dir, "m.indomain.yaml", vendorHeader(minimalValid)+minimalValid)
+	yamlPath := writeTemp(t, dir, "m.modelith.yaml", vendorHeader(minimalValid)+minimalValid)
 
 	// No .md exists at all, which is the state a fresh `deps import` leaves.
 	out, err := run(t, "render", "--check", yamlPath)
@@ -370,14 +370,14 @@ func TestRenderCheckSkipsAVendoredCopy(t *testing.T) {
 		t.Errorf("output does not say why it was skipped: %q", out)
 	}
 
-	if _, err := os.Stat(filepath.Join(dir, "m.indomain.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(dir, "m.modelith.md")); !os.IsNotExist(err) {
 		t.Error("--check wrote a file")
 	}
 
 	if _, err := run(t, "render", yamlPath); err != nil {
 		t.Fatalf("rendering a vendored model by name failed: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(dir, "m.indomain.md")); err != nil {
+	if _, err := os.Stat(filepath.Join(dir, "m.modelith.md")); err != nil {
 		t.Errorf("rendering by name wrote nothing: %v", err)
 	}
 }
@@ -389,7 +389,7 @@ func TestRenderCheckSkipsAVendoredCopy(t *testing.T) {
 // with a rendered document describing the version before it.
 func TestRenderCheckChecksACommittedVendoredMarkdown(t *testing.T) {
 	dir := t.TempDir()
-	yamlPath := writeTemp(t, dir, "m.indomain.yaml", vendorHeader(minimalValid)+minimalValid)
+	yamlPath := writeTemp(t, dir, "m.modelith.yaml", vendorHeader(minimalValid)+minimalValid)
 
 	if _, err := run(t, "render", yamlPath); err != nil {
 		t.Fatalf("rendering a vendored model by name failed: %v", err)
@@ -402,7 +402,7 @@ func TestRenderCheckChecksACommittedVendoredMarkdown(t *testing.T) {
 		t.Errorf("output does not report the check: %q", out)
 	}
 
-	writeTemp(t, dir, "m.indomain.md", "stale content\n")
+	writeTemp(t, dir, "m.modelith.md", "stale content\n")
 	if _, err := run(t, "render", "--check", yamlPath); err == nil {
 		t.Fatal("a stale committed .md for a vendored copy passed --check")
 	} else if !strings.Contains(err.Error(), "out of date") {
@@ -426,7 +426,7 @@ func TestRenderCheckRejectsAnOutPathUnderNoDirectory(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
-			yamlPath := writeTemp(t, dir, "m.indomain.yaml", tc.src)
+			yamlPath := writeTemp(t, dir, "m.modelith.yaml", tc.src)
 			out, err := run(t, "render", "--check", "-o", filepath.Join(dir, "nosuchdir", "out.md"), yamlPath)
 			if err == nil {
 				t.Fatalf("a target under a missing directory passed --check: %s", out)
@@ -441,12 +441,12 @@ func TestRenderCheckRejectsAnOutPathUnderNoDirectory(t *testing.T) {
 // Present answers a deliberately broad question so a broken header still marks a
 // file as somebody else's copy, which is what lint needs. Skipping on that same
 // answer handed the exemption to a model this repository owns that merely
-// carried a "# indomain-" comment: lint shouted five errors, but a CI job
+// carried a "# modelith-" comment: lint shouted five errors, but a CI job
 // running only `render --check` silently lost its gate and exited 0.
 func TestRenderCheckDoesNotExemptAModelThisRepoOwns(t *testing.T) {
 	dir := t.TempDir()
-	yamlPath := writeTemp(t, dir, "own.indomain.yaml",
-		minimalValid+"\n# indomain-note: this file is generated\n")
+	yamlPath := writeTemp(t, dir, "own.modelith.yaml",
+		minimalValid+"\n# modelith-note: this file is generated\n")
 
 	out, err := run(t, "render", "--check", yamlPath)
 	if err == nil {
@@ -458,7 +458,7 @@ func TestRenderCheckDoesNotExemptAModelThisRepoOwns(t *testing.T) {
 
 	// A header with a real defect in it earns no exemption either: the file is
 	// checked like any other, and lint reports the defect.
-	displaced := writeTemp(t, dir, "displaced.indomain.yaml",
+	displaced := writeTemp(t, dir, "displaced.modelith.yaml",
 		"---\n"+vendorHeader(minimalValid)+minimalValid)
 	if _, err := run(t, "render", "--check", displaced); err == nil {
 		t.Error("a vendored copy with a displaced header was exempted from --check")
@@ -476,8 +476,8 @@ func TestRenderCheckStaysQuietOnAVendoredCopyItCannotRender(t *testing.T) {
 	if future == minimalValid {
 		t.Fatal("fixture did not declare a version to replace")
 	}
-	yamlPath := writeTemp(t, dir, "m.indomain.yaml", vendorHeader(future)+future)
-	writeTemp(t, dir, "m.indomain.md", "a rendered form from a indomain that understood it\n")
+	yamlPath := writeTemp(t, dir, "m.modelith.yaml", vendorHeader(future)+future)
+	writeTemp(t, dir, "m.modelith.md", "a rendered form from a indomain that understood it\n")
 
 	out, err := run(t, "render", "--check", yamlPath)
 	if err != nil {
@@ -489,8 +489,8 @@ func TestRenderCheckStaysQuietOnAVendoredCopyItCannotRender(t *testing.T) {
 
 	// The same file, owned rather than vendored, is still this repository's
 	// problem and still fails.
-	ownPath := writeTemp(t, dir, "own.indomain.yaml", future)
-	writeTemp(t, dir, "own.indomain.md", "whatever\n")
+	ownPath := writeTemp(t, dir, "own.modelith.yaml", future)
+	writeTemp(t, dir, "own.modelith.md", "whatever\n")
 	if _, err := run(t, "render", "--check", ownPath); err == nil {
 		t.Fatal("an unrenderable model this repository owns passed --check")
 	}
@@ -503,7 +503,7 @@ func TestRenderCheckStaysQuietOnAVendoredCopyItCannotRender(t *testing.T) {
 // of hardening the renderer further.
 func TestDepsImportOutput(t *testing.T) {
 	res := &deps.Result{
-		Path:   filepath.Join("docs", "payments.indomain.yaml"),
+		Path:   filepath.Join("docs", "payments.modelith.yaml"),
 		Header: &provenance.Header{Commit: "4f2c1e9"},
 	}
 
@@ -513,7 +513,7 @@ func TestDepsImportOutput(t *testing.T) {
 		// The entry names where the copy actually landed. Printing the bare
 		// basename told a user who passed a directory to paste a path that
 		// resolves to nothing.
-		for _, want := range []string{"wrote docs/payments.indomain.yaml at 4f2c1e9", "imports:", "- ./docs/payments.indomain.yaml"} {
+		for _, want := range []string{"wrote docs/payments.modelith.yaml at 4f2c1e9", "imports:", "- ./docs/payments.modelith.yaml"} {
 			if !strings.Contains(out.String(), want) {
 				t.Errorf("stdout does not contain %q:\n%s", want, out.String())
 			}
@@ -529,10 +529,10 @@ func TestDepsImportOutput(t *testing.T) {
 	t.Run("a model with imports of its own", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		chained := *res
-		chained.TheirImports = []string{"./ledger.indomain.yaml"}
+		chained.TheirImports = []string{"./ledger.modelith.yaml"}
 		printImportResult(&out, &errOut, &chained, "")
 		for _, want := range []string{
-			"declares an import of its own (./ledger.indomain.yaml)",
+			"declares an import of its own (./ledger.modelith.yaml)",
 			"resolution is not",
 			"import them directly",
 		} {
@@ -545,9 +545,9 @@ func TestDepsImportOutput(t *testing.T) {
 	t.Run("a copy in the working directory", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		here := *res
-		here.Path = "payments.indomain.yaml"
+		here.Path = "payments.modelith.yaml"
 		printImportResult(&out, &errOut, &here, "")
-		if !strings.Contains(out.String(), "- ./payments.indomain.yaml") {
+		if !strings.Contains(out.String(), "- ./payments.modelith.yaml") {
 			t.Errorf("stdout does not contain the entry:\n%s", out.String())
 		}
 	})
@@ -558,9 +558,9 @@ func TestDepsImportOutput(t *testing.T) {
 	t.Run("an absolute destination is relativized", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		abs := *res
-		abs.Path = filepath.Join(string(filepath.Separator), "home", "me", "repo", "docs", "payments.indomain.yaml")
+		abs.Path = filepath.Join(string(filepath.Separator), "home", "me", "repo", "docs", "payments.modelith.yaml")
 		printImportResult(&out, &errOut, &abs, filepath.Join(string(filepath.Separator), "home", "me", "repo"))
-		if !strings.Contains(out.String(), "- ./docs/payments.indomain.yaml") {
+		if !strings.Contains(out.String(), "- ./docs/payments.modelith.yaml") {
 			t.Errorf("stdout does not contain a relative entry:\n%s", out.String())
 		}
 		if strings.Contains(out.String(), "- /home/me") {
@@ -642,16 +642,16 @@ func report(path, ref, commit string) deps.Report {
 func TestDepsCheckOutput(t *testing.T) {
 	// Stale is an origin serving bytes that no longer hash to what the header
 	// recorded.
-	stale := report("docs/ledger.indomain.yaml", "main", "a91b0c37e5d248fa")
+	stale := report("docs/ledger.modelith.yaml", "main", "a91b0c37e5d248fa")
 	stale.State.Upstream = []byte("kind: DomainModel\ntitle: moved on\n")
 
 	t.Run("verdicts name the ref and the summary counts what was covered", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		reports := []deps.Report{
-			report("docs/payments.indomain.yaml", "v2.1.0", "4f2c1e9c8b3ad0e5"),
+			report("docs/payments.modelith.yaml", "v2.1.0", "4f2c1e9c8b3ad0e5"),
 			stale,
-			{Path: "docs/ours.indomain.yaml", Skipped: true},
-			{Path: "docs/gone.indomain.yaml", Err: errors.New("cannot be read: no such file or directory")},
+			{Path: "docs/ours.modelith.yaml", Skipped: true},
+			{Path: "docs/gone.modelith.yaml", Err: errors.New("cannot be read: no such file or directory")},
 		}
 		blocking := printCheckReports(&out, &errOut, reports)
 		if !blocking {
@@ -660,15 +660,15 @@ func TestDepsCheckOutput(t *testing.T) {
 		for _, want := range []string{
 			// Naming the ref is what keeps a pinned copy's verdict honest: it
 			// reads as a statement about the pin, not about the world.
-			"docs/payments.indomain.yaml: up to date at v2.1.0",
-			"docs/ledger.indomain.yaml: stale at main — the origin is now at a91b0c3",
+			"docs/payments.modelith.yaml: up to date at v2.1.0",
+			"docs/ledger.modelith.yaml: stale at main — the origin is now at a91b0c3",
 			"checked 2 vendored copies, 1 stale, 1 file could not be reached; skipped 1 file with no provenance header",
 		} {
 			if !strings.Contains(out.String(), want) {
 				t.Errorf("stdout does not contain %q:\n%s", want, out.String())
 			}
 		}
-		if !strings.Contains(errOut.String(), "docs/gone.indomain.yaml: cannot be read") {
+		if !strings.Contains(errOut.String(), "docs/gone.modelith.yaml: cannot be read") {
 			t.Errorf("the failure is not on stderr:\n%s", errOut.String())
 		}
 	})
@@ -678,8 +678,8 @@ func TestDepsCheckOutput(t *testing.T) {
 	t.Run("a run that reached nothing says so", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		blocking := printCheckReports(&out, &errOut, []deps.Report{
-			{Path: "a.indomain.yaml", Skipped: true},
-			{Path: "b.indomain.yaml", Skipped: true},
+			{Path: "a.modelith.yaml", Skipped: true},
+			{Path: "b.modelith.yaml", Skipped: true},
 		})
 		if blocking {
 			t.Error("a run with nothing to check exited non-zero")
@@ -700,7 +700,7 @@ func TestDepsCheckOutput(t *testing.T) {
 			t.Error("a stale copy did not make the run exit non-zero")
 		}
 		for _, want := range []string{
-			"docs/ledger.indomain.yaml: stale at main — the origin has moved",
+			"docs/ledger.modelith.yaml: stale at main — the origin has moved",
 			"checked 1 vendored copy, 1 stale",
 		} {
 			if !strings.Contains(out.String(), want) {
@@ -726,8 +726,8 @@ func TestDepsCheckOutput(t *testing.T) {
 	// people's files must not be the thing that crashes.
 	t.Run("a report with no verdict is not a crash", func(t *testing.T) {
 		var out, errOut bytes.Buffer
-		printCheckReports(&out, &errOut, []deps.Report{{Path: "abandoned.indomain.yaml"}})
-		printUpdateReports(&out, &errOut, []deps.Report{{Path: "abandoned.indomain.yaml"}})
+		printCheckReports(&out, &errOut, []deps.Report{{Path: "abandoned.modelith.yaml"}})
+		printUpdateReports(&out, &errOut, []deps.Report{{Path: "abandoned.modelith.yaml"}})
 		if strings.Contains(out.String(), "1 vendored copy") {
 			t.Errorf("an unjudged file was counted as reached:\n%s", out.String())
 		}
@@ -737,22 +737,22 @@ func TestDepsCheckOutput(t *testing.T) {
 func TestDepsUpdateOutput(t *testing.T) {
 	t.Run("a refresh names both commits, and the run closes with what to do next", func(t *testing.T) {
 		var out, errOut bytes.Buffer
-		refreshed := report("docs/ledger.indomain.yaml", "main", "a91b0c37e5d248fa")
+		refreshed := report("docs/ledger.modelith.yaml", "main", "a91b0c37e5d248fa")
 		refreshed.State.Header.Commit = "4f2c1e9c8b3ad0e5"
 		refreshed.Written = true
-		refreshed.NewImports = []string{"./tax.indomain.yaml"}
+		refreshed.NewImports = []string{"./tax.modelith.yaml"}
 
 		if printUpdateReports(&out, &errOut, []deps.Report{
 			refreshed,
-			report("docs/payments.indomain.yaml", "v2.1.0", "4f2c1e9c8b3ad0e5"),
+			report("docs/payments.modelith.yaml", "v2.1.0", "4f2c1e9c8b3ad0e5"),
 		}) {
 			t.Error("a successful update exited non-zero")
 		}
 		for _, want := range []string{
-			"docs/ledger.indomain.yaml: 4f2c1e9 → a91b0c3 at main",
-			"docs/payments.indomain.yaml: up to date at v2.1.0",
+			"docs/ledger.modelith.yaml: 4f2c1e9 → a91b0c3 at main",
+			"docs/payments.modelith.yaml: up to date at v2.1.0",
 			"updated 1 of 2 vendored copies",
-			"now declares an import of its own (./tax.indomain.yaml)",
+			"now declares an import of its own (./tax.modelith.yaml)",
 			"Run `indomain lint` on the models that import these copies",
 		} {
 			if !strings.Contains(out.String(), want) {
@@ -770,7 +770,7 @@ func TestDepsUpdateOutput(t *testing.T) {
 	t.Run("a no-op run warns about nothing", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		printUpdateReports(&out, &errOut, []deps.Report{
-			report("docs/payments.indomain.yaml", "main", "4f2c1e9c8b3ad0e5"),
+			report("docs/payments.modelith.yaml", "main", "4f2c1e9c8b3ad0e5"),
 		})
 		if errOut.Len() != 0 {
 			t.Errorf("a no-op update printed to stderr:\n%s", errOut.String())
@@ -782,7 +782,7 @@ func TestDepsUpdateOutput(t *testing.T) {
 
 	t.Run("a restore says the edits went", func(t *testing.T) {
 		var out, errOut bytes.Buffer
-		restored := report("docs/payments.indomain.yaml", "main", "4f2c1e9c8b3ad0e5")
+		restored := report("docs/payments.modelith.yaml", "main", "4f2c1e9c8b3ad0e5")
 		restored.Written, restored.Restored = true, true
 		printUpdateReports(&out, &errOut, []deps.Report{restored})
 		if want := "restored to 4f2c1e9 — local edits discarded, make the change at its origin"; !strings.Contains(out.String(), want) {
@@ -795,8 +795,8 @@ func TestDepsUpdateOutput(t *testing.T) {
 // they need no network and no gh.
 func TestDepsRejectsBadArguments(t *testing.T) {
 	dir := t.TempDir()
-	ours := writeTemp(t, dir, "ours.indomain.yaml", minimalValid)
-	theirs := writeTemp(t, dir, "theirs.indomain.yaml", minimalValid)
+	ours := writeTemp(t, dir, "ours.modelith.yaml", minimalValid)
+	theirs := writeTemp(t, dir, "theirs.modelith.yaml", minimalValid)
 
 	t.Run("--ref across several copies is refused", func(t *testing.T) {
 		out, err := run(t, "deps", "update", "--ref", "v2.2.0", ours, theirs)

@@ -33,9 +33,9 @@ taken:
 
 ```yaml
 imports:
-  - ./payments.indomain.yaml            # binds "payments"
+  - ./payments.modelith.yaml            # binds "payments"
   - scope: billing
-    path: ./legacy/pay-v2.indomain.yaml # binds "billing"
+    path: ./legacy/pay-v2.modelith.yaml # binds "billing"
 ```
 
 This is deliberate aliasing, reversing issue #25's "no xmlns-style mapping" line.
