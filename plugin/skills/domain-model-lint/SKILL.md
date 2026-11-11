@@ -46,7 +46,9 @@ the flag.
   or top-level `invariants` entry declares; the same invariant id is declared
   twice (entity-level and top-level invariants share one id namespace); reciprocal cardinalities
   that aren't inverses; reciprocal declarations that both claim
-  `ownership: owned`; an `imports` entry that's absolute, unreadable, not a
+  `ownership: owned`; three or more entities that own one another in a loop
+  (or an entity that owns itself) where every link requires an owner, so none
+  can be the root — make one link `referenced`; an `imports` entry that's absolute, unreadable, not a
   domain model, binds a scope another entry already bound, resolves outside
   the repository holding this model, is a bare path whose filename yields no
   valid scope slug, has a path containing a control character, or declares a

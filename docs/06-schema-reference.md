@@ -457,6 +457,12 @@ The JSON Schema covers structure. [`modelith lint`](./07-cli.md) adds:
       inverses (e.g. `Project`→`Policy` `1:n` but `Policy`→`Project` `1:1`);
     - a relationship declared from both sides where both ends claim
       `ownership: owned` — a relationship is owned by at most one end;
+    - three or more entities that own one another in a loop, or an entity that
+      owns itself, where every owned link's owner (left) side requires an
+      owner (`1`, `1..n`) — each instance needs an owner of the entity before
+      it, all the way around, so none can be the root and none can exist. An
+      optional owner (`0..1`) leaves room for a root and isn't reported here;
+      it gets the owner-side warning below instead;
     - a duplicate invariant `id` (across entity-level *and* model-level
       invariants — they share one namespace);
     - a scenario `invariants_touched` or an action `preserves` that references an

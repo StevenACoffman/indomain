@@ -128,6 +128,7 @@ func Run(path string, src []byte, files Files) (*Result, error) {
 	}
 	runRelationshipShape(m, res)
 	runCompositionOwner(m, res)
+	runOwnershipCycles(m, res)
 	runTermCollisions(m, res)
 	runSubtypes(m, res)
 	runReciprocity(m, res)
