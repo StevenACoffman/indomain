@@ -135,7 +135,7 @@ deliberately lossy ER per the same principle as derived entities.
 | `cardinality` | string | yes | Written `left:right` (see below). `1:1`, `1:n`, `n:1`, `n:n` are the common shorthands. |
 | `symmetric` | boolean | no | The relationship carries no inherent order: `(a, b)` is the same as `(b, a)`. Only valid on a self-referential relationship or one whose target side is more than one. |
 | `role` | string | no | The **short** role the related entity plays (`Owner`, `Predecessor`) — ideally a glossary term. Backtick entity and glossary names. It is the only label the diagram draws, so prose belongs in `note`; the linter warns on a role that reads as a sentence. |
-| `ownership` | enum | no | Is the related entity *part of* this one? `owned` = it can't exist independently (composition: created within, and deleted with, this entity); `referenced` = an independent entity this one points at. Omitted ⇒ `referenced`. |
+| `ownership` | enum | no | Is the related entity *part of* this one? `owned` = it can't exist independently (composition: created within, and deleted with, this entity); `referenced` = an independent entity this one points at. Omitted ⇒ `referenced`. An `owned` part has exactly one owner, so its cardinality's left side is `1` (the linter warns otherwise). |
 | `note` | string | no | Freeform note. |
 
 **Cardinality grammar.** Each side is a multiplicity: `1` (exactly one), `n`
@@ -484,7 +484,17 @@ The JSON Schema covers structure. [`modelith lint`](./07-cli.md) adds:
     - an attribute `type` that looks like an enum reference (PascalCase) but
       names no defined enum — a *warning* where the qualified `scope.Name` form
       is an error, for the reason given under [Imports](#imports);
-    - an action `actor` that is neither a defined entity nor a glossary term.
+    - an action `actor` that is neither a defined entity nor a glossary term;
+    - an `ownership: owned` relationship whose owner (left) side is not
+      exactly `1` — `owned` means each part has exactly one owner, so `n:1`
+      has many owners sharing a part and `0..1:n` lets a part exist with none;
+      if the target can be shared or stand alone, it is `referenced`;
+    - an entity or glossary name that ends with another, such as
+      `TreatmentSession` and `Session` — people shorten a compound name to its
+      last word, and the two concepts blur. Rename one, or backtick the shorter
+      name in the longer one's definition to record how they differ. A subtype
+      that carries its parent's name (`CreditCard` with `subtypeOf: Card`)
+      doesn't warn.
 - **Completeness** checks (advisory warnings): entities with no invariants;
   entities no scenario exercises; a glossary term nothing references; an enum no
   attribute uses; an [import](#imports) nothing references. The unused
@@ -496,3 +506,4 @@ The JSON Schema covers structure. [`modelith lint`](./07-cli.md) adds:
   is fine — leave its invariants empty rather than inventing a filler rule that
   only restates its cardinality or its type. The warning is a prompt to check,
   not a demand to fill.
+
