@@ -1,0 +1,11 @@
+indomain
+[Mm]odelith
+Mermaid
+Docusaurus
+cobra
+goreleaser
+[Vv]endor(ed|ing)?
+[Ss]ubtypes?
+[Mm]ultiplicit(y|ies)
+[Cc]ardinalit(y|ies)
+[Ee]nums?

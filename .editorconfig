@@ -31,11 +31,11 @@ generated_code = true
 # indent_style = unset
 # indent_size = unset
 
-# These often end up with go code inside, so lets keep tabs
+# Markdown indents with spaces: rumdl's MD010 rejects hard tabs outside code
+# blocks, and Docusaurus renders the docs from these files.
 [*.{html,md}]
-indent_size = 4
-indent_style = tab
-eclint_indent_style = unset
+indent_size = 2
+indent_style = space
 
 [*.{sql,graphql}]
 generated_code = true

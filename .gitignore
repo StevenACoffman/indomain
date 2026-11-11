@@ -68,7 +68,6 @@ Thumbs.db
 # tooling debris we do not want to check in
 gha-creds-*.json
 gha-kubeconfig-*
-*,out
 
 # Rumdl - markdown linter cache
 .rumdl_cache

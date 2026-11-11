@@ -1,33 +1,26 @@
 [tools]
 go = "1.27.4"
-golangci-lint = "latest"
+# Same version CI and the Taskfile pin, so every run reports the same findings.
+golangci-lint = "2.15.0"
 goreleaser = "latest"
 "github:gotestyourself/gotestsum" = "latest"
-# Mutation testing, pinned to the version the justfile and the mutation workflow run:
-# v2.10.24 is the first whose annotations suppress composite/field-clear, which
-# the composite literals in internal/arch rely on. Needs a Go 1.26+ toolchain.
-"go:github.com/quality-gates/mutago/v2/cmd/mutago" = "2.10.24"
-# Known-vulnerability scan of the module and its dependencies; CI's vulncheck job
-# runs it after mise-action installs these tools.
+# Known-vulnerability scan of the module and its dependencies.
 "go:golang.org/x/vuln/cmd/govulncheck" = "latest"
 # supply-chain tooling: syft generates the SBOM, cosign signs the checksum.
 syft = "latest"
 cosign = "latest"
 
-[env]
-LOG_LEVEL = "debug"
-
 [tasks.sbom]
 description = "Build the source tarball + SBOM locally (goreleaser snapshot; signing skipped)"
 run = "goreleaser release --snapshot --clean --skip=sign"
 
-[tasks.check]
+[tasks."release:check"]
 description = "Validate the goreleaser configuration"
 run = "goreleaser check"
 
 [tasks.run]
-description = "Run the main application"
-run = "go run ."
+description = "Run the indomain CLI"
+run = "go run ./cmd/indomain"
 
 [tasks.build]
 description = "Build the binary with goreleaser"
@@ -56,23 +49,3 @@ run = "golangci-lint run ./..."
 [tasks.fmt]
 description = "Run golangci-lint fmt"
 run = "golangci-lint fmt"
-
-# The rapid properties run 100 times each in the unit suite; this is the deeper sweep CI's
-# property workflow runs.
-[tasks.proptest]
-description = "Check the rapid properties with more attempts than the default"
-run = "go test -short ./internal/... -rapid.checks=1000"
-
-# mutago reads .mutago.yml only when given --config. These match the justfile's recipes,
-# which explain the flags.
-[tasks.mutate]
-description = "Mutate internal/arch; fails below 95% MSI"
-run = "RAPID_NOFAILFILE=true mutago --config=.mutago.yml --min-msi=95 --workers=4 --timeout-coefficient=15 --quiet --no-diffs ./internal/arch/"
-
-[tasks."mutate:diff"]
-description = "Mutate only the lines this branch changed (default base main; mise run mutate:diff --git-diff-base=origin/main)"
-run = "RAPID_NOFAILFILE=true mutago --config=.mutago.yml --git-diff-lines --git-diff-base=main --timeout-coefficient=15 --quiet --no-diffs ./internal/... ./cmd/..."
-
-[tasks."mutate:survivors"]
-description = "Write mutago-agentic.json listing the internal/arch mutants no test killed"
-run = "RAPID_NOFAILFILE=true mutago --config=.mutago.yml --workers=4 --timeout-coefficient=15 --quiet --no-diffs --logger-agentic-json ./internal/arch/"
