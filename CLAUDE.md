@@ -28,7 +28,7 @@ modelith/
 │   ├── adr/                      # forward-looking decision records
 │   └── audits/                   # retrospective multi-agent audit snapshots
 ├── .claude/rules/                # path-triggered coding/process conventions
-├── action.yml · Taskfile.yml · .goreleaser.yaml · .github/workflows/
+├── action.yaml · Taskfile.yaml · .goreleaser.yaml · .github/workflows/
 ```
 
 ### Why this layout
@@ -88,8 +88,8 @@ Claude Code plugin with `--plugin-dir` live in
   and served at [modelith.sh](https://modelith.sh). Page files are numbered
   `NN-name.md` (landing is plain `index.md`), carry `title:`, and cross-link with
   relative, prefix-included paths. The `docs/05-parking-garage/` example is
-  lint/render-checked by CI, globbed **by path** in `Taskfile.yml` and
-  `.github/workflows/ci.yml` — renumber that dir and you must update both. Full
+  lint/render-checked by CI, globbed **by path** in `Taskfile.yaml` and
+  `.github/workflows/ci.yaml` — renumber that dir and you must update both. Full
   rules: [`docs/_docs-conventions.md`](./docs/_docs-conventions.md).
 
 ## Format decisions (already made — don't relitigate without reason)
@@ -109,12 +109,11 @@ Claude Code plugin with `--plugin-dir` live in
 
 ## Cutting a release
 
-Push a `vX.Y.Z` tag on `main` — `release.yml` builds, signs, generates SBOMs,
-publishes the GitHub Release, and pushes the Homebrew formula to
-`stacklok/homebrew-tap`. After it succeeds:
+Push a `vX.Y.Z` tag on `main` — `release.yaml` builds, signs, generates SBOMs,
+and publishes the GitHub Release. After it succeeds:
 
-- **Bump `action.yml`'s `version` input default to the new tag and commit.**
-  `action.yml` downloads a specific pinned release rather than building from
+- **Bump `action.yaml`'s `version` input default to the new tag and commit.**
+  `action.yaml` downloads a specific pinned release rather than building from
   source (see [`docs/08-github-action.md`](./docs/08-github-action.md)) — skip
   this step and the action keeps installing an old release indefinitely, with
   no error to flag it.
@@ -122,7 +121,7 @@ publishes the GitHub Release, and pushes the Homebrew formula to
   action reference and documented `version` default to the release tag, then
   revise any feature-availability notes that depended on the former default.
   The Action page is a copy-paste entry point; leaving it on an old tag makes
-  its instructions disagree with `action.yml`.
+  its instructions disagree with `action.yaml`.
 - **Bump `plugin/.claude-plugin/plugin.json`'s `version` to match, if the
   plugin/skills changed.** The plugin ships next to the binary it drives so
   the two stay in lockstep (see "Repository layout" above) — this doesn't
@@ -153,7 +152,7 @@ the published site to keep the root clean:
 
 - **Every commit must be signed off (DCO).** Commit with `git commit -s` so a
   `Signed-off-by:` trailer is added, certifying you have the right to submit
-  the change under the project's license. `.github/workflows/dco.yml` enforces
+  the change under the project's license. `.github/workflows/dco.yaml` enforces
   this on every commit in a PR and fails the check if any commit lacks the
   trailer. Details: [`dco.md`](./dco.md).
 - **Coding and process rules are path-triggered.**

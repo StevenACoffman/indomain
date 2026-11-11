@@ -38,8 +38,8 @@ The worked example lives in **`docs/05-parking-garage/`**, and its
 `garage.modelith.yaml` is linted and render-checked in CI alongside the
 `examples/`. Two files glob it **by path**:
 
-- `Taskfile.yml` (the `EXAMPLES` var)
-- `.github/workflows/ci.yml`
+- `Taskfile.yaml` (the `EXAMPLES` var)
+- `.github/workflows/ci.yaml`
 
 If you renumber or rename that directory, **update both globs** or `task
 lint-models` / `render-check` (and CI) will silently stop checking it. After any
