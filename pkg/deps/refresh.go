@@ -143,7 +143,7 @@ func (r *Report) Stale() bool { return r.State != nil && r.State.Moved() }
 // non-nil error means the run stopped before it could measure a file because
 // the delegated CLI (gh or az) was unusable while fetching its content.
 func Check(ctx context.Context, opts CheckOptions) ([]Report, error) {
-	return survey(ctx, surveyOptions{paths: opts.Paths, timeout: opts.Timeout, run: opts.Run})
+	return survey(ctx, &surveyOptions{paths: opts.Paths, timeout: opts.Timeout, run: opts.Run})
 }
 
 // Update brings each vendored copy forward to what its origin serves now.
@@ -152,7 +152,7 @@ func Check(ctx context.Context, opts CheckOptions) ([]Report, error) {
 // or when the ref moved. It does not touch the model that imports the copy: an
 // item this copy used to define may have been renamed or removed upstream, and
 // indomain lint is what reports that, from the importing model's seat.
-func Update(ctx context.Context, opts UpdateOptions) ([]Report, error) {
+func Update(ctx context.Context, opts *UpdateOptions) ([]Report, error) {
 	if opts.Ref != "" && len(opts.Paths) != 1 {
 		return nil, fmt.Errorf(
 			"--ref re-pins one copy and %d files were named — a single ref across several origins names a different version in each. Run it once per copy",
@@ -161,7 +161,7 @@ func Update(ctx context.Context, opts UpdateOptions) ([]Report, error) {
 	}
 	return survey(
 		ctx,
-		surveyOptions{
+		&surveyOptions{
 			paths:   opts.Paths,
 			ref:     opts.Ref,
 			now:     opts.Now,
@@ -172,14 +172,8 @@ func Update(ctx context.Context, opts UpdateOptions) ([]Report, error) {
 	)
 }
 
-func survey(ctx context.Context, opts surveyOptions) ([]Report, error) {
-	runner := opts.run
-	if runner == nil {
-		runner = ExecRunner{}
-	}
-	if opts.timeout > 0 {
-		runner = timeoutRunner{inner: runner, timeout: opts.timeout}
-	}
+func survey(ctx context.Context, opts *surveyOptions) ([]Report, error) {
+	runner := newRunner(opts.run, opts.timeout)
 	reports := make([]Report, 0, len(opts.paths))
 	for _, p := range opts.paths {
 		rep, err := visit(ctx, runner, p, opts)
@@ -196,9 +190,68 @@ func survey(ctx context.Context, opts surveyOptions) ([]Report, error) {
 
 // visit measures one file and, when asked to write, writes it. It returns a
 // non-nil error only to abort the whole run; everything else is a Report.
-func visit(ctx context.Context, runner Runner, path string, opts surveyOptions) (Report, error) {
+func visit(ctx context.Context, runner Runner, path string, opts *surveyOptions) (Report, error) {
 	rep := Report{Path: path}
+	err := measure(ctx, runner, &rep, opts)
+	return rep, err
+}
 
+// measure does visit's work on rep. Like visit, it returns an error only to
+// abort the run: a failure of this one file is recorded in rep and the return is
+// nil (see fail and route).
+func measure(ctx context.Context, runner Runner, rep *Report, opts *surveyOptions) error {
+	local, h, err := openCopy(rep.Path)
+	if err != nil {
+		return rep.fail(err)
+	}
+	if h == nil {
+		rep.Skipped = true
+		return nil
+	}
+
+	ref := opts.refFor(h)
+	src, err := sourceFromHeader(h, ref)
+	if err != nil {
+		return rep.fail(err)
+	}
+	// An ADO ref whose type the header did not record, or one a --ref re-pin
+	// renamed, has to be resolved before the fetch: the API does not infer the
+	// type, so an untyped request is read as a branch and a tag- or
+	// commit-pinned copy would 404.
+	//
+	// A refs lookup goes through the CLI too, so an absent or unauthenticated
+	// az has to stop the batch here exactly as it would on a fetch — the
+	// resolver would otherwise report it as one file's problem, once per copy.
+	if err := resolveADORefType(ctx, runner, &src); err != nil {
+		return rep.route(err)
+	}
+
+	upstream, err := fetchContentFor(ctx, runner, &src)
+	if err != nil {
+		if errors.Is(err, ErrToolUnavailable) {
+			return err
+		}
+		return rep.fail(fmt.Errorf("%w%s", err, movedHint(&src, err)))
+	}
+	m, err := checkFetched(upstream, &src)
+	if err != nil {
+		return rep.fail(err)
+	}
+
+	st := &State{Path: rep.Path, Header: h, Ref: ref, Local: local, Upstream: upstream, Model: m}
+	rep.State = st
+
+	if !opts.write {
+		rep.noteCommit(ctx, runner, st, &src)
+		return nil
+	}
+	return applyUpdate(ctx, runner, rep, st, &src, opts.now)
+}
+
+// openCopy reads the vendored copy at path and its provenance header. The
+// header is nil, with no error, when the file carries none: it is a model this
+// repository owns.
+func openCopy(path string) ([]byte, *provenance.Header, error) {
 	local, err := os.ReadFile(path)
 	if err != nil {
 		var pe *fs.PathError
@@ -207,12 +260,10 @@ func visit(ctx context.Context, runner Runner, path string, opts surveyOptions) 
 			// the PathError's own copy of it would be the second in one line.
 			err = fmt.Errorf("cannot be read: %w", pe.Err)
 		}
-		rep.Err = err
-		return rep, nil
+		return nil, nil, err
 	}
 	if !provenance.Present(local) {
-		rep.Skipped = true
-		return rep, nil
+		return local, nil, nil
 	}
 
 	// Classification is generous and exemption is strict (ADR-0015): the file
@@ -222,72 +273,51 @@ func visit(ctx context.Context, runner Runner, path string, opts surveyOptions) 
 	// would produce a confident answer built on nothing.
 	h, problems := provenance.Parse(local)
 	if len(problems) > 0 {
-		rep.Err = fmt.Errorf(
+		return nil, nil, fmt.Errorf(
 			"its provenance header is not usable (%s) — run `indomain lint %s` for the full report",
 			problems[0].Message, path)
-		return rep, nil
 	}
+	return local, h, nil
+}
 
-	ref := h.Ref
-	if opts.ref != "" {
-		ref = opts.ref
+// refFor is the ref to consult for a copy: the override, or the header's own.
+func (o *surveyOptions) refFor(h *provenance.Header) string {
+	if o.ref != "" {
+		return o.ref
 	}
-	src, err := sourceFromHeader(h, ref)
+	return h.Ref
+}
+
+// noteCommit records the origin's commit when the copy has fallen behind it.
+//
+// The commit is reporting, not verdict: it is resolved only when the origin
+// actually moved, so a clean check costs one call per copy (ADR-0016). A
+// failure to resolve it is not rep.Err: this copy was reached and measured, and
+// the verdict that measurement produced is what check exists to report.
+// Retracting it because the commit to name alongside it could not be resolved
+// would report a file as unreachable that was reached, and as unjudged when it
+// was judged.
+func (r *Report) noteCommit(ctx context.Context, runner Runner, st *State, src *Source) {
+	if !st.Moved() {
+		return
+	}
+	commit, err := fetchCommitFor(ctx, runner, src)
 	if err != nil {
-		rep.Err = err
-		return rep, nil
+		r.CommitErr = err
+		return
 	}
-	// An ADO ref whose type the header did not record, or one a --ref re-pin
-	// renamed, has to be resolved before the fetch: the API does not infer the
-	// type, so an untyped request is read as a branch and a tag- or
-	// commit-pinned copy would 404.
-	if err := resolveADORefType(ctx, runner, &src); err != nil {
-		// A refs lookup goes through the CLI too, so an absent or unauthenticated
-		// az has to stop the batch here exactly as it would on a fetch — the
-		// resolver would otherwise report it as one file's problem, once per copy.
-		if errors.Is(err, ErrToolUnavailable) {
-			return rep, err
-		}
-		rep.Err = err
-		return rep, nil
-	}
+	r.Commit = commit
+}
 
-	upstream, err := fetchContentFor(ctx, runner, src)
-	if err != nil {
-		if errors.Is(err, ErrToolUnavailable) {
-			return rep, err
-		}
-		rep.Err = fmt.Errorf("%w%s", err, movedHint(src, err))
-		return rep, nil
-	}
-	m, err := checkFetched(upstream, src)
-	if err != nil {
-		rep.Err = err
-		return rep, nil
-	}
-
-	st := &State{Path: path, Header: h, Ref: ref, Local: local, Upstream: upstream, Model: m}
-	rep.State = st
-
-	if !opts.write {
-		// The commit is reporting, not verdict: resolve it only when the origin
-		// actually moved, so a clean check costs one call per copy (ADR-0016).
-		if st.Moved() {
-			commit, err := fetchCommitFor(ctx, runner, src)
-			if err != nil {
-				// Not rep.Err: this copy was reached and measured, and the
-				// verdict that measurement produced is what check exists to
-				// report. Retracting it because the commit to name alongside it
-				// could not be resolved would report a file as unreachable that
-				// was reached, and as unjudged when it was judged.
-				rep.CommitErr = err
-				return rep, nil
-			}
-			rep.Commit = commit
-		}
-		return rep, nil
-	}
-
+// applyUpdate writes the copy when update has something to do for it.
+func applyUpdate(
+	ctx context.Context,
+	runner Runner,
+	rep *Report,
+	st *State,
+	src *Source,
+	now time.Time,
+) error {
 	switch {
 	case st.Current() && !st.Edited() && !st.Repinned():
 		// Nothing to do: the content matches the origin and the header
@@ -296,7 +326,7 @@ func visit(ctx context.Context, runner Runner, path string, opts surveyOptions) 
 		// records an older version is a copy lint rejects for a digest
 		// mismatch, and skipping it would leave update with no answer to the
 		// very repair lint sends the user here for.
-		return rep, nil
+		return nil
 
 	case !st.Moved() && !st.Repinned():
 		// A restore. The origin still holds the version this header describes
@@ -304,40 +334,51 @@ func visit(ctx context.Context, runner Runner, path string, opts surveyOptions) 
 		// reproduces the bytes the original import wrote: no commit is fetched,
 		// because nothing moved, and imported: does not change, because no new
 		// version arrived (ADR-0016).
-		if err := write(path, upstream, h); err != nil {
-			rep.Err = err
-			return rep, nil
+		if err := write(st.Path, st.Upstream, st.Header); err != nil {
+			return rep.fail(err)
 		}
-		rep.Written, rep.Restored, rep.Commit = true, true, h.Commit
-		return rep, nil
+		rep.Written, rep.Restored, rep.Commit = true, true, st.Header.Commit
+		return nil
 	}
 
 	// A refresh: a new version, a new pin, or both.
 	commit, err := fetchCommitFor(ctx, runner, src)
 	if err != nil {
-		if errors.Is(err, ErrToolUnavailable) {
-			return rep, err
-		}
-		rep.Err = err
-		return rep, nil
+		return rep.route(err)
 	}
-	next := *h
-	next.Ref = ref
+	next := *st.Header
+	next.Ref = st.Ref
 	// The ref type is not copied from the old header: a repin changes what the
 	// ref names, and an untyped source may have had its type resolved by a refs
 	// lookup during this run. It is recorded from what src now names, and is
 	// empty for GitHub, which keeps its header shape.
 	next.RefType = recordedRefType(src)
 	next.Commit = commit
-	next.Imported = opts.now.Format("2006-01-02")
-	next.Digest = provenance.Digest(upstream)
-	if err := write(path, upstream, &next); err != nil {
-		rep.Err = err
-		return rep, nil
+	next.Imported = now.Format("2006-01-02")
+	next.Digest = provenance.Digest(st.Upstream)
+	if err := write(st.Path, st.Upstream, &next); err != nil {
+		return rep.fail(err)
 	}
 	rep.Written, rep.Commit = true, commit
-	rep.NewImports = newImports(local, m)
-	return rep, nil
+	rep.NewImports = newImports(st.Local, st.Model)
+	return nil
+}
+
+// fail records err as this file's own problem and lets the run continue, which
+// is the nil it returns.
+func (r *Report) fail(err error) error {
+	r.Err = err
+	return nil
+}
+
+// route sends a fetch failure where it belongs: a failure of the delegated CLI
+// itself stops the run, since every file would fail it the same way, and
+// anything else is this file's own problem.
+func (r *Report) route(err error) error {
+	if errors.Is(err, ErrToolUnavailable) {
+		return err
+	}
+	return r.fail(err)
 }
 
 func write(path string, content []byte, h *provenance.Header) error {
@@ -437,7 +478,7 @@ func adoVersionPrefix(refType string) string {
 // checkFetched applies to a refetch the same two refusals import applies to a
 // first fetch, because the file at an address is not the file that was there
 // last time.
-func checkFetched(upstream []byte, src Source) (*model.Model, error) {
+func checkFetched(upstream []byte, src *Source) (*model.Model, error) {
 	if provenance.Present(upstream) {
 		return nil, fmt.Errorf(
 			"%s now carries a %s line at its origin, so indomain reads it as somebody else's copy rather than a model's home. Vendoring a copy of a copy would record the wrong repository as this model's home — vendor it from the origin its own header names instead",
@@ -476,7 +517,7 @@ func checkFetched(upstream []byte, src Source) (*model.Model, error) {
 // that did not happen wastes their time. The ref/path split ambiguity splitHint
 // exists for cannot arise here: a header records ref and path as separate keys,
 // so nothing is being guessed.
-func movedHint(src Source, err error) string {
+func movedHint(src *Source, err error) string {
 	if !isNotFound(err) {
 		return ""
 	}

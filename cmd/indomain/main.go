@@ -169,7 +169,7 @@ this command prints the entry to add.`),
 				)
 			}
 
-			res, err := deps.Import(cmd.Context(), deps.Options{
+			res, err := deps.Import(cmd.Context(), &deps.Options{
 				URL:     args[0],
 				Dir:     dir,
 				Ref:     ref,
@@ -337,7 +337,7 @@ CLI fails fast instead of stalling the run.`),
   indomain deps update --ref v2.2.0 docs/payments.modelith.yaml`),
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			reports, err := deps.Update(cmd.Context(), deps.UpdateOptions{
+			reports, err := deps.Update(cmd.Context(), &deps.UpdateOptions{
 				Paths:   args,
 				Ref:     ref,
 				Now:     time.Now(),

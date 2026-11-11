@@ -52,7 +52,7 @@ type hangRunner struct{ calls int }
 func vendored(t *testing.T, content string) (string, *fakeRunner) {
 	t.Helper()
 	r := &fakeRunner{content: content, sha: sha}
-	res, err := Import(context.Background(), Options{
+	res, err := Import(context.Background(), &Options{
 		URL: blobURL, Dir: t.TempDir(), Now: importedAt, Run: r,
 	})
 	if err != nil {
@@ -82,7 +82,7 @@ func check(t *testing.T, r Runner, paths ...string) []Report {
 
 func update(t *testing.T, r Runner, ref string, paths ...string) []Report {
 	t.Helper()
-	reports, err := Update(context.Background(), UpdateOptions{
+	reports, err := Update(context.Background(), &UpdateOptions{
 		Paths: paths, Ref: ref, Now: updatedAt, Run: r,
 	})
 	if err != nil {
@@ -98,7 +98,7 @@ func update(t *testing.T, r Runner, ref string, paths ...string) []Report {
 func vendoredFromADO(t *testing.T) string {
 	t.Helper()
 	r := adoRunner(adoContent, adoCommit)
-	res, err := Import(context.Background(), Options{
+	res, err := Import(context.Background(), &Options{
 		URL: adoBlobURL, Dir: t.TempDir(), Now: importedAt, Run: r,
 	})
 	if err != nil {
@@ -222,9 +222,11 @@ func TestRefresh_RefusesAnUnknownHost(t *testing.T) {
 		run  func(t *testing.T, r Runner, path string) Report
 	}{
 		{"check", func(t *testing.T, r Runner, path string) Report {
+			t.Helper()
 			return check(t, r, path)[0]
 		}},
 		{"update", func(t *testing.T, r Runner, path string) Report {
+			t.Helper()
 			return update(t, r, "", path)[0]
 		}},
 	} {
@@ -588,7 +590,7 @@ func TestSurvey_TimeoutBoundsEachDelegatedCall(t *testing.T) {
 		t.Parallel()
 		a, _ := vendored(t, upstream)
 		r := &hangRunner{}
-		reports, err := Update(context.Background(), UpdateOptions{
+		reports, err := Update(context.Background(), &UpdateOptions{
 			Paths: []string{a}, Timeout: 200 * time.Millisecond, Run: r,
 		})
 		if err != nil {
@@ -877,7 +879,7 @@ func TestUpdate_Repin(t *testing.T) {
 		t.Parallel()
 		a, r := vendored(t, upstream)
 		b, _ := vendored(t, upstream)
-		_, err := Update(context.Background(), UpdateOptions{
+		_, err := Update(context.Background(), &UpdateOptions{
 			Paths: []string{a, b}, Ref: "v2.2.0", Now: updatedAt, Run: r,
 		})
 		if err == nil || !strings.Contains(err.Error(), "--ref re-pins one copy") {
@@ -1130,7 +1132,7 @@ func TestCheck_FollowsAPathThatNeededEscaping(t *testing.T) {
 	t.Parallel()
 
 	r := &fakeRunner{content: upstream, sha: sha}
-	res, err := Import(context.Background(), Options{
+	res, err := Import(context.Background(), &Options{
 		URL: "https://github.com/acme/billing/blob/main/docs/100%25.modelith.yaml",
 		Dir: t.TempDir(), Now: importedAt, Run: r,
 	})

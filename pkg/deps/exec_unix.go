@@ -21,7 +21,7 @@ import (
 // wait regardless, so a helper that escaped the group still cannot hold Wait
 // hostage.
 func (ExecRunner) Run(ctx context.Context, name string, args ...string) ([]byte, error) {
-	// nolint:gosec // G204 flags a variable command and arguments, which is
+	//nolint:gosec // G204 flags a variable command and arguments, which is
 	// what a transport seam is. The commands are the literals "gh" and "az" at
 	// the call sites; the arguments are literals plus endpoints assembled from
 	// URLs that ParseSource has already validated. Nothing here comes from a

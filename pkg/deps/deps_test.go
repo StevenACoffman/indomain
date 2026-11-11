@@ -2,6 +2,7 @@ package deps
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -104,7 +105,7 @@ func (f *fakeRunner) runGh(args []string) ([]byte, error) {
 		}
 	}
 	if f.unusable != "" && strings.Contains(endpoint, f.unusable) {
-		return nil, unusable{fmt.Errorf("gh is not installed — indomain delegates fetching to it")}
+		return nil, unusable{errors.New("gh is not installed — indomain delegates fetching to it")}
 	}
 	if f.fail != "" && strings.Contains(endpoint, f.fail) {
 		return nil, fmt.Errorf("gh: HTTP 404: Not Found (%s)", endpoint)
@@ -203,7 +204,7 @@ func (f *fakeRunner) runAz(args []string) ([]byte, error) {
 	case strings.Contains(uri, "/commits"):
 		// The commit endpoint must not shell-escape $top.
 		if strings.Contains(uri, "\\$top") {
-			return nil, fmt.Errorf("az: $top is shell-escaped, but ExecRunner uses argv (no shell)")
+			return nil, errors.New("az: $top is shell-escaped, but ExecRunner uses argv (no shell)")
 		}
 		// The commits query is typed the same way the items request is, so the
 		// same resolution rule applies.
@@ -403,10 +404,10 @@ func TestParseSource(t *testing.T) {
 	}
 }
 
-func importInto(t *testing.T, dir string, r *fakeRunner, url string) (*Result, error) {
+func importInto(t *testing.T, dir string, r *fakeRunner, rawURL string) (*Result, error) {
 	t.Helper()
-	return Import(context.Background(), Options{
-		URL: url,
+	return Import(context.Background(), &Options{
+		URL: rawURL,
 		Dir: dir,
 		Now: time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local),
 		Run: r,
@@ -555,8 +556,8 @@ func TestImport_EscapesAPathThatNeedsIt(t *testing.T) {
 	t.Parallel()
 
 	r := &fakeRunner{content: upstream, sha: sha}
-	url := "https://github.com/acme/billing/blob/main/docs/a b&c/payments.modelith.yaml"
-	if _, err := importInto(t, t.TempDir(), r, url); err != nil {
+	rawURL := "https://github.com/acme/billing/blob/main/docs/a b&c/payments.modelith.yaml"
+	if _, err := importInto(t, t.TempDir(), r, rawURL); err != nil {
 		t.Fatal(err)
 	}
 	const wantContents = "repos/acme/billing/contents/docs/a%20b&c/payments.modelith.yaml?ref=main"
@@ -775,31 +776,31 @@ func TestSplitHint(t *testing.T) {
 		err  error
 		want bool
 	}{
-		{"a not-found", src, fmt.Errorf("gh: HTTP 404: Not Found"), true},
+		{"a not-found", src, errors.New("gh: HTTP 404: Not Found"), true},
 		{
 			"gh missing",
 			src,
-			fmt.Errorf("gh is not installed — indomain delegates fetching to it"),
+			errors.New("gh is not installed — indomain delegates fetching to it"),
 			false,
 		},
-		{"a rejected credential", src, fmt.Errorf("gh: HTTP 401: Bad credentials"), false},
-		{"a forbidden repository", src, fmt.Errorf("gh: HTTP 403: Forbidden"), false},
+		{"a rejected credential", src, errors.New("gh: HTTP 401: Bad credentials"), false},
+		{"a forbidden repository", src, errors.New("gh: HTTP 403: Forbidden"), false},
 		{
 			"an unreachable network",
 			src,
-			fmt.Errorf("dial tcp: lookup api.github.com: no such host"),
+			errors.New("dial tcp: lookup api.github.com: no such host"),
 			false,
 		},
 		{
 			"a single-segment path has nothing to lose to the ref",
 			Source{Host: HostGitHub, Ref: "main", Path: "payments.modelith.yaml"},
-			fmt.Errorf("gh: HTTP 404: Not Found"), false,
+			errors.New("gh: HTTP 404: Not Found"), false,
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if got := splitHint(tc.src, tc.err) != ""; got != tc.want {
+			if got := splitHint(&tc.src, tc.err) != ""; got != tc.want {
 				t.Errorf("splitHint offered = %v, want %v", got, tc.want)
 			}
 		})
@@ -931,10 +932,10 @@ func adoRunner(content, sha string) *fakeRunner {
 	return &fakeRunner{content: content, sha: sha, ado: true}
 }
 
-func importAdoInto(t *testing.T, dir string, r *fakeRunner, url string) (*Result, error) {
+func importAdoInto(t *testing.T, dir string, r *fakeRunner, rawURL string) (*Result, error) {
 	t.Helper()
-	return Import(context.Background(), Options{
-		URL: url,
+	return Import(context.Background(), &Options{
+		URL: rawURL,
 		Dir: dir,
 		Now: time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local),
 		Run: r,
@@ -1298,7 +1299,7 @@ func TestImport_ADO_OverrideRefResolvesTheType(t *testing.T) {
 	t.Parallel()
 
 	r := adoRunner(adoContent, adoCommit)
-	res, err := Import(context.Background(), Options{
+	res, err := Import(context.Background(), &Options{
 		URL: adoBlobURL, // names GBmain, overridden below
 		Dir: t.TempDir(),
 		Ref: "v1.0.0", // a tag in the fake repository
@@ -1353,7 +1354,7 @@ func TestImport_ADO_OverrideRefCommitNeedsNoRefsLookup(t *testing.T) {
 	t.Parallel()
 
 	r := adoRunner(adoContent, adoCommit)
-	res, err := Import(context.Background(), Options{
+	res, err := Import(context.Background(), &Options{
 		URL: adoBlobURL,
 		Dir: t.TempDir(),
 		Ref: adoCommit,
@@ -1446,9 +1447,9 @@ func TestImport_ADO_Rejections(t *testing.T) {
 func TestImport_ADO_RejectsEmptyRef(t *testing.T) {
 	t.Parallel()
 
-	url := "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/payments.modelith.yaml"
-	_, err := Import(context.Background(), Options{
-		URL: url,
+	rawURL := "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/payments.modelith.yaml"
+	_, err := Import(context.Background(), &Options{
+		URL: rawURL,
 		Dir: t.TempDir(),
 		Now: time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local),
 		Run: adoRunner(adoContent, adoCommit),
@@ -1470,7 +1471,7 @@ func TestSplitHint_ADO(t *testing.T) {
 		Ref:     "main",
 		Path:    "docs/payments.modelith.yaml",
 	}
-	if got := splitHint(src, fmt.Errorf("HTTP 404: Not Found")); got != "" {
+	if got := splitHint(&src, errors.New("HTTP 404: Not Found")); got != "" {
 		t.Errorf("splitHint for ADO source should be empty, got %q", got)
 	}
 }
@@ -1479,7 +1480,7 @@ func (f runnerFunc) Run(ctx context.Context, name string, args ...string) ([]byt
 	return f(ctx, name, args...)
 }
 
-func (h *hungRunner) Run(ctx context.Context, name string, args ...string) ([]byte, error) {
+func (h *hungRunner) Run(ctx context.Context, _ string, _ ...string) ([]byte, error) {
 	h.calls++
 	<-ctx.Done()
 	return nil, ctx.Err()
@@ -1497,7 +1498,7 @@ func (r *ctxRecordingRunner) Run(ctx context.Context, name string, args ...strin
 func TestTimeoutRunner_ReturnsAClearErrorOnDeadline(t *testing.T) {
 	t.Parallel()
 
-	inner := runnerFunc(func(ctx context.Context, name string, args ...string) ([]byte, error) {
+	inner := runnerFunc(func(ctx context.Context, _ string, _ ...string) ([]byte, error) {
 		<-ctx.Done()
 		return nil, ctx.Err()
 	})
@@ -1572,10 +1573,8 @@ func TestTimeoutRunner_ParentCancelIsNotReportedAsTimeout(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go func() {
-		time.Sleep(100 * time.Millisecond)
-		cancel()
-	}()
+	timer := time.AfterFunc(100*time.Millisecond, cancel)
+	defer timer.Stop()
 
 	r := timeoutRunner{inner: ExecRunner{}, timeout: time.Minute}
 	start := time.Now()
@@ -1601,7 +1600,7 @@ func TestImport_TimeoutIsPerCommand(t *testing.T) {
 	t.Parallel()
 
 	hung := &hungRunner{}
-	_, err := Import(context.Background(), Options{
+	_, err := Import(context.Background(), &Options{
 		URL:     blobURL,
 		Dir:     t.TempDir(),
 		Now:     time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local),
@@ -1629,7 +1628,7 @@ func TestImport_ADO_TimeoutBoundsTheAzCall(t *testing.T) {
 	t.Parallel()
 
 	hung := &hungRunner{}
-	_, err := Import(context.Background(), Options{
+	_, err := Import(context.Background(), &Options{
 		URL:     adoBlobURL,
 		Dir:     t.TempDir(),
 		Now:     time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local),
@@ -1654,7 +1653,7 @@ func TestImport_ZeroTimeoutPassesTheCallerContextThrough(t *testing.T) {
 	t.Parallel()
 
 	rec := &ctxRecordingRunner{fakeRunner: fakeRunner{content: upstream, sha: sha}}
-	if _, err := Import(context.Background(), Options{
+	if _, err := Import(context.Background(), &Options{
 		URL:     blobURL,
 		Dir:     t.TempDir(),
 		Now:     time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local),
@@ -1680,7 +1679,7 @@ func TestImport_WithTimeoutBoundsEachCall(t *testing.T) {
 	t.Parallel()
 
 	rec := &ctxRecordingRunner{fakeRunner: fakeRunner{content: upstream, sha: sha}}
-	if _, err := Import(context.Background(), Options{
+	if _, err := Import(context.Background(), &Options{
 		URL:     blobURL,
 		Dir:     t.TempDir(),
 		Now:     time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local),

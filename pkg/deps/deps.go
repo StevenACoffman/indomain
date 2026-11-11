@@ -23,6 +23,7 @@ import (
 	"github.com/StevenACoffman/indomain/pkg/provenance"
 )
 
+// The hosts a Source can be parsed from.
 const (
 	HostGitHub Host = "github"
 	HostADO    Host = "azure-devops"
@@ -179,6 +180,7 @@ func (r timeoutRunner) Run(ctx context.Context, name string, args ...string) ([]
 			r.timeout,
 		)
 	}
+	//nolint:wrapcheck // the decorator must be transparent: wrapping would prefix every delegated command's error, which the user reads verbatim.
 	return out, err
 }
 
@@ -259,14 +261,8 @@ func parseGitHubSource(u *url.URL, ref string) (Source, error) {
 			u.String(),
 		)
 	}
-	for _, p := range parts {
-		if p == "" || p == "." || p == ".." {
-			return Source{}, fmt.Errorf(
-				"%q has a %q path segment, which is not part of a file's address on github.com — copy the address bar from the file's page rather than assembling the URL by hand",
-				u.String(),
-				p,
-			)
-		}
+	if err := checkPathSegments(u, parts, "github.com", isDotSegment); err != nil {
+		return Source{}, err
 	}
 	src := Source{
 		Host:   HostGitHub,
@@ -290,6 +286,47 @@ func parseGitHubSource(u *url.URL, ref string) (Source, error) {
 	return src, nil
 }
 
+// isDotSegment reports whether a path segment is empty or a dot-segment, which
+// no file's address on a host contains.
+func isDotSegment(p string) bool { return p == "" || p == "." || p == ".." }
+
+// isBadADOFileSegment extends isDotSegment with the segments an ADO ?path=
+// value cannot carry: a backslash, or padding whitespace.
+func isBadADOFileSegment(p string) bool {
+	return isDotSegment(p) || strings.Contains(p, "\\") || strings.TrimSpace(p) != p
+}
+
+// checkPathSegments rejects the first segment bad reports, naming the site whose
+// address bar the URL should have been copied from.
+func checkPathSegments(u *url.URL, segments []string, site string, bad func(string) bool) error {
+	for _, p := range segments {
+		if bad(p) {
+			return fmt.Errorf(
+				"%q has a %q path segment, which is not part of a file's address on %s — copy the address bar from the file's page rather than assembling the URL by hand",
+				u.String(),
+				p,
+				site,
+			)
+		}
+	}
+	return nil
+}
+
+// splitADOVersion reads the ref and its type out of a version parameter. The
+// prefix says which: GB=GitBranch, GT=GitTag, GC=GitCommit; a bare value names
+// a ref of unknown type.
+func splitADOVersion(version string) (ref, refType string) {
+	switch {
+	case strings.HasPrefix(version, "GB"):
+		return version[2:], "branch"
+	case strings.HasPrefix(version, "GT"):
+		return version[2:], "tag"
+	case strings.HasPrefix(version, "GC"):
+		return version[2:], "commit"
+	}
+	return version, ""
+}
+
 // parseADOSource parses an Azure DevOps blob URL:
 //
 //	https://dev.azure.com/<org>/<project>/_git/<repo>?path=<path>&version=GB<branch>
@@ -304,14 +341,8 @@ func parseADOSource(u *url.URL, ref string) (Source, error) {
 			u.String(),
 		)
 	}
-	for _, p := range parts {
-		if p == "" || p == "." || p == ".." {
-			return Source{}, fmt.Errorf(
-				"%q has a %q path segment, which is not part of a file's address on dev.azure.com — copy the address bar from the file's page rather than assembling the URL by hand",
-				u.String(),
-				p,
-			)
-		}
+	if err := checkPathSegments(u, parts, "dev.azure.com", isDotSegment); err != nil {
+		return Source{}, err
 	}
 
 	q := u.Query()
@@ -322,29 +353,16 @@ func parseADOSource(u *url.URL, ref string) (Source, error) {
 			u.String(),
 		)
 	}
-	for _, p := range strings.Split(filePath, "/") {
-		if p == "" || p == "." || p == ".." || strings.Contains(p, "\\") ||
-			strings.TrimSpace(p) != p {
-			return Source{}, fmt.Errorf(
-				"%q has a %q path segment, which is not part of a file's address on dev.azure.com — copy the address bar from the file's page rather than assembling the URL by hand",
-				u.String(),
-				p,
-			)
-		}
+	if err := checkPathSegments(
+		u,
+		strings.Split(filePath, "/"),
+		"dev.azure.com",
+		isBadADOFileSegment,
+	); err != nil {
+		return Source{}, err
 	}
 
-	version := q.Get("version")
-	var urlRef, refType string
-	switch {
-	case strings.HasPrefix(version, "GB"):
-		urlRef, refType = version[2:], "branch"
-	case strings.HasPrefix(version, "GT"):
-		urlRef, refType = version[2:], "tag"
-	case strings.HasPrefix(version, "GC"):
-		urlRef, refType = version[2:], "commit"
-	case version != "":
-		urlRef = version
-	}
+	urlRef, refType := splitADOVersion(q.Get("version"))
 
 	src := Source{
 		Host:    HostADO,
@@ -378,18 +396,12 @@ func parseADOSource(u *url.URL, ref string) (Source, error) {
 // one meant to import this. That second, manual step is also the gate on the
 // injection risk vendoring carries (ADR-0014) — the file is inert until it is
 // named in an imports list.
-func Import(ctx context.Context, opts Options) (*Result, error) {
+func Import(ctx context.Context, opts *Options) (*Result, error) {
 	src, err := ParseSource(opts.URL, opts.Ref)
 	if err != nil {
 		return nil, err
 	}
-	runner := opts.Run
-	if runner == nil {
-		runner = ExecRunner{}
-	}
-	if opts.Timeout > 0 {
-		runner = timeoutRunner{inner: runner, timeout: opts.Timeout}
-	}
+	runner := newRunner(opts.Run, opts.Timeout)
 	// An ADO source whose type the URL did not name — a bare version=, or a
 	// --ref override — has to be resolved before it is fetched, because the API
 	// does not infer the type: an untyped request is read as a branch.
@@ -397,43 +409,13 @@ func Import(ctx context.Context, opts Options) (*Result, error) {
 		return nil, err
 	}
 
-	// One dispatch, not two: the transport is chosen from the source's host, so
-	// adding a host does not mean threading a branch through here (and the
-	// refresh path uses the same pair).
-	content, err := fetchContentFor(ctx, runner, src)
+	content, commit, err := fetchCopy(ctx, runner, &src)
 	if err != nil {
-		return nil, fmt.Errorf("fetching content: %w%s", err, splitHint(src, err))
+		return nil, err
 	}
-	commit, err := fetchCommitFor(ctx, runner, src)
+	m, err := parseVendorable(opts.URL, content)
 	if err != nil {
-		return nil, fmt.Errorf("fetching commit: %w", err)
-	}
-
-	if provenance.Present(content) {
-		return nil, fmt.Errorf(
-			"%s carries a %s line, so indomain reads it as somebody else's copy rather than a model's home. If it is a copy, vendor it from the origin its header names instead, so this repository tracks the model's home. If it is not — the line is an ordinary comment that happens to use indomain's reserved prefix at column zero — it has to be indented or removed at the origin before this file can be vendored",
-			opts.URL,
-			provenance.LinePrefix,
-		)
-	}
-	m, err := model.Parse(content)
-	if err != nil {
-		return nil, fmt.Errorf(
-			"%s did not parse as a domain model — check that the URL names a *.modelith.yaml file, and that this indomain is new enough to read it: %w",
-			opts.URL,
-			err,
-		)
-	}
-	if m.Kind != "DomainModel" {
-		declares := fmt.Sprintf("declares kind %q", m.Kind)
-		if m.Kind == "" {
-			declares = "declares no kind"
-		}
-		return nil, fmt.Errorf(
-			"%s is not a domain model — it %s, not \"DomainModel\"",
-			opts.URL,
-			declares,
-		)
+		return nil, err
 	}
 
 	h := &provenance.Header{
@@ -442,14 +424,14 @@ func Import(ctx context.Context, opts Options) (*Result, error) {
 		Origin:   src.Origin,
 		Path:     src.Path,
 		Ref:      src.Ref,
-		RefType:  recordedRefType(src),
+		RefType:  recordedRefType(&src),
 		Commit:   commit,
 		Imported: opts.Now.Format("2006-01-02"),
 		Digest:   provenance.Digest(content),
 	}
 
 	target := filepath.Join(opts.Dir, path.Base(src.Path))
-	replaced, err := guardTarget(target, src)
+	replaced, err := guardTarget(target, &src)
 	if err != nil {
 		return nil, err
 	}
@@ -464,6 +446,67 @@ func Import(ctx context.Context, opts Options) (*Result, error) {
 	return res, nil
 }
 
+// newRunner returns run, or ExecRunner when it is nil, bounded to timeout when
+// one is set.
+func newRunner(run Runner, timeout time.Duration) Runner {
+	if run == nil {
+		run = ExecRunner{}
+	}
+	if timeout > 0 {
+		return timeoutRunner{inner: run, timeout: timeout}
+	}
+	return run
+}
+
+// fetchCopy fetches the file's content and the commit that last touched it.
+//
+// It is one dispatch, not two: the transport is chosen from the source's host,
+// so adding a host does not mean threading a branch through here (and the
+// refresh path uses the same pair).
+func fetchCopy(ctx context.Context, runner Runner, src *Source) ([]byte, string, error) {
+	content, err := fetchContentFor(ctx, runner, src)
+	if err != nil {
+		return nil, "", fmt.Errorf("fetching content: %w%s", err, splitHint(src, err))
+	}
+	commit, err := fetchCommitFor(ctx, runner, src)
+	if err != nil {
+		return nil, "", fmt.Errorf("fetching commit: %w", err)
+	}
+	return content, commit, nil
+}
+
+// parseVendorable parses fetched content as a model a copy can be made of: one
+// that is not itself somebody else's copy, and is a DomainModel.
+func parseVendorable(rawURL string, content []byte) (*model.Model, error) {
+	if provenance.Present(content) {
+		return nil, fmt.Errorf(
+			"%s carries a %s line, so indomain reads it as somebody else's copy rather than a model's home. If it is a copy, vendor it from the origin its header names instead, so this repository tracks the model's home. If it is not — the line is an ordinary comment that happens to use indomain's reserved prefix at column zero — it has to be indented or removed at the origin before this file can be vendored",
+			rawURL,
+			provenance.LinePrefix,
+		)
+	}
+	m, err := model.Parse(content)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"%s did not parse as a domain model — check that the URL names a *.modelith.yaml file, and that this indomain is new enough to read it: %w",
+			rawURL,
+			err,
+		)
+	}
+	if m.Kind != "DomainModel" {
+		declares := fmt.Sprintf("declares kind %q", m.Kind)
+		if m.Kind == "" {
+			declares = "declares no kind"
+		}
+		return nil, fmt.Errorf(
+			"%s is not a domain model — it %s, not \"DomainModel\"",
+			rawURL,
+			declares,
+		)
+	}
+	return m, nil
+}
+
 // guardTarget decides whether writing to target is safe, and reports whether an
 // existing copy is being replaced.
 //
@@ -472,7 +515,7 @@ func Import(ctx context.Context, opts Options) (*Result, error) {
 // model that happens to share a basename. Import refuses to fetch a file that is
 // already somebody else's copy; the same care is owed to what it writes over,
 // because a model this repository wrote is not recoverable by fetching again.
-func guardTarget(target string, src Source) (replaced bool, err error) {
+func guardTarget(target string, src *Source) (replaced bool, err error) {
 	existing, readErr := os.ReadFile(target)
 	if errors.Is(readErr, fs.ErrNotExist) {
 		return false, nil
@@ -535,7 +578,7 @@ func guardTarget(target string, src Source) (replaced bool, err error) {
 //
 // It is offered only for that failure. A missing tool, a rejected credential,
 // an unreachable network — none of those say anything about the URL.
-func splitHint(src Source, err error) string {
+func splitHint(src *Source, err error) string {
 	// The ref/path ambiguity is GitHub-specific; ADO URLs use query params.
 	if src.Host == HostADO {
 		return ""
@@ -558,7 +601,7 @@ func isNotFound(err error) bool {
 
 // fetchContentFor fetches the file's bytes through the transport its host uses:
 // the gh CLI for GitHub, the az CLI for Azure DevOps.
-func fetchContentFor(ctx context.Context, runner Runner, src Source) ([]byte, error) {
+func fetchContentFor(ctx context.Context, runner Runner, src *Source) ([]byte, error) {
 	if src.Host == HostADO {
 		return fetchContentADO(ctx, runner, src)
 	}
@@ -567,7 +610,7 @@ func fetchContentFor(ctx context.Context, runner Runner, src Source) ([]byte, er
 
 // fetchCommitFor resolves the commit that last touched the file, through the
 // transport its host uses.
-func fetchCommitFor(ctx context.Context, runner Runner, src Source) (string, error) {
+func fetchCommitFor(ctx context.Context, runner Runner, src *Source) (string, error) {
 	if src.Host == HostADO {
 		return fetchCommitADO(ctx, runner, src)
 	}
@@ -582,7 +625,7 @@ func fetchCommitFor(ctx context.Context, runner Runner, src Source) (string, err
 // if a caller skipped resolveADORefType; leaving the key out makes a later
 // refresh resolve it, so the omission is self-healing rather than a lie about
 // the API inferring something it does not infer.
-func recordedRefType(src Source) string {
+func recordedRefType(src *Source) string {
 	if src.Host != HostADO {
 		return ""
 	}
@@ -600,7 +643,7 @@ func recordedRefType(src Source) string {
 // with "The version descriptor <Branch: <sha>> could not be resolved"), so a
 // copy pinned to a tag or a commit cannot be fetched while the type is unknown.
 func resolveADORefType(ctx context.Context, runner Runner, src *Source) error {
-	if src.Host != HostADO || adoVersionType(*src) != "" {
+	if src.Host != HostADO || adoVersionType(src) != "" {
 		return nil
 	}
 	// A git object id names a commit and nothing else, so it needs no call.
@@ -611,7 +654,7 @@ func resolveADORefType(ctx context.Context, runner Runner, src *Source) error {
 	// Otherwise ask the refs API. A ref name and a tag name can collide, and a
 	// version is one or the other; a branch is preferred because that is what
 	// the API itself defaults to, and a tag is reachable from the URL's GT form.
-	branch, err := adoRefExists(ctx, runner, *src, "heads/"+src.Ref)
+	branch, err := adoRefExists(ctx, runner, src, "heads/"+src.Ref)
 	if err != nil {
 		return err
 	}
@@ -619,7 +662,7 @@ func resolveADORefType(ctx context.Context, runner Runner, src *Source) error {
 		src.RefType = "branch"
 		return nil
 	}
-	tag, err := adoRefExists(ctx, runner, *src, "tags/"+src.Ref)
+	tag, err := adoRefExists(ctx, runner, src, "tags/"+src.Ref)
 	if err != nil {
 		return err
 	}
@@ -639,7 +682,7 @@ func resolveADORefType(ctx context.Context, runner Runner, src *Source) error {
 // the ref name without its "refs/" prefix — "heads/main", "tags/v1.0.0" — which
 // is what the API's filter parameter matches (verified: filter=heads/main
 // returns refs/heads/main, while filter=main returns nothing).
-func adoRefExists(ctx context.Context, runner Runner, src Source, ref string) (bool, error) {
+func adoRefExists(ctx context.Context, runner Runner, src *Source, ref string) (bool, error) {
 	uri := fmt.Sprintf(
 		"https://dev.azure.com/%s/%s/_apis/git/repositories/%s/refs?filter=%s&api-version=7.1",
 		url.PathEscape(src.Owner), url.PathEscape(src.Project),
@@ -647,7 +690,7 @@ func adoRefExists(ctx context.Context, runner Runner, src Source, ref string) (b
 	out, err := runner.Run(ctx, "az", "rest", "--method", "get",
 		"--resource", adoResourceID, "--uri", uri, "--query", "value[].name", "-o", "tsv")
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("looking up the ref: %w", err)
 	}
 	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 		if strings.TrimSpace(line) == "refs/"+ref {
@@ -679,12 +722,12 @@ func isCommitSHA(s string) bool {
 // fetchContent returns the file's bytes. The raw media type asks the API for
 // the content itself rather than a JSON envelope carrying it base64-encoded, so
 // nothing here has to decode.
-func fetchContent(ctx context.Context, runner Runner, src Source) ([]byte, error) {
+func fetchContent(ctx context.Context, runner Runner, src *Source) ([]byte, error) {
 	endpoint := fmt.Sprintf("repos/%s/%s/contents/%s?ref=%s",
 		src.Owner, src.Repo, escapePath(src.Path), url.QueryEscape(src.Ref))
 	out, err := runner.Run(ctx, "gh", "api", "-H", "Accept: application/vnd.github.raw", endpoint)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fetching the file from GitHub: %w", err)
 	}
 	return out, nil
 }
@@ -695,12 +738,12 @@ func fetchContent(ctx context.Context, runner Runner, src Source) ([]byte, error
 // file: it does not move when unrelated commits land on the branch, so a later
 // freshness check reports the model changing rather than the repository being
 // busy.
-func fetchCommit(ctx context.Context, runner Runner, src Source) (string, error) {
+func fetchCommit(ctx context.Context, runner Runner, src *Source) (string, error) {
 	endpoint := fmt.Sprintf("repos/%s/%s/commits?path=%s&sha=%s&per_page=1",
 		src.Owner, src.Repo, url.QueryEscape(src.Path), url.QueryEscape(src.Ref))
 	out, err := runner.Run(ctx, "gh", "api", endpoint, "--jq", ".[0].sha")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("looking up the file's last commit on GitHub: %w", err)
 	}
 	sha := strings.TrimSpace(string(out))
 	if sha == "" || sha == "null" {
@@ -760,7 +803,7 @@ func escapePath(p string) string {
 // the version prefix was not one of the known three (GB/GT/GC), the API
 // endpoint cannot infer the ref type, so an unknown type is resolved before
 // the fetch rather than passed through as an empty versionType.
-func adoVersionType(src Source) string {
+func adoVersionType(src *Source) string {
 	switch src.RefType {
 	case "branch", "tag", "commit":
 		return src.RefType
@@ -780,7 +823,7 @@ func adoVersionType(src Source) string {
 // from stdout: az rest appends a newline when it prints a body to stdout, so the
 // stdout form is not byte-identical to the origin file — it drifts a trailing
 // newline into the vendored copy and its digest (ADR-0019).
-func fetchContentADO(ctx context.Context, runner Runner, src Source) ([]byte, error) {
+func fetchContentADO(ctx context.Context, runner Runner, src *Source) ([]byte, error) {
 	uri := fmt.Sprintf(
 		"https://dev.azure.com/%s/%s/_apis/git/repositories/%s/items?path=%s&versionDescriptor.version=%s&download=true&api-version=7.1",
 		url.PathEscape(src.Owner),
@@ -807,14 +850,18 @@ func fetchContentADO(ctx context.Context, runner Runner, src Source) ([]byte, er
 	if _, err := runner.Run(ctx, "az", "rest", "--method", "get",
 		"--resource", adoResourceID, "--uri", uri,
 		"--output-file", name); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fetching the file from Azure DevOps: %w", err)
 	}
-	return os.ReadFile(name)
+	content, err := os.ReadFile(name)
+	if err != nil {
+		return nil, fmt.Errorf("reading the fetched file: %w", err)
+	}
+	return content, nil
 }
 
 // fetchCommitADO returns the commit that last touched the file at the given
 // ref by delegating to `az rest`. Auth is handled by the az CLI.
-func fetchCommitADO(ctx context.Context, runner Runner, src Source) (string, error) {
+func fetchCommitADO(ctx context.Context, runner Runner, src *Source) (string, error) {
 	uri := fmt.Sprintf(
 		"https://dev.azure.com/%s/%s/_apis/git/repositories/%s/commits?searchCriteria.itemPath=%s&searchCriteria.itemVersion.version=%s&$top=1&api-version=7.1",
 		url.PathEscape(src.Owner),
@@ -831,7 +878,7 @@ func fetchCommitADO(ctx context.Context, runner Runner, src Source) (string, err
 		"--resource", adoResourceID, "--uri", uri,
 		"--query", "value[0].commitId", "-o", "tsv")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("looking up the file's last commit on Azure DevOps: %w", err)
 	}
 	sha := strings.TrimSpace(string(out))
 	if sha == "" || sha == "null" {
