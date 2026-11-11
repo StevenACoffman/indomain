@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -38,6 +39,15 @@ var version = ""
 // findings are already on stdout).
 var errBlocking = errors.New("blocking findings")
 
+// ---- render ----
+
+// renderOptions are the flags of the render command.
+type renderOptions struct {
+	out    string
+	stdout bool
+	check  bool
+}
+
 // buildVersion resolves the version string, in precedence order: an explicit
 // ldflags override, the module version embedded by `go install module@version`,
 // then VCS info for a local `go build`/`go install ./...` checkout.
@@ -52,42 +62,50 @@ func buildVersion() string {
 	if v := info.Main.Version; v != "" && v != "(devel)" {
 		return v
 	}
-	var rev, dirty string
-	for _, s := range info.Settings {
+	if rev, dirty := vcsRevision(info.Settings); rev != "" {
+		return "devel-" + rev + dirty
+	}
+	return "dev"
+}
+
+// vcsRevision reads the abbreviated commit and the dirty marker out of the VCS
+// settings a local build embeds.
+func vcsRevision(settings []debug.BuildSetting) (rev, dirty string) {
+	for _, s := range settings {
 		switch s.Key {
 		case "vcs.revision":
-			if len(s.Value) > 12 {
-				rev = s.Value[:12]
-			} else {
-				rev = s.Value
-			}
+			rev = s.Value[:min(len(s.Value), 12)]
 		case "vcs.modified":
 			if s.Value == "true" {
 				dirty = "-dirty"
 			}
 		}
 	}
-	if rev != "" {
-		return "devel-" + rev + dirty
-	}
-	return "dev"
+	return rev, dirty
 }
 
 func main() {
+	os.Exit(execute())
+}
+
+// execute runs the command line and returns the process exit code, so the
+// deferred stop runs before the process exits.
+func execute() int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	if err := rootCmd().ExecuteContext(ctx); err != nil {
-		if errors.Is(err, errBlocking) {
-			os.Exit(1)
-		}
-		if ctx.Err() != nil {
-			fmt.Fprintln(os.Stderr, "interrupted")
-			os.Exit(130)
-		}
-		fmt.Fprintln(os.Stderr, "error:", err)
-		os.Exit(1)
+	err := rootCmd().ExecuteContext(ctx)
+	switch {
+	case err == nil:
+		return 0
+	case errors.Is(err, errBlocking):
+		return 1
+	case ctx.Err() != nil:
+		fmt.Fprintln(os.Stderr, "interrupted")
+		return 130
 	}
+	fmt.Fprintln(os.Stderr, "error:", err)
+	return 1
 }
 
 func rootCmd() *cobra.Command {
@@ -97,7 +115,7 @@ func rootCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Version:       buildVersion(),
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			return cmd.Context().Err()
 		},
 	}
@@ -120,6 +138,43 @@ that use the network; lint and render never do.`),
 	}
 	cmd.AddCommand(depsImportCmd(), depsCheckCmd(), depsUpdateCmd())
 	return cmd
+}
+
+// runDepsImport vendors args[0] into the directory args[1], or the working
+// directory.
+func runDepsImport(cmd *cobra.Command, args []string, ref string, timeout time.Duration) error {
+	dir := "."
+	if len(args) == 2 {
+		dir = args[1]
+	}
+	info, err := os.Stat(dir)
+	if err != nil {
+		return fmt.Errorf("%s: %w", dir, err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf(
+			"%s is not a directory — the destination is a directory, and the filename comes from the origin",
+			dir,
+		)
+	}
+
+	res, err := deps.Import(cmd.Context(), &deps.Options{
+		URL:     args[0],
+		Dir:     dir,
+		Ref:     ref,
+		Now:     time.Now(),
+		Timeout: timeout,
+	})
+	if err != nil {
+		return fmt.Errorf("importing %s: %w", args[0], err)
+	}
+
+	// A failure to read the working directory only costs the entry
+	// its relative form, so it is not worth failing a completed
+	// import over.
+	wd, _ := os.Getwd()
+	printImportResult(cmd.OutOrStdout(), cmd.ErrOrStderr(), res, wd)
+	return nil
 }
 
 func depsImportCmd() *cobra.Command {
@@ -154,38 +209,7 @@ this command prints the entry to add.`),
   indomain deps import "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/payments.modelith.yaml&version=GBmain"`),
 		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dir := "."
-			if len(args) == 2 {
-				dir = args[1]
-			}
-			info, err := os.Stat(dir)
-			if err != nil {
-				return fmt.Errorf("%s: %w", dir, err)
-			}
-			if !info.IsDir() {
-				return fmt.Errorf(
-					"%s is not a directory — the destination is a directory, and the filename comes from the origin",
-					dir,
-				)
-			}
-
-			res, err := deps.Import(cmd.Context(), &deps.Options{
-				URL:     args[0],
-				Dir:     dir,
-				Ref:     ref,
-				Now:     time.Now(),
-				Timeout: timeout,
-			})
-			if err != nil {
-				return err
-			}
-
-			// A failure to read the working directory only costs the entry
-			// its relative form, so it is not worth failing a completed
-			// import over.
-			wd, _ := os.Getwd()
-			printImportResult(cmd.OutOrStdout(), cmd.ErrOrStderr(), res, wd)
-			return nil
+			return runDepsImport(cmd, args, ref, timeout)
 		},
 	}
 	cmd.Flags().
@@ -288,7 +312,7 @@ CLI fails fast instead of stalling the run.`),
 			blocking := len(reports) > 0 &&
 				printCheckReports(cmd.OutOrStdout(), cmd.ErrOrStderr(), reports)
 			if err != nil {
-				return err
+				return fmt.Errorf("checking vendored copies: %w", err)
 			}
 			if blocking {
 				return errBlocking
@@ -347,7 +371,7 @@ CLI fails fast instead of stalling the run.`),
 			blocking := len(reports) > 0 &&
 				printUpdateReports(cmd.OutOrStdout(), cmd.ErrOrStderr(), reports)
 			if err != nil {
-				return err
+				return fmt.Errorf("updating vendored copies: %w", err)
 			}
 			if blocking {
 				return errBlocking
@@ -366,30 +390,8 @@ CLI fails fast instead of stalling the run.`),
 func printCheckReports(out, errOut io.Writer, reports []deps.Report) bool {
 	stale := 0
 	for i := range reports {
-		r := &reports[i]
-		switch {
-		case r.Skipped:
-		case r.Err != nil:
-			fmt.Fprintf(errOut, "%s: %v\n", r.Path, r.Err)
-		case r.State == nil:
-			// A file the run abandoned rather than judged. survey does not hand
-			// one back, and this keeps a future one that does from crashing a
-			// command whose whole job is to report calmly on other people's
-			// files.
-		case r.Stale():
+		if printCheckReport(out, errOut, &reports[i]) {
 			stale++
-			if r.CommitErr != nil {
-				// The verdict came from the digest comparison and stands on its
-				// own; only the commit to name alongside it is missing.
-				fmt.Fprintf(errOut, "%s: its origin's current commit could not be resolved: %v\n",
-					r.Path, r.CommitErr)
-				fmt.Fprintf(out, "%s: stale at %s — the origin has moved\n", r.Path, r.State.Ref)
-				break
-			}
-			fmt.Fprintf(out, "%s: stale at %s — the origin is now at %s\n",
-				r.Path, r.State.Ref, shortSHA(r.Commit))
-		default:
-			fmt.Fprintf(out, "%s: up to date at %s\n", r.Path, r.State.Ref)
 		}
 	}
 	reached, failed, skipped := tally(reports)
@@ -408,32 +410,43 @@ func printCheckReports(out, errOut io.Writer, reports []deps.Report) bool {
 	return stale > 0 || failed > 0
 }
 
+// printCheckReport reports one file of a check run and says whether it was
+// stale.
+func printCheckReport(out, errOut io.Writer, r *deps.Report) (stale bool) {
+	switch {
+	case r.Skipped:
+	case r.Err != nil:
+		fmt.Fprintf(errOut, "%s: %v\n", r.Path, r.Err)
+	case r.State == nil:
+		// A file the run abandoned rather than judged. survey does not hand
+		// one back, and this keeps a future one that does from crashing a
+		// command whose whole job is to report calmly on other people's
+		// files.
+	case r.Stale():
+		if r.CommitErr != nil {
+			// The verdict came from the digest comparison and stands on its
+			// own; only the commit to name alongside it is missing.
+			fmt.Fprintf(errOut, "%s: its origin's current commit could not be resolved: %v\n",
+				r.Path, r.CommitErr)
+			fmt.Fprintf(out, "%s: stale at %s — the origin has moved\n", r.Path, r.State.Ref)
+			return true
+		}
+		fmt.Fprintf(out, "%s: stale at %s — the origin is now at %s\n",
+			r.Path, r.State.Ref, shortSHA(r.Commit))
+		return true
+	default:
+		fmt.Fprintf(out, "%s: up to date at %s\n", r.Path, r.State.Ref)
+	}
+	return false
+}
+
 // printUpdateReports reports an update run. A failure exits non-zero; a copy
 // that was merely stale does not, because it is no longer stale.
 func printUpdateReports(out, errOut io.Writer, reports []deps.Report) bool {
 	written := 0
 	for i := range reports {
-		r := &reports[i]
-		switch {
-		case r.Skipped:
-		case r.Err != nil:
-			fmt.Fprintf(errOut, "%s: %v\n", r.Path, r.Err)
-		case r.Restored:
+		if printUpdateReport(out, errOut, &reports[i]) {
 			written++
-			fmt.Fprintf(
-				out,
-				"%s: restored to %s — local edits discarded, make the change at its origin\n",
-				r.Path,
-				shortSHA(r.Commit),
-			)
-		case r.State == nil:
-			// See printCheckReports: a file the run abandoned rather than judged.
-		case r.Written:
-			written++
-			fmt.Fprintf(out, "%s: %s → %s at %s\n",
-				r.Path, shortSHA(r.State.Header.Commit), shortSHA(r.Commit), r.State.Ref)
-		default:
-			fmt.Fprintf(out, "%s: up to date at %s\n", r.Path, r.State.Ref)
 		}
 	}
 	reached, failed, skipped := tally(reports)
@@ -458,6 +471,33 @@ func printUpdateReports(out, errOut io.Writer, reports []deps.Report) bool {
 	)
 	printTrustWarning(errOut)
 	return failed > 0
+}
+
+// printUpdateReport reports one file of an update run and says whether it was
+// written.
+func printUpdateReport(out, errOut io.Writer, r *deps.Report) (written bool) {
+	switch {
+	case r.Skipped:
+	case r.Err != nil:
+		fmt.Fprintf(errOut, "%s: %v\n", r.Path, r.Err)
+	case r.Restored:
+		fmt.Fprintf(
+			out,
+			"%s: restored to %s — local edits discarded, make the change at its origin\n",
+			r.Path,
+			shortSHA(r.Commit),
+		)
+		return true
+	case r.State == nil:
+		// See printCheckReport: a file the run abandoned rather than judged.
+	case r.Written:
+		fmt.Fprintf(out, "%s: %s → %s at %s\n",
+			r.Path, shortSHA(r.State.Header.Commit), shortSHA(r.Commit), r.State.Ref)
+		return true
+	default:
+		fmt.Fprintf(out, "%s: up to date at %s\n", r.Path, r.State.Ref)
+	}
+	return false
 }
 
 // tally counts what a run covered: copies reached, files that failed, and files
@@ -532,6 +572,102 @@ func importEntry(p, wd string) string {
 
 // ---- lint ----
 
+// runLint lints the named files and prints the findings. It returns errBlocking
+// when any finding should fail a build.
+func runLint(cmd *cobra.Command, paths []string, completeness, format string) error {
+	if err := validateLintFlags(completeness, format); err != nil {
+		return err
+	}
+	inputs, err := readInputs(paths)
+	if err != nil {
+		return err
+	}
+	all, err := lint.Plan(inputs, lint.OSFiles{})
+	if err != nil {
+		return fmt.Errorf("linting the models: %w", err)
+	}
+
+	completenessAsError := completeness == "error"
+	blocking := slices.ContainsFunc(all, func(fr lint.FileResult) bool {
+		return (&lint.Result{Findings: fr.Findings}).HasBlocking(completenessAsError)
+	})
+
+	if format == "json" {
+		enc := json.NewEncoder(cmd.OutOrStdout())
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(map[string]any{"files": all}); err != nil {
+			return fmt.Errorf("encoding the findings: %w", err)
+		}
+	} else {
+		printLintText(cmd.OutOrStdout(), all)
+	}
+
+	if blocking {
+		return errBlocking
+	}
+	return nil
+}
+
+func validateLintFlags(completeness, format string) error {
+	switch completeness {
+	case "warn", "error":
+	default:
+		return fmt.Errorf("--completeness must be warn or error, got %q", completeness)
+	}
+	switch format {
+	case "text", "json":
+	default:
+		return fmt.Errorf("--format must be text or json, got %q", format)
+	}
+	return nil
+}
+
+// readInputs reads each named model file.
+func readInputs(paths []string) ([]lint.Input, error) {
+	inputs := make([]lint.Input, 0, len(paths))
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", path, err)
+		}
+		inputs = append(inputs, lint.Input{Path: path, Source: data})
+	}
+	return inputs, nil
+}
+
+// printLintText prints each file's findings and a closing count.
+func printLintText(out io.Writer, all []lint.FileResult) {
+	var errs, warns int
+	for _, fr := range all {
+		e, w := printFileFindings(out, &fr)
+		errs += e
+		warns += w
+	}
+	fmt.Fprintf(out, "\n%d error(s), %d warning(s)\n", errs, warns)
+}
+
+// printFileFindings prints one file's findings and returns how many were errors
+// and how many were warnings.
+func printFileFindings(out io.Writer, fr *lint.FileResult) (errs, warns int) {
+	fmt.Fprintf(out, "%s:\n", fr.File)
+	if len(fr.Findings) == 0 {
+		fmt.Fprintln(out, "  ok")
+	}
+	for _, f := range fr.Findings {
+		if f.Severity == lint.SeverityError {
+			errs++
+		} else {
+			warns++
+		}
+		loc := f.Path
+		if loc == "" {
+			loc = "(root)"
+		}
+		fmt.Fprintf(out, "  %-7s [%s] %s: %s\n", f.Severity, f.Category, loc, f.Message)
+	}
+	return errs, warns
+}
+
 func lintCmd() *cobra.Command {
 	var (
 		completeness string
@@ -547,79 +683,7 @@ func lintCmd() *cobra.Command {
   indomain lint --format json model.modelith.yaml   # machine-readable for CI`),
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			switch completeness {
-			case "warn", "error":
-			default:
-				return fmt.Errorf("--completeness must be warn or error, got %q", completeness)
-			}
-			switch format {
-			case "text", "json":
-			default:
-				return fmt.Errorf("--format must be text or json, got %q", format)
-			}
-			completenessAsError := completeness == "error"
-
-			inputs := make([]lint.Input, 0, len(args))
-			for _, path := range args {
-				data, err := os.ReadFile(path)
-				if err != nil {
-					return fmt.Errorf("%s: %w", path, err)
-				}
-				inputs = append(inputs, lint.Input{Path: path, Source: data})
-			}
-			all, err := lint.Plan(inputs, lint.OSFiles{})
-			if err != nil {
-				return err
-			}
-
-			blocking := false
-			for _, fr := range all {
-				if (&lint.Result{Findings: fr.Findings}).HasBlocking(completenessAsError) {
-					blocking = true
-				}
-			}
-
-			if format == "json" {
-				enc := json.NewEncoder(cmd.OutOrStdout())
-				enc.SetIndent("", "  ")
-				if err := enc.Encode(map[string]any{"files": all}); err != nil {
-					return err
-				}
-			} else {
-				out := cmd.OutOrStdout()
-				var errs, warns int
-				for _, fr := range all {
-					fmt.Fprintf(out, "%s:\n", fr.File)
-					if len(fr.Findings) == 0 {
-						fmt.Fprintln(out, "  ok")
-					}
-					for _, f := range fr.Findings {
-						if f.Severity == lint.SeverityError {
-							errs++
-						} else {
-							warns++
-						}
-						loc := f.Path
-						if loc == "" {
-							loc = "(root)"
-						}
-						fmt.Fprintf(
-							out,
-							"  %-7s [%s] %s: %s\n",
-							f.Severity,
-							f.Category,
-							loc,
-							f.Message,
-						)
-					}
-				}
-				fmt.Fprintf(out, "\n%d error(s), %d warning(s)\n", errs, warns)
-			}
-
-			if blocking {
-				return errBlocking
-			}
-			return nil
+			return runLint(cmd, args, completeness, format)
 		},
 	}
 	cmd.Flags().
@@ -632,7 +696,187 @@ func lintCmd() *cobra.Command {
 	return cmd
 }
 
-// ---- render ----
+// runRender renders the model file in to Markdown, or checks the committed
+// Markdown against it.
+func runRender(cmd *cobra.Command, in string, o *renderOptions) error {
+	data, err := os.ReadFile(in)
+	if err != nil {
+		return fmt.Errorf("%s: %w", in, err)
+	}
+	target := o.out
+	if target == "" {
+		target = defaultOut(in)
+	}
+
+	// A target under a directory that does not exist is a misconfigured
+	// -o, not a document waiting to be written. It is settled before
+	// anything below can exempt a file from the check, so no exemption
+	// can turn a typo into a pass.
+	if o.check && !isDir(filepath.Dir(target)) {
+		return fmt.Errorf(
+			"cannot check %s: %s is not a directory",
+			target,
+			filepath.Dir(target),
+		)
+	}
+
+	m, skipped, err := loadRenderable(cmd.OutOrStdout(), in, target, data, o.check)
+	if err != nil || skipped {
+		return err
+	}
+	return emitRender(cmd, in, target, m, o)
+}
+
+// loadRenderable parses data as a model to render. skipped is true when a
+// --check run exempted a vendored copy instead, having said so on out.
+//
+// A vendored model's rendered form belongs to its home repository,
+// so it arrives with no committed .md and no obligation to carry
+// one. --check runs over globs, and demanding one here would make
+// this repository regenerate somebody else's document every time
+// their model moved (ADR-0015). Naming the file to render it still
+// renders it; that is how a deep link into a vendored model's .md
+// gets something to point at — and once such an .md is committed, it
+// goes stale like any other, so from then on --check does check it.
+//
+// What stays skipped is everything the origin owns rather than this
+// repository: a copy this build cannot render at all — a newer schema
+// version, a shape this binary does not know — is not a --check
+// failure, because there is nothing here to fix. `indomain lint`
+// reports it, loudly and once.
+//
+// The exemption is claimed by a *clean* header, not by
+// provenance.Present. Present answers a deliberately broad question
+// so that a broken header still classifies a file as somebody else's
+// copy, which is right for lint: the header defects are reported and
+// the completeness noise is suppressed. Skipping on that same answer
+// would be silent, and would hand the exemption to a model this
+// repository owns that merely carries a "# modelith-" comment. An
+// exemption needs a valid claim, so a file whose header does not
+// parse cleanly is checked like any other — its defects are already
+// failing `indomain lint`.
+func loadRenderable(
+	out io.Writer,
+	in, target string,
+	data []byte,
+	check bool,
+) (m *model.Model, skipped bool, err error) {
+	header, headerProblems := provenance.Parse(data)
+	exempt := check && header != nil && len(headerProblems) == 0
+	skip := func(tail string) (*model.Model, bool, error) {
+		fmt.Fprintf(out, "%s is a vendored copy %s\n", in, tail)
+		return nil, true, nil
+	}
+	unrenderable := fmt.Sprintf(
+		"this indomain cannot render — skipped (run `indomain lint %s` for details)",
+		in,
+	)
+	if exempt {
+		if _, err := os.Stat(target); errors.Is(err, fs.ErrNotExist) {
+			return skip("with no committed " + filepath.Base(target) + " — skipped")
+		}
+	}
+
+	// Validate against the schema first so a malformed file fails with a
+	// friendly, located error rather than the raw strict-YAML parse error.
+	if findings := lint.Structural(data); len(findings) > 0 {
+		if exempt {
+			return skip(unrenderable)
+		}
+		return nil, false, invalidModelError(in, findings)
+	}
+	m, err = model.Parse(data)
+	if err != nil {
+		if exempt {
+			return skip(unrenderable)
+		}
+		return nil, false, fmt.Errorf("%s: %w", in, err)
+	}
+	return m, false, nil
+}
+
+// invalidModelError is the error for a file the schema rejected, listing where.
+func invalidModelError(in string, findings []lint.Finding) error {
+	var b strings.Builder
+	fmt.Fprintf(
+		&b,
+		"%s is not a valid domain model — run `indomain lint %s` for details:",
+		in,
+		in,
+	)
+	for _, f := range findings {
+		loc := f.Path
+		if loc == "" {
+			loc = "(root)"
+		}
+		fmt.Fprintf(&b, "\n  %s: %s", loc, f.Message)
+	}
+	return errors.New(b.String())
+}
+
+// emitRender writes the rendering of m to stdout or target, or checks target
+// against it.
+func emitRender(
+	cmd *cobra.Command,
+	in, target string,
+	m *model.Model,
+	o *renderOptions,
+) error {
+	sourceDir, err := filepath.Abs(filepath.Dir(in))
+	if err != nil {
+		return fmt.Errorf("resolving %s: %w", in, err)
+	}
+
+	if o.stdout {
+		// There is no output file to relativize import links against, so
+		// they stay relative to the source — the same links a default,
+		// beside-the-source render would produce.
+		rendered := markdown.Render(m, sourceDir, sourceDir)
+		if _, err := fmt.Fprint(cmd.OutOrStdout(), rendered); err != nil {
+			return fmt.Errorf("writing the rendered Markdown: %w", err)
+		}
+		return nil
+	}
+
+	outDir, err := filepath.Abs(filepath.Dir(target))
+	if err != nil {
+		return fmt.Errorf("resolving %s: %w", target, err)
+	}
+	rendered := markdown.Render(m, sourceDir, outDir)
+
+	if o.check {
+		return checkRendered(cmd.OutOrStdout(), in, target, rendered)
+	}
+
+	if err := os.WriteFile(target, []byte(rendered), 0o644); err != nil {
+		return fmt.Errorf("writing the rendered Markdown: %w", err)
+	}
+	fmt.Fprintf(cmd.ErrOrStderr(), "wrote %s\n", target)
+	return nil
+}
+
+// checkRendered fails when the committed Markdown at target differs from
+// rendered.
+func checkRendered(out io.Writer, in, target, rendered string) error {
+	existing, err := os.ReadFile(target)
+	if err != nil {
+		return fmt.Errorf(
+			"cannot read committed output %s: %w — regenerate it with `indomain render %s` and commit the result",
+			target,
+			err,
+			in,
+		)
+	}
+	if string(existing) != rendered {
+		return fmt.Errorf(
+			"%s is out of date — regenerate it with `indomain render %s` and commit the result",
+			target,
+			in,
+		)
+	}
+	fmt.Fprintf(out, "%s is up to date\n", target)
+	return nil
+}
 
 func renderCmd() *cobra.Command {
 	var (
@@ -650,145 +894,7 @@ func renderCmd() *cobra.Command {
   indomain render --check model.modelith.yaml    # CI gate: fail if the committed .md is stale`),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			in := args[0]
-			data, err := os.ReadFile(in)
-			if err != nil {
-				return fmt.Errorf("%s: %w", in, err)
-			}
-			target := out
-			if target == "" {
-				target = defaultOut(in)
-			}
-
-			// A target under a directory that does not exist is a misconfigured
-			// -o, not a document waiting to be written. It is settled before
-			// anything below can exempt a file from the check, so no exemption
-			// can turn a typo into a pass.
-			if check && !isDir(filepath.Dir(target)) {
-				return fmt.Errorf(
-					"cannot check %s: %s is not a directory",
-					target,
-					filepath.Dir(target),
-				)
-			}
-
-			// A vendored model's rendered form belongs to its home repository,
-			// so it arrives with no committed .md and no obligation to carry
-			// one. --check runs over globs, and demanding one here would make
-			// this repository regenerate somebody else's document every time
-			// their model moved (ADR-0015). Naming the file to render it still
-			// renders it; that is how a deep link into a vendored model's .md
-			// gets something to point at — and once such an .md is committed, it
-			// goes stale like any other, so from then on --check does check it.
-			//
-			// What stays skipped is everything the origin owns rather than this
-			// repository: a copy this build cannot render at all — a newer schema
-			// version, a shape this binary does not know — is not a --check
-			// failure, because there is nothing here to fix. `indomain lint`
-			// reports it, loudly and once.
-			//
-			// The exemption is claimed by a *clean* header, not by
-			// provenance.Present. Present answers a deliberately broad question
-			// so that a broken header still classifies a file as somebody else's
-			// copy, which is right for lint: the header defects are reported and
-			// the completeness noise is suppressed. Skipping on that same answer
-			// would be silent, and would hand the exemption to a model this
-			// repository owns that merely carries a "# modelith-" comment. An
-			// exemption needs a valid claim, so a file whose header does not
-			// parse cleanly is checked like any other — its defects are already
-			// failing `indomain lint`.
-			header, headerProblems := provenance.Parse(data)
-			vendored := header != nil && len(headerProblems) == 0
-			skipVendored := func(tail string) error {
-				fmt.Fprintf(cmd.OutOrStdout(), "%s is a vendored copy %s\n", in, tail)
-				return nil
-			}
-			unrenderable := fmt.Sprintf(
-				"this indomain cannot render — skipped (run `indomain lint %s` for details)",
-				in,
-			)
-			if check && vendored {
-				if _, err := os.Stat(target); errors.Is(err, fs.ErrNotExist) {
-					return skipVendored("with no committed " + filepath.Base(target) + " — skipped")
-				}
-			}
-
-			// Validate against the schema first so a malformed file fails with a
-			// friendly, located error rather than the raw strict-YAML parse error.
-			if findings := lint.Structural(data); len(findings) > 0 {
-				if check && vendored {
-					return skipVendored(unrenderable)
-				}
-				var b strings.Builder
-				fmt.Fprintf(
-					&b,
-					"%s is not a valid domain model — run `indomain lint %s` for details:",
-					in,
-					in,
-				)
-				for _, f := range findings {
-					loc := f.Path
-					if loc == "" {
-						loc = "(root)"
-					}
-					fmt.Fprintf(&b, "\n  %s: %s", loc, f.Message)
-				}
-				return errors.New(b.String())
-			}
-			m, err := model.Parse(data)
-			if err != nil {
-				if check && vendored {
-					return skipVendored(unrenderable)
-				}
-				return err
-			}
-
-			sourceDir, err := filepath.Abs(filepath.Dir(in))
-			if err != nil {
-				return fmt.Errorf("resolving %s: %w", in, err)
-			}
-
-			if stdout {
-				// There is no output file to relativize import links against, so
-				// they stay relative to the source — the same links a default,
-				// beside-the-source render would produce.
-				rendered := markdown.Render(m, sourceDir, sourceDir)
-				_, err := fmt.Fprint(cmd.OutOrStdout(), rendered)
-				return err
-			}
-
-			outDir, err := filepath.Abs(filepath.Dir(target))
-			if err != nil {
-				return fmt.Errorf("resolving %s: %w", target, err)
-			}
-			rendered := markdown.Render(m, sourceDir, outDir)
-
-			if check {
-				existing, err := os.ReadFile(target)
-				if err != nil {
-					return fmt.Errorf(
-						"cannot read committed output %s: %w — regenerate it with `indomain render %s` and commit the result",
-						target,
-						err,
-						in,
-					)
-				}
-				if string(existing) != rendered {
-					return fmt.Errorf(
-						"%s is out of date — regenerate it with `indomain render %s` and commit the result",
-						target,
-						in,
-					)
-				}
-				fmt.Fprintf(cmd.OutOrStdout(), "%s is up to date\n", target)
-				return nil
-			}
-
-			if err := os.WriteFile(target, []byte(rendered), 0o644); err != nil {
-				return err
-			}
-			fmt.Fprintf(cmd.ErrOrStderr(), "wrote %s\n", target)
-			return nil
+			return runRender(cmd, args[0], &renderOptions{out: out, stdout: stdout, check: check})
 		},
 	}
 	cmd.Flags().StringVarP(&out, "out", "o", "", "output path (default: input with .md extension)")
@@ -823,9 +929,11 @@ func schemaCmd() *cobra.Command {
 		Short:   "Print the canonical JSON Schema",
 		Example: "  indomain schema > modelith.schema.json",
 		Args:    cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			_, err := cmd.OutOrStdout().Write(schema.JSON())
-			return err
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if _, err := cmd.OutOrStdout().Write(schema.JSON()); err != nil {
+				return fmt.Errorf("writing the schema: %w", err)
+			}
+			return nil
 		},
 	}
 }
