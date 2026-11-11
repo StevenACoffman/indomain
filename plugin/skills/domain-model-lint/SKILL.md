@@ -72,15 +72,18 @@ the flag.
   definition to record how they differ (a subtype carrying its parent's name
   doesn't warn). Decide which it is and propose the fix.
 - **Completeness (advisory warning).** Gaps, not bugs: an entity with no
-  invariants, an entity no scenario exercises, a glossary term defined but
+  invariants, an entity no scenario exercises, an invariant no scenario
+  touches and no action preserves, a glossary term defined but
   never referenced, an enum no attribute uses, or an import nothing
   references. `shared: true` on the model being linted relaxes the two
   vocabulary-only checks (the unused glossary term and unused enum) — it does
-  not relax the invariant or scenario-coverage checks, and it does nothing for
+  not relax the invariant or scenario-coverage checks (including the
+  unreferenced-invariant one), and it does nothing for
   an unreferenced import (that check is about *this* model's own `imports`,
   not about being imported). These are what `--completeness error` promotes to
   blocking. For each, ask whether it's a real gap (write the missing invariant
-  or scenario, or drop the unused import) or genuinely fine — a
+  or scenario, list the invariant in a scenario or action, or drop the unused
+  import or the invariant that only restates a cardinality) or genuinely fine — a
   `shared: true` model in particular.
 
 ## How to report back

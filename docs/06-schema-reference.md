@@ -502,11 +502,12 @@ The JSON Schema covers structure. [`modelith lint`](./07-cli.md) adds:
       that carries its parent's name (`CreditCard` with `subtypeOf: Card`)
       doesn't warn.
 - **Completeness** checks (advisory warnings): entities with no invariants;
-  entities no scenario exercises; a glossary term nothing references; an enum no
-  attribute uses; an [import](#imports) nothing references. The unused
-  glossary term and unused enum checks don't apply to a model marked
-  [`shared: true`](#the-model-on-the-other-end-shared-true); the unused import
-  check still does.
+  entities no scenario exercises; an invariant no scenario's
+  `invariants_touched` lists and no action `preserves`; a glossary term nothing
+  references; an enum no attribute uses; an [import](#imports) nothing
+  references. The unused glossary term and unused enum checks don't apply to a
+  model marked [`shared: true`](#the-model-on-the-other-end-shared-true); the
+  unreferenced invariant and unused import checks still do.
 
   These are advisory on purpose. An entity that genuinely has no rule to state
   is fine — leave its invariants empty rather than inventing a filler rule that

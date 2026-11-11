@@ -134,6 +134,7 @@ func Run(path string, src []byte, files Files) (*Result, error) {
 	runReciprocity(m, res)
 	runPairing(m, res)
 	runCompleteness(m, res)
+	runInvariantCoverage(m, res)
 
 	if vendored {
 		dropOwnedDiagnostics(res)

@@ -37,7 +37,12 @@ A rule set evaluated by the system, belonging to exactly one `Project`. A `Polic
 | --- | --- | --- |
 | `enabled` | boolean |  |
 
-**Actions:** `create`, `enable`, `disable`, `delete`
+**Actions**
+
+- `create` — preserves belongs-to-one-project
+- `enable`
+- `disable`
+- `delete`
 
 **Invariants**
 

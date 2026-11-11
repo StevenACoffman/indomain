@@ -827,6 +827,7 @@ scenarios:
   - name: compose
     actors: [Alpha]
     steps: ["an ` + "`Alpha`" + ` gains a ` + "`Beta`" + `"]
+    invariants_touched: [alpha-1, beta-1]
 `
 	res, err := Run(testModelPath, []byte(src), nil)
 	if err != nil {

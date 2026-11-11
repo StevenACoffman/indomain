@@ -92,7 +92,12 @@ entities:
     attributes:
       - name: enabled
         type: boolean
-    actions: [create, enable, disable, delete]
+    actions:
+      - name: create
+        preserves: [belongs-to-one-project]
+      - enable
+      - disable
+      - delete
     invariants:
       - id: belongs-to-one-project
         statement: "Belongs to exactly one `Project`"
