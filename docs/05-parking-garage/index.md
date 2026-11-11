@@ -191,14 +191,14 @@ Visit:
     (monthly) or a `Ticket` (temporary), never both.
   relationships:
     - entity: Spot
-      cardinality: n:1
+      cardinality: "n:1"
       ownership: referenced
     - entity: Keycard
-      cardinality: n:1
+      cardinality: "n:1"
       ownership: referenced
       note: Present when entry was by `Keycard` (monthly).
     - entity: Ticket
-      cardinality: 1:1
+      cardinality: "1:1"
       ownership: owned
       note: Present when entry was by `Ticket` (temporary).
   invariants:

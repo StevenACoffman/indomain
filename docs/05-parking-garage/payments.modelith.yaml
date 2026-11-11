@@ -40,7 +40,7 @@ entities:
       amount never changes afterwards; money given back is a `Refund`.
     relationships:
       - entity: Refund
-        cardinality: 1:n
+        cardinality: "1:n"
         ownership: owned
         note: >-
           Money returned from this `Payment`. There may be several partial ones,
