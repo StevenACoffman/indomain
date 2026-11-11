@@ -1,11 +1,26 @@
 package schema
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"strings"
 	"testing"
 )
+
+// TestADR_0020_SchemaV1Frozen pins the embedded v1 schema to the bytes it
+// shares with upstream modelith. Any edit, even an additive optional field,
+// makes files that use it unreadable by modelith; see
+// project-docs/adr/0020-v1-schema-is-frozen.md before changing this hash.
+func TestADR_0020_SchemaV1Frozen(t *testing.T) {
+	t.Parallel()
+	const want = "2e08e8293a6c71fc3750146be6e19f5e59a9a33bb1b4d613e6bead26db1e75b7"
+	sum := sha256.Sum256(JSONFor("v1"))
+	if got := hex.EncodeToString(sum[:]); got != want {
+		t.Fatalf("embedded v1 schema changed (sha256 %s, want %s): v1 is frozen to stay readable by modelith — see ADR-0020", got, want)
+	}
+}
 
 // TestURLConsistency guards the three places the canonical schema URL appears
 // from drifting apart: the embedded schema's "$id", the Go URL constant

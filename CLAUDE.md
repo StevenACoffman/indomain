@@ -100,8 +100,12 @@ Claude Code plugin with `--plugin-dir` live in
   `glossary` defines non-entity vocabulary; actions are a bare string *or*
   `{name, actor?, preserves?, description?}`; attributes can be `derived` (with a
   required `derivation`). See [`docs/06-schema-reference.md`](./docs/06-schema-reference.md).
-- **Stay on schema `v1`** while pre-release — there's no external `*.modelith.yaml`
-  corpus to preserve, so the format evolves in place rather than bumping to v2.
+- **The v1 schema is frozen.** indomain reads modelith's files, and its v1
+  schema is byte-identical to upstream's. Any edit, even an additive field,
+  forks the format. Improve lint, rendering, and guidance instead. A format
+  extension goes upstream. See
+  [ADR-0020](./project-docs/adr/0020-v1-schema-is-frozen.md), pinned by
+  `TestADR_0020_SchemaV1Frozen`.
 
 ## Cutting a release
 
