@@ -59,6 +59,8 @@ check_file() {
 extract_and_check_md() {
   local md="$1"
   local rel="${md#"$root"/}"
+  local base
+  base=$(basename "$md")
   local block=0
   local in_block=0
   local out=""
@@ -67,7 +69,7 @@ extract_and_check_md() {
       if [ "$line" = '```mermaid' ]; then
         in_block=1
         block=$((block + 1))
-        out="$workdir/extract-$(basename "$md")-$block.mmd"
+        out="$workdir/extract-$base-$block.mmd"
         : >"$out"
       fi
       continue
@@ -86,7 +88,7 @@ extract_and_check_md() {
 }
 
 md_files=(examples/*.md docs/04-reading-the-diagrams.md docs/05-parking-garage/*.md)
-mmd_files=(internal/render/mermaid/testdata/*.mmd)
+mmd_files=(pkg/render/mermaid/testdata/*.mmd)
 
 if [ ${#md_files[@]} -eq 0 ] && [ ${#mmd_files[@]} -eq 0 ]; then
   echo "::error::mermaid-check: no Mermaid sources found to check"
