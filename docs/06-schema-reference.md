@@ -514,3 +514,25 @@ The JSON Schema covers structure. [`modelith lint`](./07-cli.md) adds:
   only restates its cardinality or its type. The warning is a prompt to check,
   not a demand to fill.
 
+### What the linter can't see
+
+A clean lint means the model's references resolve and its structure is
+consistent. It doesn't mean the rules are right:
+
+- **The meaning of prose is never checked.** Lint resolves the backticked
+  terms in an invariant `statement`, a scenario step, or a definition, but it
+  can't read what they say. Two invariants that contradict each other both
+  pass.
+- **In prose, only backticked PascalCase names are references.** An entity
+  named in a definition or step without backticks isn't checked, and it
+  doesn't count as used for the completeness checks.
+- **Term collisions are suffixes between entity and glossary names.**
+  `TreatmentSession` and `Session` warn. Enum names, roles, actors, and other
+  ways people shorten a name aren't compared.
+- **Cross-model checks stop at the import boundary.** A qualified reference is
+  checked to exist in the imported model, but an imported entity's ancestry,
+  ownership, and reciprocal declarations aren't followed.
+
+Warnings flag what is likely but not certainly wrong, and completeness
+findings flag gaps. For both, a person decides whether the model needs to
+change.
