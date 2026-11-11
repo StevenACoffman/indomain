@@ -1,8 +1,10 @@
 # All settings can be found here https://github.com/golangci/golangci-lint/blob/HEAD/.golangci.reference.yml
 version: "2"
-# golangci-lint configuration for anarch-lint, inherited from the climax scaffold.
-# Enforces go-advice/summary_rules.md: the comments below cite it as rules.md, and
-# climax's spec.md for the command pattern.
+# golangci-lint configuration for indomain, adapted from the climax scaffold.
+# Enforces go-advice/summary_rules.md, which the comments below cite as rules.md.
+# Where a rule here would contradict a convention this repository documents in
+# .claude/rules/ (go-style.md, testing.md), the convention wins and the setting
+# below says so.
 
 formatters:
   enable:
@@ -49,14 +51,14 @@ linters:
     - predeclared     # warn when a name shadows a predeclared identifier (len, cap, error, …)
     - asasalint       # detect misuse of ...[]any arguments to fmt.Print-style functions
     - exhaustive      # switch on typed constants must cover all cases — rules.md
-    - musttag         # structs used with encoding/* must have field tags (e.g. version Info JSON tags)
+    - musttag         # structs used with encoding/* must have field tags (e.g. the JSON lint output)
     # ── style / architecture ─────────────────────────────────────────────────
     - revive          # general Go style (error-strings, exported, var-naming, …)
     - errname         # sentinel errors named ErrFoo, not FooError — rules.md
     - gochecknoglobals # no package-level mutable state — rules.md
-    - gochecknoinits  # no init() functions — rules.md / spec.md
+    - gochecknoinits  # no init() functions — rules.md / go-style.md
     - unparam         # detect unused function parameters
-    - funcorder       # exported funcs before unexported — spec.md / Ben Johnson
+    - funcorder       # exported funcs before unexported — Ben Johnson
     - decorder        # const/var/type/func declaration order — rules.md
     - funlen          # keep functions short — rules.md
     - maintidx        # maintainability index floor
@@ -78,13 +80,14 @@ linters:
     - noctx           # no http.Get/Head without context
     - contextcheck    # context must propagate through call chains
     # ── testing ──────────────────────────────────────────────────────────────
-    - testpackage     # tests in package_test (black-box) — rules.md
+    # testpackage is off: testing.md has the lint and render packages test their
+    # rules through package-internal fixtures, so tests stay in the package.
     - thelper         # t.Helper() at top of test helper funcs — rules.md
-    - tparallel       # enforce t.Parallel() in subtests; scaffold tests use t.TempDir() so isolation is safe
+    - tparallel       # enforce t.Parallel() consistently between a test and its subtests
     - testableexamples # Example* functions must have // Output: comments; go test silently skips examples without them
     # ── dependency hygiene ───────────────────────────────────────────────────
-    - depguard        # ban CLI frameworks (cobra, urfave/cli, pflag) and test frameworks — spec.md / rules.md
-    - forbidigo       # ban os.Exit outside main; ban fmt.Print* in cmds — spec.md
+    - depguard        # ban other CLI frameworks and test frameworks — go-style.md / rules.md
+    - forbidigo       # ban os.Exit outside main; ban fmt.Print* — go-style.md
     # ── nolint hygiene ───────────────────────────────────────────────────────
     - nolintlint      # require specific, explained nolint directives
 
@@ -253,13 +256,6 @@ linters:
       no-global: "all"
       context: "all"
 
-    # ── testpackage ──────────────────────────────────────────────────────────
-    # rules.md: use an external test package (foo_test) for black-box testing.
-    testpackage:
-      skip-regexp: (export|internal)_test\.go
-      allow-packages:
-        - main
-
     # ── thelper ──────────────────────────────────────────────────────────────
     # rules.md: test helper functions must call t.Helper() as their first statement.
     thelper:
@@ -290,20 +286,17 @@ linters:
         - fmt.Errorf(
 
     # ── depguard ─────────────────────────────────────────────────────────────
-    # spec.md: climax uses its own command pattern; no third-party CLI frameworks.
+    # go-style.md: the CLI is built on cobra; keep the dependency set small, so
+    # no second CLI or config framework.
     # rules.md: use stdlib testing only; no third-party test frameworks.
     depguard:
       rules:
         no-cli-frameworks:
           deny:
-            - pkg: "github.com/spf13/cobra"
-              desc: "climax uses its own command pattern; do not import cobra"
             - pkg: "github.com/urfave/cli"
-              desc: "climax uses its own command pattern; do not import urfave/cli"
-            - pkg: "github.com/spf13/pflag"
-              desc: "use the standard library flag package"
+              desc: "the CLI is built on cobra (go-style.md); do not add urfave/cli"
             - pkg: "github.com/spf13/viper"
-              desc: "use standard library or explicit config structs"
+              desc: "keep the dependency set small (go-style.md); pass config explicitly"
         no-test-frameworks:
           # rules.md: "do not use third-party testing frameworks — use the stdlib
           # testing package only." Assertion libraries and BDD suites add dependency
@@ -323,26 +316,27 @@ linters:
               desc: "use stdlib testing; uber-mock is banned — rules.md"
 
     # ── forbidigo ────────────────────────────────────────────────────────────
-    # spec.md: commands write to cmd.Stdout/cmd.Stderr; only main may call os.Exit.
-    # rules.md: use flag.NewFlagSet, never flag.Parse; no time.Sleep in tests; no t.Setenv.
-    # spec.md §Constraints: flag.ExitOnError and flag.PanicOnError call os.Exit/panic
-    #   on parse failure; use flag.ContinueOnError so callers control error handling.
+    # go-style.md: commands write to cmd.OutOrStdout()/cmd.ErrOrStderr(); only main
+    #   may call os.Exit, so the exit-code contract lives in one place.
+    # rules.md: never flag.Parse a global flag set; no time.Sleep in tests; no t.Setenv.
+    # flag.ExitOnError and flag.PanicOnError call os.Exit/panic on parse failure;
+    #   use flag.ContinueOnError so callers control error handling.
     # rules.md: never use runtime.Caller or os.Getwd to compute fixture paths; use
     #   testdata/ relative to the test file.
     forbidigo:
       forbid:
         - pattern: "^os\\.Exit$"
-          msg: "only main() may call os.Exit; commands must return errors or root.ExitError"
+          msg: "only main() may call os.Exit; commands return errors and main maps them to exit codes"
         - pattern: "^fmt\\.Print(ln|f)?$"
-          msg: "write to cmd.Stdout or cmd.Stderr instead of fmt.Print*"
+          msg: "write to cmd.OutOrStdout() or cmd.ErrOrStderr() instead of fmt.Print*"
         - pattern: "^log\\.(Print|Fatal|Panic|New|Default|SetOutput|SetFlags|SetPrefix)"
           msg: "return errors instead of calling log.Fatal/Panic; do not configure the global logger"
         - pattern: "^flag\\.Parse$"
-          msg: "use ff.NewFlagSet scoped to the command; never call flag.Parse directly"
+          msg: "declare flags on the cobra command; never call flag.Parse directly"
         - pattern: "^flag\\.ExitOnError$"
-          msg: "use flag.ContinueOnError; ExitOnError calls os.Exit on parse failure — spec.md"
+          msg: "use flag.ContinueOnError; ExitOnError calls os.Exit on parse failure"
         - pattern: "^flag\\.PanicOnError$"
-          msg: "use flag.ContinueOnError; PanicOnError panics on parse failure — spec.md"
+          msg: "use flag.ContinueOnError; PanicOnError panics on parse failure"
         - pattern: "^time\\.Sleep$"
           msg: "do not use time.Sleep in tests; use a channel or sync primitive instead"
         - pattern: "\\.Setenv$"
@@ -356,10 +350,10 @@ linters:
     # ── gosec ────────────────────────────────────────────────────────────────
     gosec:
       excludes:
-        - G304  # file path from variable: expected and intentional in scaffold generation
-        - G301  # 0755 is the correct permission for generated source directories
-        - G306  # 0644 is the correct permission for generated Go source files
-        - G703  # path traversal via taint: user-provided paths are the purpose of scaffold
+        - G304  # file path from variable: a CLI reads the model files it is given
+        - G301  # 0755 is the correct permission for directories the CLI creates
+        - G306  # 0644 is intentional: rendered .md files are committed docs
+        - G703  # path traversal via taint: output paths derive from the user-supplied input path
 
     # ── revive ───────────────────────────────────────────────────────────────
     # rules.md: error strings must not be capitalized or end with punctuation;
@@ -419,7 +413,7 @@ linters:
         - name: redefines-builtin-id   # never shadow len, cap, error, etc.
           severity: error
           disabled: false
-        - name: struct-tag             # struct field tags must be well-formed (e.g. version Info JSON tags)
+        - name: struct-tag             # struct field tags must be well-formed (e.g. the JSON lint output)
           severity: error
           disabled: false
         - name: use-any                # prefer any over interface{} — modern Go idiom
@@ -468,37 +462,10 @@ linters:
           - forbidigo
         text: "os\\.Exit"
 
-      # cmd/<name>/<name>.go: spec.md mandates that exec() is the single function
-      # that handles all command logic. Flag combinations, path resolution, and error
-      # handling are intentionally concentrated here — splitting would require threading
-      # state through helpers with no reduction in overall branch count.
-      - path: cmd/[^/]+/[^/]+\.go$
-        linters:
-          - cyclop
-
-      # cmd/version/version.go: var Version must be a var (not const) so that
-      # -ldflags "-X .../cmd/version.Version=v1.2.3" can override it at link time.
-      # gochecknoglobals does not understand this idiom.
-      - path: cmd/version/version\.go$
-        linters:
-          - gochecknoglobals
-
-      # main.go: os.Exit(exitFail) is the correct and only call site.
+      # cmd/indomain/main.go: main() is the one place os.Exit is called.
       - path: main\.go$
         linters:
           - forbidigo
-
-      # cmd/cmd.go dispatcher writes to io.Writer locals, not global stdout.
-      - path: cmd/cmd\.go$
-        linters:
-          - forbidigo
-
-      # cmd/cmd.go dispatcher must pass command errors through unwrapped; wrapping
-      # would prepend context to every command error, violating the spec's
-      # "<command>: <reason>" format.
-      - path: cmd/cmd\.go$
-        linters:
-          - wrapcheck
 
 issues:
   max-issues-per-linter: 0
