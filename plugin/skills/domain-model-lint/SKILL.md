@@ -25,8 +25,8 @@ go install github.com/stacklok/indomain/cmd/indomain@latest
 ```
 
 ```sh
-indomain lint <file>...            # human-readable
-indomain lint --format json <file> # when you need to parse findings
+modelith lint <file>...            # human-readable
+modelith lint --format json <file> # when you need to parse findings
 ```
 
 Use `--completeness error` only if the user wants gaps to be treated as hard
@@ -62,7 +62,13 @@ the flag.
   usually a typo or a concept that was never named; a relationship `role`
   written as prose, which belongs in `note`; an ambiguous reciprocal pairing,
   where one end declares the same relationship twice and the other declares it
-  back. Decide which it is and propose the fix.
+  back; an `ownership: owned` relationship whose owner (left) side isn't
+  exactly `1` — a composed part has exactly one owner, so `n:1 owned` usually
+  means the target should be `referenced`; an entity or glossary name that ends
+  with another (`TreatmentSession` and `Session`), which people shorten into
+  the same word — rename one, or backtick the shorter name in the longer one's
+  definition to record how they differ (a subtype carrying its parent's name
+  doesn't warn). Decide which it is and propose the fix.
 - **Completeness (advisory warning).** Gaps, not bugs: an entity with no
   invariants, an entity no scenario exercises, a glossary term defined but
   never referenced, an enum no attribute uses, or an import nothing

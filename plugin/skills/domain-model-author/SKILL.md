@@ -81,6 +81,26 @@ before you probe rules and scenarios. Probe until the model is sharp:
 - **Fuzziness is a signal.** If the user can't give a crisp two-to-four-sentence
   definition, or isn't sure whether two things are the same concept, that gap is
   the point. Surface it; don't paper over it.
+- **Watch for names that shorten into each other.** People call a
+  `TreatmentSession` a "session", so it blurs with any `Session` in the model —
+  the linter warns when one name ends with another. Rename one, or have the
+  longer one's definition say how it differs from the shorter (backticked).
+- **You are the custodian of the model, not the domain authority.** When the
+  user proposes a simplification ("we'll never need X"), say what the model
+  could no longer express and let them decide. Don't overrule them on what the
+  domain *is*; do tell them what a change costs the model.
+- **Try to break the model with corner cases.** Before settling identity or
+  cardinality, ask the awkward question — "can there be two on the same day?",
+  "what if the owner leaves?" — and write a scenario for the case that bites.
+  An unexamined assumption baked into identity is the most expensive one to
+  undo.
+- **Question rules that exist only by tradition.** A one-off customer
+  exception or an old workaround doesn't automatically earn an invariant or an
+  enum value. Ask who still needs it; if keeping it is a business decision,
+  spell out exactly what dropping it would lose and let the user decide.
+- **Agree the model's bounds.** Settle early what is in this model and what is
+  not (UI, import/export, a neighbouring business line), and state it in the
+  top-level `description`. When the conversation drifts outside it, say so.
 - **Push on invariants.** "What must *always* be true?" is where the real
   behavior lives. Write them short, declarative, and testable.
 - **Ownership and cardinality.** For each relationship: one-to-one,
@@ -110,7 +130,12 @@ Follow the format exactly (see the schema reference). Key conventions:
   invariants, scenario steps: `` `Project` ``. In structured fields that already
   imply an entity (`actors`, relationship `entity:`, entity keys), do **not**
   backtick.
-- `cardinality` is one of `1:1`, `1:n`, `n:1`, `n:n`. If you declare the same
+- `cardinality` is written `left:right`, each side `1`, `n`, an exact count
+  (`2`), or a range (`0..1`, `1..n`); `1:1`, `1:n`, `n:1`, `n:n` are the
+  common shorthands. **Quote it** (`cardinality: "1:1"`): unquoted digit pairs
+  like `1:1` are read as base-60 integers (`61`) by YAML 1.1 parsers such as
+  PyYAML, so other tools reading the file get it wrong. An `owned`
+  relationship's left side is `1` — a part has exactly one owner. If you declare the same
   relationship from both entities, the two cardinalities must be inverses
   (`1:n` ⇄ `n:1`; `1:1`/`n:n` symmetric) — a contradiction is a lint **error**.
   So is a pair where both ends claim `ownership: owned` — a relationship is
@@ -192,8 +217,10 @@ Get these right the first time; they fail `modelith lint` structurally:
   attribute needs a `derivation`.
 - **Entity keys and relationship targets are PascalCase**, two or more
   characters, no underscores or hyphens (`TargetUser`, not `target_user`).
-- **`cardinality`** is exactly one of `1:1`, `1:n`, `n:1`, `n:n`; **`ownership`**,
-  when present, is exactly `owned` or `referenced`.
+- **`cardinality`** matches `left:right`, each side `n`, a count, or a
+  `min..max` range (`min` not above `max`) — `1:n`, `1:0..1`, `2:n`; anything
+  else is an error. **`ownership`**, when present, is exactly `owned` or
+  `referenced`.
 
 ### Avoid these linter false positives
 
@@ -219,8 +246,8 @@ bugs, so steer around them:
 After any edit:
 
 ```sh
-indomain lint <file>           # resolve errors; explain remaining warnings to the user
-indomain render <file>         # regenerate the committed Markdown
+modelith lint <file>           # resolve errors; explain remaining warnings to the user
+modelith render <file>         # regenerate the committed Markdown
 ```
 
 **Reading exit codes:** `modelith lint` exits non-zero when there are errors (or, with
