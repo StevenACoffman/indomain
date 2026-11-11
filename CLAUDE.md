@@ -7,9 +7,9 @@ modelith is a single static Go binary (cobra CLI: `lint`, `render`, `schema`)
 that validates and renders `*.modelith.yaml` domain models. Module path
 `github.com/stacklok/modelith`.
 
-## Repository layout
+## Repository Layout
 
-```
+```text
 modelith/
 ├── cmd/modelith/                 # CLI entrypoint (cobra)
 ├── internal/
@@ -28,10 +28,10 @@ modelith/
 │   ├── adr/                      # forward-looking decision records
 │   └── audits/                   # retrospective multi-agent audit snapshots
 ├── .claude/rules/                # path-triggered coding/process conventions
-├── action.yml · Taskfile.yml · .goreleaser.yaml · .github/workflows/
+├── action.yaml · Taskfile.yaml · .goreleaser.yaml · .github/workflows/
 ```
 
-### Why this layout
+### Why This Layout
 
 - **`pkg/schema/` is the source of truth for the format.** The Go code
   embeds each version's JSON Schema via `go:embed`; the canonical copy is
@@ -50,7 +50,7 @@ modelith/
 - **`plugin/` ships the agent tooling next to the binary it drives**, so skills
   and the CLI version stay in lockstep.
 
-## Dev workflow
+## Dev Workflow
 
 The repo uses [Task](https://taskfile.dev). The one that matters:
 
@@ -64,7 +64,7 @@ target. The full target table, build/install steps, and how to develop the
 Claude Code plugin with `--plugin-dir` live in
 [`docs/09-local-development.md`](./docs/09-local-development.md).
 
-## Conventions to keep (these break CI if ignored)
+## Conventions to Keep (These Break CI If Ignored)
 
 - **The example is a golden fixture.** `examples/example.modelith.yaml` and its
   committed `examples/example.modelith.md` must stay in sync. After any change to
@@ -88,11 +88,11 @@ Claude Code plugin with `--plugin-dir` live in
   and served at [modelith.sh](https://modelith.sh). Page files are numbered
   `NN-name.md` (landing is plain `index.md`), carry `title:`, and cross-link with
   relative, prefix-included paths. The `docs/05-parking-garage/` example is
-  lint/render-checked by CI, globbed **by path** in `Taskfile.yml` and
-  `.github/workflows/ci.yml` — renumber that dir and you must update both. Full
+  lint/render-checked by CI, globbed **by path** in `Taskfile.yaml` and
+  `.github/workflows/ci.yaml` — renumber that dir and you must update both. Full
   rules: [`docs/_docs-conventions.md`](./docs/_docs-conventions.md).
 
-## Format decisions (already made — don't relitigate without reason)
+## Format Decisions (Already Made — Don't Relitigate Without Reason)
 
 - **Format evolution requires the new structured forms; no legacy string forms.**
   Invariants are `{id, statement}` referenced by `id`; enums are first-class
@@ -107,14 +107,13 @@ Claude Code plugin with `--plugin-dir` live in
   [ADR-0020](./project-docs/adr/0020-v1-schema-is-frozen.md), pinned by
   `TestADR_0020_SchemaV1Frozen`.
 
-## Cutting a release
+## Cutting a Release
 
-Push a `vX.Y.Z` tag on `main` — `release.yml` builds, signs, generates SBOMs,
-publishes the GitHub Release, and pushes the Homebrew formula to
-`stacklok/homebrew-tap`. After it succeeds:
+Push a `vX.Y.Z` tag on `main` — `release.yaml` builds, signs, generates SBOMs,
+and publishes the GitHub Release. After it succeeds:
 
-- **Bump `action.yml`'s `version` input default to the new tag and commit.**
-  `action.yml` downloads a specific pinned release rather than building from
+- **Bump `action.yaml`'s `version` input default to the new tag and commit.**
+  `action.yaml` downloads a specific pinned release rather than building from
   source (see [`docs/08-github-action.md`](./docs/08-github-action.md)) — skip
   this step and the action keeps installing an old release indefinitely, with
   no error to flag it.
@@ -122,7 +121,7 @@ publishes the GitHub Release, and pushes the Homebrew formula to
   action reference and documented `version` default to the release tag, then
   revise any feature-availability notes that depended on the former default.
   The Action page is a copy-paste entry point; leaving it on an old tag makes
-  its instructions disagree with `action.yml`.
+  its instructions disagree with `action.yaml`.
 - **Bump `plugin/.claude-plugin/plugin.json`'s `version` to match, if the
   plugin/skills changed.** The plugin ships next to the binary it drives so
   the two stay in lockstep (see "Repository layout" above) — this doesn't
@@ -136,7 +135,7 @@ publishes the GitHub Release, and pushes the Homebrew formula to
   writing (submission is via <https://clau.de/plugin-directory-submission>,
   not a PR — direct PRs against that repo are auto-closed).
 
-## Design history
+## Design History
 
 Durable project records live under [`project-docs/`](./project-docs/), kept off
 the published site to keep the root clean:
@@ -149,11 +148,11 @@ the published site to keep the root clean:
   multi-agent audit snapshots (rationale for the choices above) and the process
   for running new ones.
 
-## Working conventions
+## Working Conventions
 
 - **Every commit must be signed off (DCO).** Commit with `git commit -s` so a
   `Signed-off-by:` trailer is added, certifying you have the right to submit
-  the change under the project's license. `.github/workflows/dco.yml` enforces
+  the change under the project's license. `.github/workflows/dco.yaml` enforces
   this on every commit in a PR and fails the check if any commit lacks the
   trailer. Details: [`dco.md`](./dco.md).
 - **Coding and process rules are path-triggered.**

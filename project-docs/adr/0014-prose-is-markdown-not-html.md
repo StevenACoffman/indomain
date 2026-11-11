@@ -1,4 +1,4 @@
-# A prose field is Markdown, not HTML
+# A Prose Field Is Markdown, Not HTML
 
 A `definition:`, `description:`, `role:`, `note:`, invariant `statement:` or
 scenario step is rendered as Markdown, and its raw HTML is rendered as visible
@@ -72,7 +72,7 @@ cells before it parses any of them.
 
 **Where a value lands decides how it is parsed.** A description emitted as its
 own block can hold a code block. A value on a line always follows something —
-`- `, `# `, `| ` — so a leading four-space indent or a ` ``` ` run cannot open a
+`- `, `# `, `|` — so a leading four-space indent or a ` ``` ` run cannot open a
 code block there. A line-context value is therefore parsed behind a stand-in for
 that text: parsed alone it would look like a code block, and a parser reports
 nothing inside one as HTML.
@@ -90,7 +90,7 @@ escapes *every* `&` along with `<` and `>` — a round trip that never surfaces,
 rather than a visible escape. Both renderers answer the same question the same
 way: the reader sees the characters the author typed.
 
-## Considered and rejected
+## Considered and Rejected
 
 - **Harden the scanner.** Teach it backslash escapes, then blank lines, then
   fences. That is writing a CommonMark parser one bug report at a time, and the
@@ -177,7 +177,7 @@ way: the reader sees the characters the author typed.
   anything survived; `TestADR_0014_BlockCodeStaysVerbatim` pins the other
   direction; `TestADR_0014_AssembledLineEscapesAsOneLine` pins the shared line.
 
-## Not decided here
+## Not Decided Here
 
 Each of these is a different class from raw HTML. Naming them is the point: the
 rule above is about what a parser calls a tag, and none of these is one.

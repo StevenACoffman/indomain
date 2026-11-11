@@ -2,7 +2,7 @@
 Status: proposed
 ---
 
-# The v1 schema is frozen in indomain
+# The v1 Schema Is Frozen in indomain
 
 indomain reads `*.modelith.yaml` files written for modelith, and its embedded
 v1 schema is byte-identical to upstream modelith's. Every schema object is
@@ -21,7 +21,7 @@ modelith's files is now the corpus.
 matched upstream's `internal/schema/v1/modelith.schema.json` when this was
 written.
 
-## Considered options
+## Considered Options
 
 - **Evolve v1 in place** (the earlier rule) was rejected. Each additive field
   silently forks the format from upstream.

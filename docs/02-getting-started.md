@@ -19,33 +19,29 @@ The skills shell out to the `modelith` binary, so install it first.
 
 ### 1. Install the CLI
 
-```sh
-brew install stacklok/tap/indomain
-```
-
-Or download a prebuilt binary, or build from source with `go install` — see
-the full [CLI installation](./07-cli.md#installation) instructions for every
+Download a prebuilt binary, or build from source with `go install` — see the
+full [CLI installation](./07-cli.md#installation) instructions for every
 option.
 
-### 2. Install the authoring skills
+### 2. Install the Authoring Skills
 
 The authoring skills ship in the repository's
-[`plugin/`](https://github.com/stacklok/modelith/tree/main/plugin) directory.
+[`plugin/`](https://github.com/StevenACoffman/indomain/tree/main/plugin) directory.
 Install them with the [skills CLI](https://skills.sh):
 
 ```sh
-npx skills add stacklok/indomain
+npx skills add StevenACoffman/indomain
 ```
 
 The skills require the `modelith` binary on your `PATH`.
 
-### Claude Code plugin
+### Claude Code Plugin
 
 The plugin has not been approved for the public Claude Code catalog. Until it is,
 clone this repository and launch Claude Code with the plugin directory:
 
 ```sh
-git clone https://github.com/stacklok/modelith.git
+git clone https://github.com/StevenACoffman/indomain.git
 claude --plugin-dir /path/to/indomain/plugin
 ```
 
@@ -54,7 +50,7 @@ under the plugin name, for example `/modelith:domain-model-author`. See
 [Developing the plugin locally](./09-local-development.md#developing-the-plugin-locally)
 for using this workflow from a model repository.
 
-## The skills
+## The Skills
 
 ### `domain-model-author`
 
@@ -79,7 +75,7 @@ Loads the rendered model into a coding session so the agent reasons in the same
 terms the team uses — entity names, relationships, and invariants become a
 "type system for the problem space."
 
-## Build in passes
+## Build in Passes
 
 Don't fill in one entity completely before starting the next — build in passes
 across the whole model. The author skill drives this for you, but it helps to
@@ -95,7 +91,7 @@ know the shape:
 
 You can stop after any pass and have something honest.
 
-## A worked session
+## A Worked Session
 
 A short, representative exchange with the `domain-model-author` skill — note that
 the value is in the questions it asks, not the typing:
@@ -104,6 +100,7 @@ the value is in the questions it asks, not the typing:
 >
 > **Agent:** Before I add that — what *is* a policy here? A few questions so the
 > model is sharp:
+>
 > 1. Does a `Policy` belong to exactly one `Project`, or can one policy be shared
 >    across projects?
 > 2. If a `Project` is deleted, do its policies go with it (`ownership: owned`) or
@@ -148,7 +145,7 @@ nothing across all three passes, including a moment where the agent catches a
 contradiction in the requirements — see the [Worked Example: Parking
 Garage](./05-parking-garage/index.md).
 
-## Why this matters for coding agents
+## Why This Matters for Coding Agents
 
 A well-formed model passed as context acts as a type system for the problem
 space: the agent knows what entities exist, what they're called, how they
@@ -156,7 +153,7 @@ relate, and what invariants must hold. That produces more consistent code,
 better names, and fewer wrong guesses. The more complete and accurate the model,
 the less you have to correct.
 
-## Next steps
+## Next Steps
 
 - [Build the parking-garage model](./05-parking-garage/index.md) in a complete
   authoring session.

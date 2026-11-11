@@ -2,7 +2,7 @@
 Status: superseded by ADR-0007
 ---
 
-# Value types for structured non-entity values
+# Value Types for Structured Non-Entity Values
 
 Add a top-level `types:` section for named value types: structured values with
 internal shape and validity rules that are not entities. Resolves issue #11.
@@ -24,14 +24,14 @@ A top-level `types:` section, sibling to `enums`. Each named value type has
 type) and an optional prose `constraints` string. An attribute `type` resolves
 against value types too. Collections use `repeated: true` on the attribute.
 
-## The line held
+## The Line Held
 
 Value types carry fields and *prose* constraints. No expressions, no methods,
 no validation grammar. Structure is declarable; rules stay prose. This is the
 same communication-first stance that keeps modelith out of IDL territory (see
 also ADR-0006). Value-type fields may themselves be value types; no recursion.
 
-## Considered options
+## Considered Options
 
 - **`repeated: true` vs a `list of X` type string** — chose `repeated: true` so
   type resolution stays a single name lookup rather than parsing a type

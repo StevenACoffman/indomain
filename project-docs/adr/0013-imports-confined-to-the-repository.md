@@ -1,4 +1,4 @@
-# Import resolution is confined to the enclosing repository
+# Import Resolution Is Confined to the Enclosing Repository
 
 An `imports:` entry may only name a file inside the repository holding the model
 being linted — the nearest ancestor with a `.git` entry. Outside a repository
@@ -51,7 +51,7 @@ Three details decide whether this works at all, and each is pinned by a case in
 - **Containment is `filepath.Rel`, not `strings.HasPrefix`.** A string prefix
   places `/repo-evil` inside `/repo`.
 
-## Considered options
+## Considered Options
 
 **A flag naming the root.** Rejected for now, not forever: no real case needs one
 yet, and the fallback covers the loose-file case. Because it does not exist, no

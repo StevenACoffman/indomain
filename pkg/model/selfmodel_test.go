@@ -60,7 +60,11 @@ func TestADR_0009_NoSelfModel(t *testing.T) {
 	}
 	for rel, why := range allowed {
 		if !slices.Contains(found, rel) {
-			t.Errorf("allowlisted model file %s is missing (%s); update the allowlist if it moved", rel, why)
+			t.Errorf(
+				"allowlisted model file %s is missing (%s); update the allowlist if it moved",
+				rel,
+				why,
+			)
 		}
 	}
 }
@@ -69,6 +73,7 @@ func TestADR_0009_NoSelfModel(t *testing.T) {
 // go.mod.
 func repoRoot(t *testing.T) string {
 	t.Helper()
+	//nolint:forbidigo // the root is found by walking up to go.mod, not by joining a fixture path onto the cwd; testdata/ cannot stand in for the whole repository.
 	dir, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("getwd: %v", err)

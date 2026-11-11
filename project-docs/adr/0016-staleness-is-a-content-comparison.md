@@ -1,4 +1,4 @@
-# A vendored copy is stale when its content differs from its origin
+# A Vendored Copy Is Stale When Its Content Differs from Its Origin
 
 `modelith deps check` decides staleness by comparing the origin's bytes against
 the digest the header records, not by comparing commit SHAs. `# modelith-imported:`

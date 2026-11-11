@@ -8,6 +8,7 @@ package model
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path"
 	"sort"
@@ -16,6 +17,12 @@ import (
 
 	"sigs.k8s.io/yaml"
 )
+
+// ScopeSlug is the one definition of a valid import scope, as an unanchored
+// regexp source so callers can embed it in a larger pattern ("scope.Name").
+// The schema's `scope` pattern is this anchored, and
+// TestInvariant_ScopeSlugMatchesSchema guards the two against drift.
+const ScopeSlug = `[a-z][a-z0-9-]*`
 
 // Model is the top-level domain model document.
 type Model struct {
@@ -44,12 +51,6 @@ type Model struct {
 	Invariants []Invariant `json:"invariants,omitempty"`
 }
 
-// ScopeSlug is the one definition of a valid import scope, as an unanchored
-// regexp source so callers can embed it in a larger pattern ("scope.Name").
-// The schema's `scope` pattern is this anchored, and
-// TestInvariant_ScopeSlugMatchesSchema guards the two against drift.
-const ScopeSlug = `[a-z][a-z0-9-]*`
-
 // Import is another model file this one references, bound to the scope written
 // before an imported item's name ("payments.PaymentMethod"). The binding is the
 // importer's: the imported file says nothing about how it is named here, so two
@@ -57,59 +58,6 @@ const ScopeSlug = `[a-z][a-z0-9-]*`
 type Import struct {
 	Scope string `json:"scope"`
 	Path  string `json:"path"`
-}
-
-// UnmarshalJSON lets an import be written as a bare path ("./payments.modelith.yaml",
-// whose basename gives the scope) or as an object naming the scope explicitly
-// ({scope: billing, path: ./legacy/pay-v2.modelith.yaml}).
-func (i *Import) UnmarshalJSON(data []byte) error {
-	trimmed := bytes.TrimSpace(data)
-	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
-		return fmt.Errorf("import must be a path string or an object, not null")
-	}
-	if trimmed[0] == '"' {
-		var s string
-		if err := json.Unmarshal(trimmed, &s); err != nil {
-			return err
-		}
-		*i = Import{Scope: ScopeFromPath(s), Path: s}
-		return nil
-	}
-	type rawImport Import
-	var r rawImport
-	dec := json.NewDecoder(bytes.NewReader(trimmed))
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&r); err != nil {
-		return err
-	}
-	*i = Import(r)
-	return nil
-}
-
-// ScopeFromPath derives the scope a bare import path binds: the basename with
-// ".modelith.yaml" or ".modelith.yml" — or failing that, the final extension —
-// stripped. Both spellings are stripped whole, because trimming ".yml" alone
-// leaves "payments.modelith", which is no slug at all. The result is not
-// guaranteed to be a valid slug; the linter reports one that isn't, since only
-// an explicitly written scope passes through the schema.
-func ScopeFromPath(p string) string {
-	base := path.Base(p)
-	for _, suffix := range []string{".modelith.yaml", ".modelith.yml"} {
-		if trimmed, ok := strings.CutSuffix(base, suffix); ok {
-			return trimmed
-		}
-	}
-	return strings.TrimSuffix(base, path.Ext(base))
-}
-
-// RenderedPath returns where `indomain render` writes a model file's Markdown:
-// the same path with a .yaml/.yml extension replaced by .md.
-func RenderedPath(p string) string {
-	ext := path.Ext(p)
-	if ext == ".yaml" || ext == ".yml" {
-		return strings.TrimSuffix(p, ext) + ".md"
-	}
-	return p + ".md"
 }
 
 // Enum is a named, first-class set of allowed values for an attribute. Defining
@@ -180,32 +128,6 @@ type Action struct {
 	Description string   `json:"description,omitempty"`
 }
 
-// UnmarshalJSON lets an action be written as a bare string ("create") or as a
-// structured object ({name: archive, actor: Owner, preserves: [...]}).
-func (a *Action) UnmarshalJSON(data []byte) error {
-	trimmed := bytes.TrimSpace(data)
-	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
-		return fmt.Errorf("action must be a string or an object, not null")
-	}
-	if trimmed[0] == '"' {
-		var s string
-		if err := json.Unmarshal(trimmed, &s); err != nil {
-			return err
-		}
-		a.Name = s
-		return nil
-	}
-	type rawAction Action
-	var r rawAction
-	dec := json.NewDecoder(bytes.NewReader(trimmed))
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&r); err != nil {
-		return err
-	}
-	*a = Action(r)
-	return nil
-}
-
 // Invariant is a rule that must always hold for an entity. It carries a stable
 // id so scenarios and actions can reference it without depending on the exact
 // wording of the statement.
@@ -221,6 +143,92 @@ type Scenario struct {
 	Actors            []string `json:"actors,omitempty"`
 	Steps             []string `json:"steps,omitempty"`
 	InvariantsTouched []string `json:"invariants_touched,omitempty"` // invariant ids
+}
+
+// Multiplicity is one side of a relationship cardinality parsed into a numeric
+// range. Max is -1 when unbounded ("many").
+type Multiplicity struct {
+	Min int
+	Max int // -1 == unbounded
+}
+
+// UnmarshalJSON lets an import be written as a bare path ("./payments.modelith.yaml",
+// whose basename gives the scope) or as an object naming the scope explicitly
+// ({scope: billing, path: ./legacy/pay-v2.modelith.yaml}).
+func (i *Import) UnmarshalJSON(data []byte) error {
+	trimmed := bytes.TrimSpace(data)
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
+		return errors.New("import must be a path string or an object, not null")
+	}
+	if trimmed[0] == '"' {
+		var s string
+		if err := json.Unmarshal(trimmed, &s); err != nil {
+			return fmt.Errorf("decoding import: %w", err)
+		}
+		*i = Import{Scope: ScopeFromPath(s), Path: s}
+		return nil
+	}
+	type rawImport Import
+	var r rawImport
+	dec := json.NewDecoder(bytes.NewReader(trimmed))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&r); err != nil {
+		return fmt.Errorf("decoding import: %w", err)
+	}
+	*i = Import(r)
+	return nil
+}
+
+// ScopeFromPath derives the scope a bare import path binds: the basename with
+// ".modelith.yaml" or ".modelith.yml" — or failing that, the final extension —
+// stripped. Both spellings are stripped whole, because trimming ".yml" alone
+// leaves "payments.modelith", which is no slug at all. The result is not
+// guaranteed to be a valid slug; the linter reports one that isn't, since only
+// an explicitly written scope passes through the schema.
+func ScopeFromPath(p string) string {
+	base := path.Base(p)
+	for _, suffix := range []string{".modelith.yaml", ".modelith.yml"} {
+		if trimmed, ok := strings.CutSuffix(base, suffix); ok {
+			return trimmed
+		}
+	}
+	return strings.TrimSuffix(base, path.Ext(base))
+}
+
+// RenderedPath returns where `indomain render` writes a model file's Markdown:
+// the same path with a .yaml/.yml extension replaced by .md.
+func RenderedPath(p string) string {
+	ext := path.Ext(p)
+	if ext == ".yaml" || ext == ".yml" {
+		return strings.TrimSuffix(p, ext) + ".md"
+	}
+	return p + ".md"
+}
+
+// UnmarshalJSON lets an action be written as a bare string ("create") or as a
+// structured object ({name: archive, actor: Owner, preserves: [...]}).
+func (a *Action) UnmarshalJSON(data []byte) error {
+	trimmed := bytes.TrimSpace(data)
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
+		return errors.New("action must be a string or an object, not null")
+	}
+	if trimmed[0] == '"' {
+		var s string
+		if err := json.Unmarshal(trimmed, &s); err != nil {
+			return fmt.Errorf("decoding action: %w", err)
+		}
+		a.Name = s
+		return nil
+	}
+	type rawAction Action
+	var r rawAction
+	dec := json.NewDecoder(bytes.NewReader(trimmed))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&r); err != nil {
+		return fmt.Errorf("decoding action: %w", err)
+	}
+	*a = Action(r)
+	return nil
 }
 
 // Parse decodes a domain model from YAML bytes. It does not validate against
@@ -246,13 +254,6 @@ func InvertCardinality(c string) string {
 	return right + ":" + left
 }
 
-// Multiplicity is one side of a relationship cardinality parsed into a numeric
-// range. Max is -1 when unbounded ("many").
-type Multiplicity struct {
-	Min int
-	Max int // -1 == unbounded
-}
-
 // ParseMultiplicity parses one side of a cardinality string: "1", "n", an exact
 // count like "2", or a range like "0..1", "1..n", "0..5". ok is false for a
 // malformed side or an inverted range (min greater than max).
@@ -268,18 +269,18 @@ func ParseMultiplicity(s string) (Multiplicity, bool) {
 		}
 		return Multiplicity{Min: n, Max: n}, true
 	}
-	min, err := strconv.Atoi(lo)
-	if err != nil || min < 0 {
+	loN, err := strconv.Atoi(lo)
+	if err != nil || loN < 0 {
 		return Multiplicity{}, false
 	}
 	if hi == "n" {
-		return Multiplicity{Min: min, Max: -1}, true
+		return Multiplicity{Min: loN, Max: -1}, true
 	}
-	max, err := strconv.Atoi(hi)
-	if err != nil || max < min {
+	hiN, err := strconv.Atoi(hi)
+	if err != nil || hiN < loN {
 		return Multiplicity{}, false
 	}
-	return Multiplicity{Min: min, Max: max}, true
+	return Multiplicity{Min: loN, Max: hiN}, true
 }
 
 // ParseCardinality splits an "left:right" cardinality and parses both sides. ok

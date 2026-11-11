@@ -1,4 +1,4 @@
-# Vendoring is a whole-file copy, verified by a content digest
+# Vendoring Is a Whole-File Copy, Verified by a Content Digest
 
 A vendored model is fetched whole, stamped with a provenance header comment,
 and verified offline against a SHA-256 of its own bytes. Vendoring does not
@@ -25,7 +25,7 @@ the point of import rather than to armour the renderer further.
 ## Decision
 
 **A content digest, not a surface digest.** The header carries a SHA-256 over
-the file's bytes with every `# modelith-<key>: ` line removed. ADR-0010's
+the file's bytes with every `# modelith-<key>:` line removed. ADR-0010's
 surface digest — structure and normative content, excluding `description`,
 `definition`, `note`, `derivation`, scenario steps, `title`, and key order —
 required a canonicalisation pass and imposed a permanent tax: every future
@@ -58,7 +58,7 @@ a question `lint` has to answer without a network.
 ```
 
 Parsing and stripping are the *same* rule — lines matching
-`^# modelith-<key>: ` — so the two cannot disagree, which matters because the
+`^# modelith-<key>:` — so the two cannot disagree, which matters because the
 digest is defined by the strip. Such a line below the leading comment block is
 an error. The `vendored` key carries the DO NOT EDIT banner as its value:
 nothing enforces it, but an agent reading the file will pause on it, and

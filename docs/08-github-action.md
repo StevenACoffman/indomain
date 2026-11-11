@@ -19,22 +19,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: stacklok/indomain@v0.5.0
+      - uses: StevenACoffman/indomain@main
         with:
           files: "model.modelith.yaml"
-          version: v0.5.0
+          version: v0.3.0
           completeness: warn
           check-rendered: true
 ```
 
 ## Inputs
 
-| Input | Default | Description |
-|---|---|---|
-| `files` | — (required) | YAML files or globs, space-, comma-, or newline-separated. |
-| `completeness` | `warn` | Treat completeness gaps as `warn` or `error`. |
-| `check-rendered` | `true` | Verify the committed `*.md` matches the YAML. |
-| `version` | action-ref-dependent | Published `modelith` release to install; defaults to the release configured by the referenced action version. Set another published release to select it. |
+| Input            | Default              | Description                                                                                                                                               |
+| ---------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `files`          | — (required)         | YAML files or globs, space-, comma-, or newline-separated.                                                                                                |
+| `completeness`   | `warn`               | Treat completeness gaps as `warn` or `error`.                                                                                                             |
+| `check-rendered` | `true`               | Verify the committed `*.md` matches the YAML.                                                                                                             |
+| `version`        | action-ref-dependent | Published `indomain` release to install; defaults to the release configured by the referenced action version. Set another published release to select it. |
 
 Multiple files / globs:
 
@@ -45,17 +45,16 @@ with:
     services/**/model.modelith.yaml
 ```
 
-## How it works
+## How It Works
 
-The action downloads the prebuilt `modelith` release binary for the runner's OS
+The action downloads the prebuilt `indomain` release binary for the runner's OS
 and architecture, verifies it against the release's published checksums, and runs
-it. The example sets the `version` input explicitly to `v0.5.0`; set it to
+it. The example sets the `version` input explicitly to `v0.3.0`; set it to
 another published release when you need a different version. Pinning your
 `uses:` reference to a commit SHA keeps CI runs reproducible: a given action
-keeps CI runs reproducible: a given action commit installs the selected
-`modelith` version.
+commit installs the selected `indomain` version.
 
-## Vendored models in the glob
+## Vendored Models in the Glob
 
 When the selected release supports vendored models, a glob can include a
 [vendored model](./10-vendoring.md). A clean provenance header suppresses
@@ -63,7 +62,7 @@ completeness findings for that copy and lets `check-rendered` skip a missing
 `.md` or a model this version cannot render. Structural and semantic findings,
 including a provenance-header defect or a changed copy, still fail the action.
 
-The default `v0.5.0` release supports this behavior. See [Vendoring a model from
+The default `v0.3.0` release supports this behavior. See [Vendoring a model from
 another repository](./10-vendoring.md) for provenance and render semantics.
 
 ## Regenerating the Markdown

@@ -30,6 +30,8 @@ version: v1
 title: Payments
 `
 
+const issuesHint = "https://github.com/StevenACoffman/indomain/issues"
+
 func TestPresent(t *testing.T) {
 	t.Parallel()
 
@@ -40,10 +42,22 @@ func TestPresent(t *testing.T) {
 	}{
 		{"a stamped file", vendored, true},
 		{"a model this repo owns", plain, false},
-		{"an ordinary comment that only looks like one", "#modelith-fetch: git\nkind: DomainModel\n", false},
-		{"an indented provenance line is an ordinary comment", "  # modelith-fetch: git\nkind: DomainModel\n", false},
+		{
+			"an ordinary comment that only looks like one",
+			"#modelith-fetch: git\nkind: DomainModel\n",
+			false,
+		},
+		{
+			"an indented provenance line is an ordinary comment",
+			"  # modelith-fetch: git\nkind: DomainModel\n",
+			false,
+		},
 		{"a broken header is still a header", "# modelith-nonsense: x\nkind: DomainModel\n", true},
-		{"a header displaced below the model content is still a header", plain + "# modelith-fetch: git\n", true},
+		{
+			"a header displaced below the model content is still a header",
+			plain + "# modelith-fetch: git\n",
+			true,
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -95,7 +109,7 @@ func TestParse_Problems(t *testing.T) {
 	header := func(edits map[string]string) string {
 		var b strings.Builder
 		b.WriteString("# yaml-language-server: $schema=x\n")
-		for _, key := range keyOrder {
+		for _, key := range keyOrder() {
 			value := map[string]string{
 				"vendored": Banner,
 				"fetch":    "git",
@@ -207,7 +221,11 @@ func TestADR_0015_DigestCoversTheFileWithoutItsHeader(t *testing.T) {
 		t.Errorf("Digest(plain) = %s, want %s", got, want)
 	}
 	if got := Digest([]byte(vendored)); got != want {
-		t.Errorf("Digest(vendored) = %s, want %s — the header must not change the digest of the file it is stamped into", got, want)
+		t.Errorf(
+			"Digest(vendored) = %s, want %s — the header must not change the digest of the file it is stamped into",
+			got,
+			want,
+		)
 	}
 }
 
@@ -240,8 +258,6 @@ func TestADR_0015_UnknownFetchMethodIsAnError(t *testing.T) {
 	}
 }
 
-const issuesHint = "https://github.com/StevenACoffman/indomain/issues"
-
 func TestDigest_ChangesWithTheContent(t *testing.T) {
 	t.Parallel()
 
@@ -258,7 +274,7 @@ func TestDigest_IgnoresEveryHeaderChange(t *testing.T) {
 	t.Parallel()
 
 	base := Digest([]byte(vendored))
-	for _, key := range keyOrder {
+	for _, key := range keyOrder() {
 		src := strings.Replace(vendored, LinePrefix+key+": ", LinePrefix+key+": changed-", 1)
 		if src == vendored {
 			t.Fatalf("test did not rewrite %q", key)
@@ -314,8 +330,8 @@ func TestPresent_ADisplacedHeaderStaysLoud(t *testing.T) {
 			missing++
 		}
 	}
-	if misplaced != len(keyOrder) {
-		t.Errorf("reported %d misplaced lines, want one per key (%d)", misplaced, len(keyOrder))
+	if misplaced != len(keyOrder()) {
+		t.Errorf("reported %d misplaced lines, want one per key (%d)", misplaced, len(keyOrder()))
 	}
 	if missing == 0 {
 		t.Error("no key was reported missing, so the header read as complete")
@@ -400,7 +416,11 @@ func TestStamp(t *testing.T) {
 		stamped := Stamp([]byte(plain), h)
 		parsed, _ := Parse(stamped)
 		if ok, got := parsed.Verify(stamped); !ok {
-			t.Errorf("a freshly stamped file does not verify: recorded %s, computed %s", parsed.Digest, got)
+			t.Errorf(
+				"a freshly stamped file does not verify: recorded %s, computed %s",
+				parsed.Digest,
+				got,
+			)
 		}
 	})
 }

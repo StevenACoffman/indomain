@@ -13,6 +13,30 @@ import (
 	"github.com/StevenACoffman/indomain/pkg/model"
 )
 
+var qualifiedEntityRE = regexp.MustCompile(`^` + model.ScopeSlug + `\.[A-Z][A-Za-z0-9]*$`)
+
+// percentRunRE finds the doubled percent signs a Mermaid directive or comment
+// is built from; see sanitize.
+var percentRunRE = regexp.MustCompile(`%{2,}`)
+
+// edge is one rendered relationship line, accumulated before emission so that
+// declarations of the same relationship from both ends fold into it.
+type edge struct {
+	from, to string
+	card     string // as declared by `from`, so the markers read left to right
+	label    string
+	owned    bool
+}
+
+// edgeFolder accumulates the lines of a diagram, folding a reciprocal
+// declaration into the line its other end already drew.
+type edgeFolder struct {
+	ambiguous map[string]bool
+	edges     []*edge
+	byKey     map[string][]*edge
+	seen      map[string]bool
+}
+
 // erMarkers renders a cardinality as Mermaid erDiagram crow's-foot notation,
 // using the nearest glyph the notation can express. Mermaid has no numeric
 // bound, so an exact or bounded count (e.g. "1:2") renders as one-or-many; the
@@ -75,15 +99,6 @@ func rightMarker(m model.Multiplicity) string {
 	return minChar(m) + "|"
 }
 
-// edge is one rendered relationship line, accumulated before emission so that
-// declarations of the same relationship from both ends fold into it.
-type edge struct {
-	from, to string
-	card     string // as declared by `from`, so the markers read left to right
-	label    string
-	owned    bool
-}
-
 // merge folds a reciprocal declaration into e, choosing the label the single
 // drawn line carries. The owning end wins, because its role names the
 // relationship the composition is about; with neither end owning, the end whose
@@ -111,89 +126,107 @@ func (e *edge) merge(from, label string, owned bool) {
 func ER(m *model.Model) string {
 	var b strings.Builder
 	b.WriteString("erDiagram\n")
+	writeEntityBlocks(&b, m)
 
-	// Declare every entity so unconnected ones still appear.
+	for _, target := range qualifiedTargets(m) {
+		fmt.Fprintf(&b, "    %s {}\n", target)
+	}
+
+	for _, e := range foldedEdges(m) {
+		fmt.Fprintf(&b, "    %s %s %s : %q\n", e.from, erMarkers(e.card, e.owned), e.to, e.label)
+	}
+	return b.String()
+}
+
+// writeEntityBlocks declares every entity so unconnected ones still appear.
+func writeEntityBlocks(b *strings.Builder, m *model.Model) {
 	for _, name := range m.EntityNames() {
 		rows := selfRows(name, m.Entities[name].Relationships)
 		if row := subtypeRow(m.Entities[name].SubtypeOf); row != "" {
 			rows = append(rows, row)
 		}
 		if len(rows) == 0 {
-			fmt.Fprintf(&b, "    %s {}\n", name)
+			fmt.Fprintf(b, "    %s {}\n", name)
 			continue
 		}
-		fmt.Fprintf(&b, "    %s {\n", name)
+		fmt.Fprintf(b, "    %s {\n", name)
 		for _, row := range rows {
-			fmt.Fprintf(&b, "        %s\n", row)
+			fmt.Fprintf(b, "        %s\n", row)
 		}
 		b.WriteString("    }\n")
 	}
+}
 
-	for _, target := range qualifiedTargets(m) {
-		fmt.Fprintf(&b, "    %s {}\n", target)
+// foldedEdges returns the relationship lines of the model in drawing order.
+//
+// A fold is a claim that two declarations are one relationship seen from two
+// sides. That claim is only safe when each end declares the line at most
+// once: with two declarations on one end, which is the reciprocal of which
+// is undeterminable, and folding either would drop the other's role
+// depending on declaration order. model.EdgeGroups makes that call, and
+// `indomain lint` warns about the same groups (ADR-0008).
+func foldedEdges(m *model.Model) []*edge {
+	f := &edgeFolder{
+		ambiguous: map[string]bool{},
+		byKey:     map[string][]*edge{},
+		seen:      map[string]bool{},
 	}
-
-	// A fold is a claim that two declarations are one relationship seen from two
-	// sides. That claim is only safe when each end declares the line at most
-	// once: with two declarations on one end, which is the reciprocal of which
-	// is undeterminable, and folding either would drop the other's role
-	// depending on declaration order. model.EdgeGroups makes that call, and
-	// `indomain lint` warns about the same groups (ADR-0008).
-	ambiguous := map[string]bool{}
 	for _, g := range model.EdgeGroups(m) {
 		if g.AmbiguousPairing() {
-			ambiguous[g.Key] = true
+			f.ambiguous[g.Key] = true
 		}
 	}
-
-	var edges []*edge
-	byKey := map[string][]*edge{}
-	seen := map[string]bool{}
 	for _, name := range m.EntityNames() {
 		for _, rel := range m.Entities[name].Relationships {
-			if rel.Entity == name {
-				continue // already rendered inside the entity's block
-			}
-			// Two declarations from one end that agree on everything draw two
-			// indistinguishable lines; the second carries nothing.
-			dk := model.DeclarationKey(name, rel)
-			if seen[dk] {
-				continue
-			}
-			seen[dk] = true
-
-			label := relationshipLabel(rel)
-			owned := rel.Ownership == "owned"
-			key := model.EdgeKey(name, rel)
-
-			// A reciprocal folds when the pairing is unambiguous, it comes from
-			// the opposite end, and at most one end claims `owned` — mutual
-			// `owned` is a contradiction, not a fold, and stays two lines with
-			// a lint error against it.
-			if !ambiguous[key] {
-				folded := false
-				for _, e := range byKey[key] {
-					if e.from == name || (e.owned && owned) {
-						continue
-					}
-					e.merge(name, label, owned)
-					folded = true
-					break
-				}
-				if folded {
-					continue
-				}
-			}
-			e := &edge{from: name, to: rel.Entity, card: rel.Cardinality, label: label, owned: owned}
-			byKey[key] = append(byKey[key], e)
-			edges = append(edges, e)
+			f.add(name, &rel)
 		}
 	}
+	return f.edges
+}
 
-	for _, e := range edges {
-		fmt.Fprintf(&b, "    %s %s %s : %q\n", e.from, erMarkers(e.card, e.owned), e.to, e.label)
+func (f *edgeFolder) add(name string, rel *model.Relationship) {
+	if rel.Entity == name {
+		return // already rendered inside the entity's block
 	}
-	return b.String()
+	// Two declarations from one end that agree on everything draw two
+	// indistinguishable lines; the second carries nothing.
+	dk := model.DeclarationKey(name, rel)
+	if f.seen[dk] {
+		return
+	}
+	f.seen[dk] = true
+
+	label := relationshipLabel(rel)
+	owned := rel.Ownership == "owned"
+	key := model.EdgeKey(name, rel)
+
+	if !f.ambiguous[key] && f.foldInto(key, name, label, owned) {
+		return
+	}
+	e := &edge{
+		from:  name,
+		to:    rel.Entity,
+		card:  rel.Cardinality,
+		label: label,
+		owned: owned,
+	}
+	f.byKey[key] = append(f.byKey[key], e)
+	f.edges = append(f.edges, e)
+}
+
+// foldInto merges a declaration into an existing line of the same key. A
+// reciprocal folds when the pairing is unambiguous, it comes from the opposite
+// end, and at most one end claims `owned` — mutual `owned` is a contradiction,
+// not a fold, and stays two lines with a lint error against it.
+func (f *edgeFolder) foldInto(key, name, label string, owned bool) bool {
+	for _, e := range f.byKey[key] {
+		if e.from == name || (e.owned && owned) {
+			continue
+		}
+		e.merge(name, label, owned)
+		return true
+	}
+	return false
 }
 
 // qualifiedTargets returns the unique imported entities named by relationships.
@@ -225,8 +258,6 @@ func subtypeRow(parent string) string {
 	return fmt.Sprintf("string subtypeOf %q", parent)
 }
 
-var qualifiedEntityRE = regexp.MustCompile(`^` + model.ScopeSlug + `\.[A-Z][A-Za-z0-9]*$`)
-
 // selfRows renders an entity's self-referential relationships as rows inside
 // its own block. Mermaid's dagre ER layout has no self-loop handling, so an
 // edge from an entity to itself draws a runaway arc that swamps the canvas
@@ -242,7 +273,7 @@ func selfRows(name string, rels []model.Relationship) []string {
 		if rel.Entity != name {
 			continue
 		}
-		comment := selfComment(rel)
+		comment := selfComment(&rel)
 		if seen[comment] {
 			continue
 		}
@@ -263,7 +294,7 @@ func selfRows(name string, rels []model.Relationship) []string {
 // Both sides of the cardinality are shown. The row stands in for an edge whose
 // two end markers encoded both ends, so showing only the target side would drop
 // the declaring side — the one piece of information the row exists to preserve.
-func selfComment(rel model.Relationship) string {
+func selfComment(rel *model.Relationship) string {
 	out := rel.Cardinality
 	if rel.Ownership == "owned" {
 		out += " owned"
@@ -277,13 +308,9 @@ func selfComment(rel model.Relationship) string {
 // relationshipLabel is the quoted text on a relationship line: the role, or
 // nothing. Ownership rides on the line style instead, and the precise
 // cardinality lives in the Markdown table (ADR-0002, ADR-0008).
-func relationshipLabel(rel model.Relationship) string {
+func relationshipLabel(rel *model.Relationship) string {
 	return sanitize(rel.Role)
 }
-
-// percentRunRE finds the doubled percent signs a Mermaid directive or comment
-// is built from; see sanitize.
-var percentRunRE = regexp.MustCompile(`%{2,}`)
 
 // sanitize strips or replaces characters that would break a quoted Mermaid
 // label, so a role reaches the diagram as the text its author wrote. Entity

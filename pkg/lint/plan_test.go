@@ -16,9 +16,9 @@ func planned(t *testing.T, inputs []Input, files fakeFiles) []FileResult {
 
 func editedVendored(t *testing.T) string {
 	t.Helper()
-	copy := stamp(t, gappy)
-	edited := strings.Replace(copy, "One car's stay in the garage.", "One car's stay.", 1)
-	if edited == copy {
+	stamped := stamp(t, gappy)
+	edited := strings.Replace(stamped, "One car's stay in the garage.", "One car's stay.", 1)
+	if edited == stamped {
 		t.Fatal("fixture did not change the vendored copy")
 	}
 	return edited
@@ -30,13 +30,18 @@ func TestPlan_DirectVendoredChild(t *testing.T) {
 	const root = "models/root.modelith.yaml"
 	const child = "models/child.modelith.yaml"
 	childSource := editedVendored(t)
-	files := fakeFiles{".git": "", root: importer([]string{`"./child.modelith.yaml"`}, "child.PaymentMethod"), child: childSource}
+	files := fakeFiles{
+		".git": "",
+		root:   importer([]string{`"./child.modelith.yaml"`}, "child.PaymentMethod"),
+		child:  childSource,
+	}
 
 	results := planned(t, []Input{{Path: root, Source: []byte(files[root])}}, files)
 	if len(results) != 2 || results[1].File != child {
 		t.Fatalf("results = %+v, want root followed by %q", results, child)
 	}
-	if len(results[1].Findings) != 1 || results[1].Findings[0].Path != "" || !strings.Contains(results[1].Findings[0].Message, "deps update "+child) {
+	if len(results[1].Findings) != 1 || results[1].Findings[0].Path != "" ||
+		!strings.Contains(results[1].Findings[0].Message, "deps update "+child) {
 		t.Errorf("child provenance result = %+v", results[1])
 	}
 }
@@ -50,9 +55,15 @@ func TestPlan_OwnedIntermediaryReachesVendoredGrandchild(t *testing.T) {
 	childSource := editedVendored(t)
 	files := fakeFiles{
 		".git": "",
-		root:   importer([]string{`{scope: middle, path: "./middle.modelith.yaml"}`}, "middle.PaymentMethod"),
-		middle: importer([]string{`{scope: child, path: "./child.modelith.yaml"}`}, "child.PaymentMethod"),
-		child:  childSource,
+		root: importer(
+			[]string{`{scope: middle, path: "./middle.modelith.yaml"}`},
+			"middle.PaymentMethod",
+		),
+		middle: importer(
+			[]string{`{scope: child, path: "./child.modelith.yaml"}`},
+			"child.PaymentMethod",
+		),
+		child: childSource,
 	}
 
 	results := planned(t, []Input{{Path: root, Source: []byte(files[root])}}, files)
@@ -89,16 +100,23 @@ func TestPlan_CycleTerminates(t *testing.T) {
 
 	const first = "models/first.modelith.yaml"
 	const second = "models/second.modelith.yaml"
-	secondSource := stamp(t, importer([]string{`{scope: first, path: "./first.modelith.yaml"}`}, "first.PaymentMethod"))
+	secondSource := stamp(
+		t,
+		importer([]string{`{scope: first, path: "./first.modelith.yaml"}`}, "first.PaymentMethod"),
+	)
 	secondSource = strings.Replace(secondSource, "PaymentMethod", "EditedMethod", 1)
 	files := fakeFiles{
 		".git": "",
-		first:  importer([]string{`{scope: second, path: "./second.modelith.yaml"}`}, "second.PaymentMethod"),
+		first: importer(
+			[]string{`{scope: second, path: "./second.modelith.yaml"}`},
+			"second.PaymentMethod",
+		),
 		second: secondSource,
 	}
 
 	results := planned(t, []Input{{Path: first, Source: []byte(files[first])}}, files)
-	if len(results) != 2 || results[0].File != first || results[1].File != second || len(results[1].Findings) != 1 {
+	if len(results) != 2 || results[0].File != first || results[1].File != second ||
+		len(results[1].Findings) != 1 {
 		t.Errorf("results = %+v, want one root and one visited cycle member", results)
 	}
 }
@@ -110,8 +128,14 @@ func TestPlan_BrokenNestedEdgeIsSilent(t *testing.T) {
 	const middle = "models/middle.modelith.yaml"
 	files := fakeFiles{
 		".git": "",
-		root:   importer([]string{`{scope: middle, path: "./middle.modelith.yaml"}`}, "middle.PaymentMethod"),
-		middle: importer([]string{`{scope: missing, path: "./missing.modelith.yaml"}`}, "missing.PaymentMethod"),
+		root: importer(
+			[]string{`{scope: middle, path: "./middle.modelith.yaml"}`},
+			"middle.PaymentMethod",
+		),
+		middle: importer(
+			[]string{`{scope: missing, path: "./missing.modelith.yaml"}`},
+			"missing.PaymentMethod",
+		),
 	}
 
 	results := planned(t, []Input{{Path: root, Source: []byte(files[root])}}, files)
@@ -127,11 +151,21 @@ func TestPlan_ExplicitRootDiscoveredThroughImportRunsFullLintOnce(t *testing.T) 
 	const child = "models/child.modelith.yaml"
 	files := fakeFiles{
 		".git": "",
-		root:   importer([]string{`{scope: child, path: "./child.modelith.yaml"}`}, "child.PaymentMethod"),
-		child:  gappy,
+		root: importer(
+			[]string{`{scope: child, path: "./child.modelith.yaml"}`},
+			"child.PaymentMethod",
+		),
+		child: gappy,
 	}
 
-	results := planned(t, []Input{{Path: root, Source: []byte(files[root])}, {Path: child, Source: []byte(files[child])}}, files)
+	results := planned(
+		t,
+		[]Input{
+			{Path: root, Source: []byte(files[root])},
+			{Path: child, Source: []byte(files[child])},
+		},
+		files,
+	)
 	if len(results) != 2 || results[1].File != child {
 		t.Fatalf("results = %+v, want explicit child once", results)
 	}
@@ -177,7 +211,10 @@ func TestPlan_StructurallyInvalidExplicitRootDoesNotSeedTraversal(t *testing.T) 
 
 	const root = "models/root.modelith.yaml"
 	const child = "models/child.modelith.yaml"
-	rootSource := importer([]string{`{scope: child, path: "./child.modelith.yaml"}`}, "child.PaymentMethod") + "unexpected: true\n"
+	rootSource := importer(
+		[]string{`{scope: child, path: "./child.modelith.yaml"}`},
+		"child.PaymentMethod",
+	) + "unexpected: true\n"
 	files := fakeFiles{
 		".git": "",
 		root:   rootSource,
@@ -211,13 +248,23 @@ func TestADR_0017_VendoredIntermediaryReachesMismatchedVendoredGrandchild(t *tes
 	const child = "models/child.modelith.yaml"
 	files := fakeFiles{
 		".git": "",
-		root:   importer([]string{`{scope: middle, path: "./middle.modelith.yaml"}`}, "middle.PaymentMethod"),
-		middle: stamp(t, importer([]string{`{scope: child, path: "./child.modelith.yaml"}`}, "child.PaymentMethod")),
-		child:  editedVendored(t),
+		root: importer(
+			[]string{`{scope: middle, path: "./middle.modelith.yaml"}`},
+			"middle.PaymentMethod",
+		),
+		middle: stamp(
+			t,
+			importer(
+				[]string{`{scope: child, path: "./child.modelith.yaml"}`},
+				"child.PaymentMethod",
+			),
+		),
+		child: editedVendored(t),
 	}
 
 	results := planned(t, []Input{{Path: root, Source: []byte(files[root])}}, files)
-	if len(results) != 2 || results[0].File != root || results[1].File != child || len(results[1].Findings) != 1 {
+	if len(results) != 2 || results[0].File != root || results[1].File != child ||
+		len(results[1].Findings) != 1 {
 		t.Fatalf("results = %+v, want root plus the mismatched vendored grandchild", results)
 	}
 	if !strings.Contains(results[1].Findings[0].Message, "deps update "+child) {
@@ -231,7 +278,11 @@ func TestPlan_ReportsReadableUnsupportedVendoredChild(t *testing.T) {
 	const root = "models/root.modelith.yaml"
 	const child = "models/child.modelith.yaml"
 	childSource := strings.Replace(stamp(t, gappy), "version: v1", "version: v99", 1)
-	files := fakeFiles{".git": "", root: importer([]string{`"./child.modelith.yaml"`}, "child.PaymentMethod"), child: childSource}
+	files := fakeFiles{
+		".git": "",
+		root:   importer([]string{`"./child.modelith.yaml"`}, "child.PaymentMethod"),
+		child:  childSource,
+	}
 
 	results := planned(t, []Input{{Path: root, Source: []byte(files[root])}}, files)
 	if len(results) != 2 || results[1].File != child || len(results[1].Findings) != 1 {
@@ -256,15 +307,19 @@ func TestPlan_UsesResolvedPathForDiscoveredFinding(t *testing.T) {
 	const child = "models/vendor/child.modelith.yaml"
 	files := fakeFiles{
 		".git": "",
-		root:   importer([]string{`{scope: child, path: "./vendor/../vendor/child.modelith.yaml"}`}, "child.PaymentMethod"),
-		child:  editedVendored(t),
+		root: importer(
+			[]string{`{scope: child, path: "./vendor/../vendor/child.modelith.yaml"}`},
+			"child.PaymentMethod",
+		),
+		child: editedVendored(t),
 	}
 
 	results := planned(t, []Input{{Path: root, Source: []byte(files[root])}}, files)
 	if len(results) != 2 || results[1].File != child {
 		t.Fatalf("results = %+v, want child attributed to resolved path %q", results, child)
 	}
-	if got := results[1].Findings; len(got) != 1 || !strings.Contains(got[0].Message, "deps update "+child) {
+	if got := results[1].Findings; len(got) != 1 ||
+		!strings.Contains(got[0].Message, "deps update "+child) {
 		t.Errorf("finding = %+v, want remedy for resolved path %q", got, child)
 	}
 }

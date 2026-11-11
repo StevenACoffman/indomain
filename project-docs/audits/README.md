@@ -6,7 +6,7 @@ whether) each finding was resolved. The goal is to make audits **repeatable**,
 **learnable**, and **honest about state** — findings are never deleted, only
 annotated with their resolution.
 
-## Why this exists
+## Why This Exists
 
 A one-off audit is a sunk cost. By recording the agent roster, parameters, and
 findings in a stable format we can:
@@ -20,7 +20,7 @@ findings in a stable format we can:
 
 ## Layout
 
-```
+```text
 project-docs/audits/
 ├── README.md                          # this file — the process
 ├── TODO.md                            # prompts for scheduled audits
@@ -30,7 +30,7 @@ project-docs/audits/
 One file per run, date-prefixed so they sort chronologically. A rerun of a prior
 audit should reference the earlier file and focus on the diff.
 
-## The model
+## The Model
 
 Each audit is a fan-out of independent **reviewer agents**, each with a narrow
 charter (a domain lens + a specific file set), run in parallel, read-only. Tier
@@ -39,13 +39,13 @@ the model per agent: cheap models (Haiku) for lookup-against-a-rubric work, mid
 call is genuinely judgment-heavy. Recording the tier lets you check after the
 fact whether cheaper agents missed things the expensive ones caught.
 
-### Reviewer agents are read-only
+### Reviewer Agents Are Read-Only
 
 Audit agents are instructed not to modify files. Fixes happen afterward, as
 normal commits/PRs, and are recorded back into the audit file. This keeps the
 "what we found" artifact separate from the "what we changed" history.
 
-## How to run an audit
+## How to Run an Audit
 
 1. **Pick the roster.** Choose the domain lenses that fit the repo's surface
    (devops, security, language idiom, schema/format, docs-accuracy, domain
@@ -63,7 +63,7 @@ normal commits/PRs, and are recorded back into the audit file. This keeps the
    acts on bad input.
 6. **Record.** Write the audit file using the template below.
 
-## Triage (owner) — before fixing
+## Triage (Owner) — Before Fixing
 
 Between recording the audit and starting fixes, the repo owner triages. This is
 the human pass that the agents can't do: deciding what's worth fixing, in what
@@ -87,7 +87,7 @@ Two mechanisms, both in the audit file:
 Annotate by editing the `Fix` column and/or adding bullets to the triage section.
 Don't edit the original finding text.
 
-## How to record a fix
+## How to Record a Fix
 
 When a finding is resolved, **do not edit or delete the original finding text.**
 Instead:
@@ -99,15 +99,15 @@ Instead:
 This preserves the original observation alongside the decision, so the record
 reads as a history, not a to-do list that erases its own past.
 
-### Status values
+### Status Values
 
-| Status | Meaning |
-| --- | --- |
-| `Open` | Not yet addressed. |
-| `Fixed` | Resolved in code/docs; Resolution names the commit/PR. |
-| `Won't fix` | Deliberately not addressing; Resolution records why. |
-| `Deferred` | Real, but parked behind a dependency or a design decision; Resolution notes what it's waiting on. |
-| `Dismissed` | Not a real finding (false alarm / agent error); Resolution explains. |
+| Status      | Meaning                                                                                           |
+| ----------- | ------------------------------------------------------------------------------------------------- |
+| `Open`      | Not yet addressed.                                                                                |
+| `Fixed`     | Resolved in code/docs; Resolution names the commit/PR.                                            |
+| `Won't fix` | Deliberately not addressing; Resolution records why.                                              |
+| `Deferred`  | Real, but parked behind a dependency or a design decision; Resolution notes what it's waiting on. |
+| `Dismissed` | Not a real finding (false alarm / agent error); Resolution explains.                              |
 
 ## Finding IDs
 
@@ -117,7 +117,7 @@ specific observation. Area prefixes: `OPS` (devops), `SEC` (security), `GO`
 (Go code), `SCHEMA` (JSON Schema/format), `DOCS` (docs accuracy), `DDD` (domain
 modeling), `CLI` (CLI/UX), `AGENT` (agent/plugin prompts).
 
-## Record template
+## Record Template
 
 ```markdown
 # Audit: <title> — YYYY-MM-DD

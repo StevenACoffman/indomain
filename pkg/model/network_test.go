@@ -37,10 +37,10 @@ func TestADR_0011_OfflinePackages(t *testing.T) {
 	banned := []string{"net", "net/http", "net/rpc", "net/smtp", "os/exec"}
 
 	for _, pkg := range offlinePackages {
-		// nolint:gosec // G204 flags a variable argument. pkg comes from the
+		//nolint:gosec // G204 flags a variable argument. pkg comes from the
 		// literal offlinePackages slice above and never from input, so the
 		// injection the rule guards against cannot occur.
-		out, err := exec.Command("go", "list", "-deps", pkg).Output()
+		out, err := exec.CommandContext(t.Context(), "go", "list", "-deps", pkg).Output()
 		if err != nil {
 			t.Fatalf("go list -deps %s: %v", pkg, err)
 		}

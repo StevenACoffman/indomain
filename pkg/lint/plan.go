@@ -35,7 +35,6 @@ func Plan(inputs []Input, files Files) ([]FileResult, error) {
 	for _, input := range inputs {
 		explicit[files.Resolve(input.Path)] = true
 	}
-	discovered := make(map[string]bool)
 	queue := make([]loadedImport, 0, len(inputs))
 
 	for _, input := range inputs {
@@ -56,38 +55,62 @@ func Plan(inputs []Input, files Files) ([]FileResult, error) {
 		}
 	}
 
+	return append(results, crawlImports(queue, explicit, files)...), nil
+}
+
+// crawlImports verifies the provenance of every model reachable from the queued
+// roots that was not itself requested, each once.
+func crawlImports(queue []loadedImport, explicit map[string]bool, files Files) []FileResult {
+	var results []FileResult
+	discovered := make(map[string]bool)
 	for len(queue) > 0 {
 		current := queue[0]
 		queue = queue[1:]
-		root, inRepo := files.ResolutionRoot(current.resolvedPath)
-		for _, imp := range current.model.Imports {
-			if !traversableImport(imp.Path) {
-				continue
-			}
-			loaded, failure := loadImport(current.resolvedPath, root, inRepo, imp.Path, files)
-			if explicit[loaded.resolvedPath] || discovered[loaded.resolvedPath] || (failure != nil && loaded.source == nil) {
-				continue
-			}
-			discovered[loaded.resolvedPath] = true
+		found, next := crawlOne(&current, explicit, discovered, files)
+		results = append(results, found...)
+		queue = append(queue, next...)
+	}
+	return results
+}
 
-			res := &Result{}
-			runProvenance(loaded.resolvedPath, loaded.source, res)
-			sortFindings(res)
-			if len(res.Findings) > 0 {
-				results = append(results, FileResult{File: loaded.resolvedPath, Findings: res.Findings})
-			}
-			if failure == nil {
-				// A broken nested edge stays silent, but a readable, structurally
-				// valid model continues the integrity-only crawl.
-				if imported := traversableModel(loaded.source); imported != nil {
-					loaded.model = imported
-					queue = append(queue, loaded)
-				}
-			}
+// crawlOne checks the imports of one model, returning the provenance findings
+// for each newly discovered file and the files whose own imports are next.
+func crawlOne(
+	current *loadedImport,
+	explicit, discovered map[string]bool,
+	files Files,
+) ([]FileResult, []loadedImport) {
+	var results []FileResult
+	var next []loadedImport
+	root, inRepo := files.ResolutionRoot(current.resolvedPath)
+	for _, imp := range current.model.Imports {
+		if !traversableImport(imp.Path) {
+			continue
+		}
+		loaded, failure := loadImport(current.resolvedPath, root, inRepo, imp.Path, files)
+		if explicit[loaded.resolvedPath] || discovered[loaded.resolvedPath] ||
+			(failure != nil && loaded.source == nil) {
+			continue
+		}
+		discovered[loaded.resolvedPath] = true
+
+		res := &Result{}
+		runProvenance(loaded.resolvedPath, loaded.source, res)
+		sortFindings(res)
+		if len(res.Findings) > 0 {
+			results = append(results, FileResult{File: loaded.resolvedPath, Findings: res.Findings})
+		}
+		if failure != nil {
+			continue
+		}
+		// A broken nested edge stays silent, but a readable, structurally
+		// valid model continues the integrity-only crawl.
+		if imported := traversableModel(loaded.source); imported != nil {
+			loaded.model = imported
+			next = append(next, loaded)
 		}
 	}
-
-	return results, nil
+	return results, next
 }
 
 // traversableModel accepts structurally valid domain models that this build supports.

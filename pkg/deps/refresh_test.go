@@ -16,12 +16,31 @@ import (
 // position that matters, so a test cannot pass by comparing a prefix.
 const laterSHA = "a91b0c37e5d248fa6c0913be4b7f25d81a3c6e90"
 
+// moved is upstream with a real change to its content: an enum gains a value.
+const moved = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
+kind: DomainModel
+version: v1
+title: Payments
+enums:
+  PaymentMethod:
+    values:
+      - name: card
+      - name: bank-transfer
+`
+
 // updatedAt is the day an update runs, a day after importedAt, so a header's
 // imported: line proves which of the two wrote it.
 var (
 	importedAt = time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local)
 	updatedAt  = time.Date(2026, 7, 28, 9, 0, 0, 0, time.Local)
 )
+
+// unusableRunner is gh being absent: every call fails the same way.
+type unusableRunner struct{ calls int }
+
+// hangRunner blocks until the context is done, then reports why — a stand-in
+// for a CLI that never answers.
+type hangRunner struct{ calls int }
 
 // vendored writes a copy of content into a fresh temp dir exactly as deps
 // import would, and hands back its path with the runner that served it. The
@@ -33,7 +52,7 @@ var (
 func vendored(t *testing.T, content string) (string, *fakeRunner) {
 	t.Helper()
 	r := &fakeRunner{content: content, sha: sha}
-	res, err := Import(context.Background(), Options{
+	res, err := Import(context.Background(), &Options{
 		URL: blobURL, Dir: t.TempDir(), Now: importedAt, Run: r,
 	})
 	if err != nil {
@@ -63,7 +82,7 @@ func check(t *testing.T, r Runner, paths ...string) []Report {
 
 func update(t *testing.T, r Runner, ref string, paths ...string) []Report {
 	t.Helper()
-	reports, err := Update(context.Background(), UpdateOptions{
+	reports, err := Update(context.Background(), &UpdateOptions{
 		Paths: paths, Ref: ref, Now: updatedAt, Run: r,
 	})
 	if err != nil {
@@ -72,18 +91,6 @@ func update(t *testing.T, r Runner, ref string, paths ...string) []Report {
 	return reports
 }
 
-// moved is upstream with a real change to its content: an enum gains a value.
-const moved = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
-kind: DomainModel
-version: v1
-title: Payments
-enums:
-  PaymentMethod:
-    values:
-      - name: card
-      - name: bank-transfer
-`
-
 // vendoredFromADO writes a copy vendored from Azure DevOps — an origin this
 // build's refresh path cannot reach (see sourceFromHeader) — and hands back its
 // path. It is built by the real Import, like vendored, so the fixture is a copy
@@ -91,7 +98,7 @@ enums:
 func vendoredFromADO(t *testing.T) string {
 	t.Helper()
 	r := adoRunner(adoContent, adoCommit)
-	res, err := Import(context.Background(), Options{
+	res, err := Import(context.Background(), &Options{
 		URL: adoBlobURL, Dir: t.TempDir(), Now: importedAt, Run: r,
 	})
 	if err != nil {
@@ -161,7 +168,12 @@ func TestRefresh_ADOCopyIsFirstClass(t *testing.T) {
 		if len(r.calls) == 0 {
 			t.Fatal("the check made no az call")
 		}
-		if uri := azURI(r.calls[0]); !strings.Contains(uri, "versionDescriptor.versionType=branch") {
+		if uri := azURI(
+			r.calls[0],
+		); !strings.Contains(
+			uri,
+			"versionDescriptor.versionType=branch",
+		) {
 			t.Errorf("refresh did not rebuild the typed request: %s", uri)
 		}
 	})
@@ -210,15 +222,22 @@ func TestRefresh_RefusesAnUnknownHost(t *testing.T) {
 		run  func(t *testing.T, r Runner, path string) Report
 	}{
 		{"check", func(t *testing.T, r Runner, path string) Report {
+			t.Helper()
 			return check(t, r, path)[0]
 		}},
 		{"update", func(t *testing.T, r Runner, path string) Report {
+			t.Helper()
 			return update(t, r, "", path)[0]
 		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			path := vendoredOnHost(t, "https://gitlab.com/acme/billing", "docs/payments.modelith.yaml", "main")
+			path := vendoredOnHost(
+				t,
+				"https://gitlab.com/acme/billing",
+				"docs/payments.modelith.yaml",
+				"main",
+			)
 			before := readFile(t, path)
 
 			// A runner that would answer, and answer "moved", were the refusal
@@ -255,7 +274,12 @@ func TestRefresh_AnUnknownHostDoesNotStopTheRun(t *testing.T) {
 	t.Parallel()
 
 	ghPath, r := vendored(t, upstream)
-	otherPath := vendoredOnHost(t, "https://gitlab.com/acme/billing", "docs/payments.modelith.yaml", "main")
+	otherPath := vendoredOnHost(
+		t,
+		"https://gitlab.com/acme/billing",
+		"docs/payments.modelith.yaml",
+		"main",
+	)
 
 	reports := check(t, r, otherPath, ghPath)
 	if len(reports) != 2 {
@@ -291,7 +315,11 @@ func TestSurvey_ResolutionAbortsOnUnusableCLI(t *testing.T) {
 		t.Fatalf("Check returned %v, want an ErrToolUnavailable from the refs lookup", err)
 	}
 	if len(reports) != 0 {
-		t.Errorf("got %d reports, want none — the run was abandoned before judging: %+v", len(reports), reports)
+		t.Errorf(
+			"got %d reports, want none — the run was abandoned before judging: %+v",
+			len(reports),
+			reports,
+		)
 	}
 	if r.calls != 1 {
 		t.Errorf("the run made %d calls after the CLI proved unusable, want 1", r.calls)
@@ -455,15 +483,16 @@ func TestSurvey_StopsWhenTheToolIsUnusable(t *testing.T) {
 	// neither is a hole every consumer has to remember to check — one of them
 	// did not, and dereferenced its nil State.
 	if len(reports) != 0 {
-		t.Errorf("got %d reports, want none — the run never judged a file: %+v", len(reports), reports)
+		t.Errorf(
+			"got %d reports, want none — the run never judged a file: %+v",
+			len(reports),
+			reports,
+		)
 	}
 	if r.calls != 1 {
 		t.Errorf("the run made %d calls after gh proved unusable, want 1", r.calls)
 	}
 }
-
-// unusableRunner is gh being absent: every call fails the same way.
-type unusableRunner struct{ calls int }
 
 func (u *unusableRunner) Run(context.Context, string, ...string) ([]byte, error) {
 	u.calls++
@@ -484,14 +513,34 @@ func TestUnauthenticatedMatchesTheClisOwnText(t *testing.T) {
 		msg  string
 		want bool
 	}{
-		{"gh logged out entirely", "To get started with GitHub CLI, please run:  gh auth login", true},
-		{"gh workflow with no token", "gh: To use GitHub CLI in a GitHub Actions workflow, set the GH_TOKEN environment variable.", true},
-		{"gh automation with no token", "gh: To use GitHub CLI in automation, set the GH_TOKEN environment variable.", true},
+		{
+			"gh logged out entirely",
+			"To get started with GitHub CLI, please run:  gh auth login",
+			true,
+		},
+		{
+			"gh workflow with no token",
+			"gh: To use GitHub CLI in a GitHub Actions workflow, set the GH_TOKEN environment variable.",
+			true,
+		},
+		{
+			"gh automation with no token",
+			"gh: To use GitHub CLI in automation, set the GH_TOKEN environment variable.",
+			true,
+		},
 		{"gh token that is refused", "gh: Bad credentials (HTTP 401)", true},
 		{"az with no session", "Please run 'az login' to setup account.", true},
-		{"az with an expired session", "ERROR: AADSTS700082: The refresh token has expired due to inactivity.", true},
+		{
+			"az with an expired session",
+			"ERROR: AADSTS700082: The refresh token has expired due to inactivity.",
+			true,
+		},
 		{"az token that is refused", "az: Bad credentials (HTTP 401)", true},
-		{"gh file that is not there", "gh: HTTP 404: Not Found (https://api.github.com/repos/a/b/contents/c)", false},
+		{
+			"gh file that is not there",
+			"gh: HTTP 404: Not Found (https://api.github.com/repos/a/b/contents/c)",
+			false,
+		},
 		{"gh repository that is private", "gh: HTTP 403: Forbidden", false},
 		{"az resource that is not there", "az: 404 Not Found: the item does not exist", false},
 	}
@@ -541,7 +590,7 @@ func TestSurvey_TimeoutBoundsEachDelegatedCall(t *testing.T) {
 		t.Parallel()
 		a, _ := vendored(t, upstream)
 		r := &hangRunner{}
-		reports, err := Update(context.Background(), UpdateOptions{
+		reports, err := Update(context.Background(), &UpdateOptions{
 			Paths: []string{a}, Timeout: 200 * time.Millisecond, Run: r,
 		})
 		if err != nil {
@@ -559,15 +608,14 @@ func TestSurvey_TimeoutBoundsEachDelegatedCall(t *testing.T) {
 		t.Parallel()
 		a, _ := vendored(t, upstream)
 		r := &fakeRunner{content: upstream, sha: sha}
-		if _, err := Check(context.Background(), CheckOptions{Paths: []string{a}, Run: r}); err != nil {
+		if _, err := Check(
+			context.Background(),
+			CheckOptions{Paths: []string{a}, Run: r},
+		); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 }
-
-// hangRunner blocks until the context is done, then reports why — a stand-in
-// for a CLI that never answers.
-type hangRunner struct{ calls int }
 
 func (h *hangRunner) Run(ctx context.Context, _ string, _ ...string) ([]byte, error) {
 	h.calls++
@@ -751,7 +799,12 @@ func TestUpdate_RefreshesAMovedOrigin(t *testing.T) {
 
 	rep := update(t, r, "", path)[0]
 	if !rep.Written || rep.Restored {
-		t.Fatalf("want a refresh, got Written=%v Restored=%v (%v)", rep.Written, rep.Restored, rep.Err)
+		t.Fatalf(
+			"want a refresh, got Written=%v Restored=%v (%v)",
+			rep.Written,
+			rep.Restored,
+			rep.Err,
+		)
 	}
 	after := readFile(t, path)
 	for _, want := range []string{
@@ -796,13 +849,26 @@ func TestUpdate_RestoresAnEditedCopy(t *testing.T) {
 	r.calls = nil
 	rep := update(t, r, "", path)[0]
 	if !rep.Written || !rep.Restored {
-		t.Fatalf("want a restore, got Written=%v Restored=%v (%v)", rep.Written, rep.Restored, rep.Err)
+		t.Fatalf(
+			"want a restore, got Written=%v Restored=%v (%v)",
+			rep.Written,
+			rep.Restored,
+			rep.Err,
+		)
 	}
 	if after := readFile(t, path); after != pristine {
-		t.Errorf("the restore did not reproduce the imported bytes:\n want %q\n  got %q", pristine, after)
+		t.Errorf(
+			"the restore did not reproduce the imported bytes:\n want %q\n  got %q",
+			pristine,
+			after,
+		)
 	}
 	if len(r.calls) != 1 {
-		t.Errorf("a restore made %d gh calls, want 1 — the origin did not move: %+v", len(r.calls), r.calls)
+		t.Errorf(
+			"a restore made %d gh calls, want 1 — the origin did not move: %+v",
+			len(r.calls),
+			r.calls,
+		)
 	}
 }
 
@@ -813,7 +879,7 @@ func TestUpdate_Repin(t *testing.T) {
 		t.Parallel()
 		a, r := vendored(t, upstream)
 		b, _ := vendored(t, upstream)
-		_, err := Update(context.Background(), UpdateOptions{
+		_, err := Update(context.Background(), &UpdateOptions{
 			Paths: []string{a, b}, Ref: "v2.2.0", Now: updatedAt, Run: r,
 		})
 		if err == nil || !strings.Contains(err.Error(), "--ref re-pins one copy") {
@@ -832,7 +898,12 @@ func TestUpdate_Repin(t *testing.T) {
 
 		rep := update(t, r, "v2.2.0", path)[0]
 		if !rep.Written || rep.Restored {
-			t.Fatalf("want a refresh, got Written=%v Restored=%v (%v)", rep.Written, rep.Restored, rep.Err)
+			t.Fatalf(
+				"want a refresh, got Written=%v Restored=%v (%v)",
+				rep.Written,
+				rep.Restored,
+				rep.Err,
+			)
 		}
 		after := readFile(t, path)
 		for _, want := range []string{
@@ -874,11 +945,23 @@ func TestUpdate_ReportsImportsItDidNotFollow(t *testing.T) {
 	}
 	// Only the new one: the copy already declared ledger at import time, and
 	// re-warning about it on every update trains the reader to skip the note.
-	if want := []string{"./tax.modelith.yaml"}; strings.Join(rep.NewImports, ",") != strings.Join(want, ",") {
+	if want := []string{
+		"./tax.modelith.yaml",
+	}; strings.Join(
+		rep.NewImports,
+		",",
+	) != strings.Join(
+		want,
+		",",
+	) {
 		t.Errorf("NewImports = %v, want %v", rep.NewImports, want)
 	}
 	if len(r.calls) != 2 {
-		t.Errorf("an update followed %d calls, want 2 — imports are reported, not fetched: %+v", len(r.calls), r.calls)
+		t.Errorf(
+			"an update followed %d calls, want 2 — imports are reported, not fetched: %+v",
+			len(r.calls),
+			r.calls,
+		)
 	}
 }
 
@@ -926,7 +1009,11 @@ func TestADR_0016_HeaderDigestMismatchRequiresUpdate(t *testing.T) {
 	// which is what clears the lint error that sent the user here.
 	rep = check(t, r, path)[0]
 	if rep.Stale() || rep.State.Edited() {
-		t.Errorf("after update: Stale=%v Edited=%v, want both false", rep.Stale(), rep.State.Edited())
+		t.Errorf(
+			"after update: Stale=%v Edited=%v, want both false",
+			rep.Stale(),
+			rep.State.Edited(),
+		)
 	}
 }
 
@@ -1008,7 +1095,11 @@ func TestSourceFromHeader_RoundTripsWhatParseSourceDecoded(t *testing.T) {
 		{name: "a hash", path: "docs/c#1.modelith.yaml", ref: "main"},
 		{name: "a slashed ref", path: "docs/payments.modelith.yaml", ref: "release/v2"},
 		{name: "a percent in the ref", path: "docs/payments.modelith.yaml", ref: "wip%2"},
-		{name: "an origin a hand wrote with a trailing slash", path: "docs/payments.modelith.yaml", ref: "main"},
+		{
+			name: "an origin a hand wrote with a trailing slash",
+			path: "docs/payments.modelith.yaml",
+			ref:  "main",
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1041,7 +1132,7 @@ func TestCheck_FollowsAPathThatNeededEscaping(t *testing.T) {
 	t.Parallel()
 
 	r := &fakeRunner{content: upstream, sha: sha}
-	res, err := Import(context.Background(), Options{
+	res, err := Import(context.Background(), &Options{
 		URL: "https://github.com/acme/billing/blob/main/docs/100%25.modelith.yaml",
 		Dir: t.TempDir(), Now: importedAt, Run: r,
 	})
@@ -1094,7 +1185,12 @@ func TestVisit_RefusesAnUnusableHeader(t *testing.T) {
 		{
 			name: "a missing origin",
 			mangle: func(s string) string {
-				return strings.Replace(s, "# modelith-origin: https://github.com/acme/billing\n", "", 1)
+				return strings.Replace(
+					s,
+					"# modelith-origin: https://github.com/acme/billing\n",
+					"",
+					1,
+				)
 			},
 			wantErr: `missing "# modelith-origin"`,
 		},

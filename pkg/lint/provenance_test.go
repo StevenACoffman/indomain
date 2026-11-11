@@ -7,23 +7,6 @@ import (
 	"github.com/StevenACoffman/indomain/pkg/provenance"
 )
 
-// stamp returns src as a vendored copy: a well-formed provenance header whose
-// digest matches the content it is stamped into.
-func stamp(t *testing.T, src string) string {
-	t.Helper()
-	h := &provenance.Header{
-		Vendored: provenance.Banner,
-		Fetch:    "git",
-		Origin:   "https://github.com/stacklok/some-repo",
-		Path:     "docs/payments.modelith.yaml",
-		Ref:      "main",
-		Commit:   "4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21",
-		Imported: "2026-07-27",
-		Digest:   provenance.Digest([]byte(src)),
-	}
-	return string(provenance.Stamp([]byte(src), h))
-}
-
 // gappy is a model with one finding in each layer that a vendored file's status
 // could plausibly touch: a semantic error (a relationship to an entity that is
 // not defined), a semantic warning (a PascalCase type naming no enum), and
@@ -41,6 +24,23 @@ entities:
         cardinality: "n:1"
         ownership: referenced
 `
+
+// stamp returns src as a vendored copy: a well-formed provenance header whose
+// digest matches the content it is stamped into.
+func stamp(t *testing.T, src string) string {
+	t.Helper()
+	h := &provenance.Header{
+		Vendored: provenance.Banner,
+		Fetch:    "git",
+		Origin:   "https://github.com/stacklok/some-repo",
+		Path:     "docs/payments.modelith.yaml",
+		Ref:      "main",
+		Commit:   "4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21",
+		Imported: "2026-07-27",
+		Digest:   provenance.Digest([]byte(src)),
+	}
+	return string(provenance.Stamp([]byte(src), h))
+}
 
 func lintSource(t *testing.T, src string, files fakeFiles) *Result {
 	t.Helper()
@@ -79,7 +79,12 @@ func TestADR_0015_HeaderSuppressesCompletenessOnly(t *testing.T) {
 			continue
 		}
 		if f.Category != CategoryCompleteness {
-			t.Errorf("a %s finding was suppressed on a vendored file: %s: %s", f.Category, f.Path, f.Message)
+			t.Errorf(
+				"a %s finding was suppressed on a vendored file: %s: %s",
+				f.Category,
+				f.Path,
+				f.Message,
+			)
 			continue
 		}
 		droppedCompleteness++
@@ -111,7 +116,11 @@ func TestADR_0015_HeaderSuppressesCompletenessOnly(t *testing.T) {
 		}
 	}
 	if errs == 0 || warns == 0 {
-		t.Errorf("vendored file reported %d error(s) and %d warning(s); both layers should still run", errs, warns)
+		t.Errorf(
+			"vendored file reported %d error(s) and %d warning(s); both layers should still run",
+			errs,
+			warns,
+		)
 	}
 }
 
@@ -212,7 +221,11 @@ func TestVendored_HeaderProblemsAreReported(t *testing.T) {
 		contains string
 	}{
 		{"unknown key", "# modelith-surface: sha256:x\n", "unknown provenance key"},
-		{"unknown fetch method", "# modelith-fetch: carrier-pigeon\n", `unknown fetch method "carrier-pigeon"`},
+		{
+			"unknown fetch method",
+			"# modelith-fetch: carrier-pigeon\n",
+			`unknown fetch method "carrier-pigeon"`,
+		},
 		{"missing required key", "# modelith-fetch: git\n", `missing "# modelith-commit"`},
 	}
 	for _, tc := range cases {

@@ -1,0 +1,47 @@
+; https://editorconfig.org/
+
+root = true
+
+[*]
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+
+[*.{go,gotpl}]
+indent_style = tab
+indent_size = 8
+
+[{Makefile,go.mod,go.work,go.work.sum,go.sum,.gitmodules}]
+indent_style = tab
+indent_size = 4
+
+[Dockerfile]
+indent_size = 4
+
+# Ignore yaml https://learn.microsoft.com/en-us/visualstudio/code-quality/use-roslyn-analyzers?view=vs-2022
+[*.{yaml,yml,yml.j2,yaml.j2}]
+generated_code = true
+# charset = unset
+# end_of_line = unset
+# insert_final_newline = unset
+# trim_trailing_whitespace = unset
+# indent_style = unset
+# indent_size = unset
+
+# Markdown indents with spaces: rumdl's MD010 rejects hard tabs outside code
+# blocks, and Docusaurus renders the docs from these files.
+[*.{html,md}]
+indent_size = 2
+indent_style = space
+
+[*.{sql,graphql}]
+generated_code = true
+# charset = unset
+# end_of_line = unset
+# insert_final_newline = unset
+# trim_trailing_whitespace = unset
+# indent_style = unset
+# indent_size = unset

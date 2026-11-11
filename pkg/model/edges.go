@@ -5,6 +5,23 @@ import (
 	"strings"
 )
 
+// Declaration is one relationship declaration together with where it was made,
+// so a caller can point a diagnostic at it.
+type Declaration struct {
+	From  string // the entity whose relationships list holds it
+	Index int    // its position in that list
+	Rel   Relationship
+}
+
+// EdgeGroup is every declaration that could draw one relationship line. First
+// holds the declarations made by the alphabetically earlier entity of the pair,
+// Second those made by the later one; either may be empty.
+type EdgeGroup struct {
+	Key             string
+	First, Second   []Declaration
+	FirstN, SecondN string // the two entity names, First's and Second's
+}
+
 // This file holds the one definition of "which relationship line does this
 // declaration describe". The renderer uses it to decide what to fold into one
 // line; the linter uses it to warn when that decision cannot be made. Keeping
@@ -24,7 +41,7 @@ func NormalizeRole(role string) string {
 // line — including one relationship declared from both ends with inverse
 // cardinalities ("1:n" one way, "n:1" the other). A self-referential
 // declaration has no key; those are drawn inside the entity's own block.
-func EdgeKey(from string, rel Relationship) string {
+func EdgeKey(from string, rel *Relationship) string {
 	pair := []string{from, rel.Entity}
 	sort.Strings(pair)
 	card := rel.Cardinality
@@ -37,29 +54,12 @@ func EdgeKey(from string, rel Relationship) string {
 // DeclarationKey identifies a declaration precisely enough that two sharing it
 // are indistinguishable wherever the model is drawn: the line, the end that
 // declared it, whether that end claims ownership, and the role.
-func DeclarationKey(from string, rel Relationship) string {
+func DeclarationKey(from string, rel *Relationship) string {
 	owned := "0"
 	if rel.Ownership == "owned" {
 		owned = "1"
 	}
 	return EdgeKey(from, rel) + "\x00" + from + "\x00" + owned + "\x00" + NormalizeRole(rel.Role)
-}
-
-// Declaration is one relationship declaration together with where it was made,
-// so a caller can point a diagnostic at it.
-type Declaration struct {
-	From  string // the entity whose relationships list holds it
-	Index int    // its position in that list
-	Rel   Relationship
-}
-
-// EdgeGroup is every declaration that could draw one relationship line. First
-// holds the declarations made by the alphabetically earlier entity of the pair,
-// Second those made by the later one; either may be empty.
-type EdgeGroup struct {
-	Key             string
-	First, Second   []Declaration
-	FirstN, SecondN string // the two entity names, First's and Second's
 }
 
 // AmbiguousPairing reports whether the group's declarations cannot be paired up
@@ -85,30 +85,9 @@ func EdgeGroups(m *Model) []*EdgeGroup {
 	byKey := map[string]*EdgeGroup{}
 	seen := map[string]bool{}
 	for _, name := range m.EntityNames() {
-		for i, rel := range m.Entities[name].Relationships {
-			if rel.Entity == name {
-				continue // drawn inside the entity's own block, never as a line
-			}
-			dk := DeclarationKey(name, rel)
-			if seen[dk] {
-				continue
-			}
-			seen[dk] = true
-
-			key := EdgeKey(name, rel)
-			g, ok := byKey[key]
-			if !ok {
-				pair := []string{name, rel.Entity}
-				sort.Strings(pair)
-				g = &EdgeGroup{Key: key, FirstN: pair[0], SecondN: pair[1]}
-				byKey[key] = g
-			}
-			d := Declaration{From: name, Index: i, Rel: rel}
-			if name == g.FirstN {
-				g.First = append(g.First, d)
-			} else {
-				g.Second = append(g.Second, d)
-			}
+		rels := m.Entities[name].Relationships
+		for i := range rels {
+			addDeclaration(byKey, seen, name, i, &rels[i])
 		}
 	}
 
@@ -123,4 +102,38 @@ func EdgeGroups(m *Model) []*EdgeGroup {
 		out = append(out, byKey[key])
 	}
 	return out
+}
+
+// addDeclaration files one relationship declaration into its edge group,
+// skipping self-references and exact duplicates already seen.
+func addDeclaration(
+	byKey map[string]*EdgeGroup,
+	seen map[string]bool,
+	name string,
+	index int,
+	rel *Relationship,
+) {
+	if rel.Entity == name {
+		return // drawn inside the entity's own block, never as a line
+	}
+	dk := DeclarationKey(name, rel)
+	if seen[dk] {
+		return
+	}
+	seen[dk] = true
+
+	key := EdgeKey(name, rel)
+	g, ok := byKey[key]
+	if !ok {
+		pair := []string{name, rel.Entity}
+		sort.Strings(pair)
+		g = &EdgeGroup{Key: key, FirstN: pair[0], SecondN: pair[1]}
+		byKey[key] = g
+	}
+	d := Declaration{From: name, Index: index, Rel: *rel}
+	if name == g.FirstN {
+		g.First = append(g.First, d)
+	} else {
+		g.Second = append(g.Second, d)
+	}
 }

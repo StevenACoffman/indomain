@@ -23,6 +23,11 @@ import (
 // see its own comment.
 const LinePrefix = "# modelith-"
 
+// Banner is the value deps import writes for the vendored key. Nothing enforces
+// it — a digest computed over the file cannot cover the header that records it —
+// but an agent editing the file reads it and stops, which is the point.
+const Banner = "DO NOT EDIT — this file is a copy. Change it at its origin."
+
 // lineRE matches one provenance line and splits it into key and value. The
 // value is everything after the colon, trimmed; a free-text value such as the
 // vendored banner is deliberately unconstrained.
@@ -30,11 +35,6 @@ var lineRE = regexp.MustCompile(`^# modelith-([a-z][a-z0-9-]*):(.*)$`)
 
 // digestRE is the recorded digest's shape.
 var digestRE = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
-
-// Banner is the value deps import writes for the vendored key. Nothing enforces
-// it — a digest computed over the file cannot cover the header that records it —
-// but an agent editing the file reads it and stops, which is the point.
-const Banner = "DO NOT EDIT — this file is a copy. Change it at its origin."
 
 // Header is the provenance block of a vendored model file.
 type Header struct {
@@ -56,63 +56,6 @@ type Header struct {
 	Digest   string
 }
 
-// refTypes is the closed set a ref-type value may name. There is deliberately
-// no "auto": the Azure DevOps API does not infer a version's type — an untyped
-// request is read as a branch — so a value meaning "let the API decide" would
-// be a claim the API does not honour. An unknown type is *omitted*, and the
-// layer that fetches resolves it.
-var refTypes = []string{"branch", "tag", "commit"}
-
-// keyOrder is the order Format writes the keys in, and the set of keys that
-// exist at all: a line naming anything else is a Problem.
-var keyOrder = []string{"vendored", "fetch", "origin", "path", "ref", "ref-type", "commit", "imported", "digest"}
-
-// commonKeys are required whatever the fetch method is. methodKeys are the ones
-// each method requires on top, so adding a method means declaring what it
-// carries rather than inheriting git's key set by default.
-var (
-	commonKeys = []string{"vendored", "fetch", "imported", "digest"}
-	methodKeys = map[string][]string{
-		"git": {"origin", "path", "ref", "commit"},
-	}
-)
-
-// Methods returns the fetch methods this build understands.
-func Methods() []string {
-	// One entry today; sorted so a diagnostic listing them is deterministic
-	// when there are more.
-	out := make([]string, 0, len(methodKeys))
-	for m := range methodKeys {
-		out = append(out, m)
-	}
-	slices.Sort(out)
-	return out
-}
-
-func (h *Header) field(key string) *string {
-	switch key {
-	case "vendored":
-		return &h.Vendored
-	case "fetch":
-		return &h.Fetch
-	case "origin":
-		return &h.Origin
-	case "path":
-		return &h.Path
-	case "ref":
-		return &h.Ref
-	case "ref-type":
-		return &h.RefType
-	case "commit":
-		return &h.Commit
-	case "imported":
-		return &h.Imported
-	case "digest":
-		return &h.Digest
-	}
-	return nil
-}
-
 // Problem is a defect in the header itself — an unknown key, a missing required
 // one, a line outside the leading comment block. It carries the 1-based line so
 // a diagnostic can point at it; Line is zero for a problem about the header as a
@@ -120,6 +63,52 @@ func (h *Header) field(key string) *string {
 type Problem struct {
 	Line    int
 	Message string
+}
+
+// refTypes is the closed set a ref-type value may name. There is deliberately
+// no "auto": the Azure DevOps API does not infer a version's type — an untyped
+// request is read as a branch — so a value meaning "let the API decide" would
+// be a claim the API does not honour. An unknown type is *omitted*, and the
+// layer that fetches resolves it.
+func refTypes() []string { return []string{"branch", "tag", "commit"} }
+
+// keyOrder is the order Format writes the keys in, and the set of keys that
+// exist at all: a line naming anything else is a Problem.
+func keyOrder() []string {
+	return []string{
+		"vendored",
+		"fetch",
+		"origin",
+		"path",
+		"ref",
+		"ref-type",
+		"commit",
+		"imported",
+		"digest",
+	}
+}
+
+// commonKeys are required whatever the fetch method is. methodKeys are the ones
+// each method requires on top, so adding a method means declaring what it
+// carries rather than inheriting git's key set by default.
+func commonKeys() []string { return []string{"vendored", "fetch", "imported", "digest"} }
+
+func methodKeys() map[string][]string {
+	return map[string][]string{
+		"git": {"origin", "path", "ref", "commit"},
+	}
+}
+
+// Methods returns the fetch methods this build understands.
+func Methods() []string {
+	// One entry today; sorted so a diagnostic listing them is deterministic
+	// when there are more.
+	out := make([]string, 0, len(methodKeys()))
+	for m := range methodKeys() {
+		out = append(out, m)
+	}
+	slices.Sort(out)
+	return out
 }
 
 // Present reports whether src carries a provenance line anywhere, which is what
@@ -166,16 +155,20 @@ func Parse(src []byte) (*Header, []Problem) {
 		}
 		num, key, value := i+1, m[1], strings.TrimSpace(m[2])
 		if i >= lead {
-			problems = append(problems, Problem{num, fmt.Sprintf(
-				"provenance line %q is below the leading comment block, so it was read as an ordinary comment rather than as header — the whole header belongs at the top of the file, before any model content",
-				LinePrefix+key)})
+			problems = append(problems, Problem{
+				num,
+				fmt.Sprintf(
+					"provenance line %q is below the leading comment block, so it was read as an ordinary comment rather than as header — the whole header belongs at the top of the file, before any model content",
+					LinePrefix+key,
+				),
+			})
 			continue
 		}
 		field := h.field(key)
 		if field == nil {
 			problems = append(problems, Problem{num, fmt.Sprintf(
 				"unknown provenance key %q — this indomain knows %s",
-				LinePrefix+key, quotedList(keyOrder))})
+				LinePrefix+key, quotedList(keyOrder()))})
 			continue
 		}
 		if prev, dup := seen[key]; dup {
@@ -189,43 +182,6 @@ func Parse(src []byte) (*Header, []Problem) {
 
 	problems = append(problems, h.validate(seen)...)
 	return &h, problems
-}
-
-// validate checks the key set against the fetch method and the shape of the
-// values that have one. seen maps a key to the line it was read from, so a
-// problem about a value points at it.
-func (h *Header) validate(seen map[string]int) []Problem {
-	var problems []Problem
-
-	required := append([]string{}, commonKeys...)
-	method, known := methodKeys[h.Fetch]
-	switch {
-	case h.Fetch == "":
-		// The missing-key report below names it; naming a method that is not
-		// there as unknown too would report one mistake twice.
-	case !known:
-		problems = append(problems, Problem{seen["fetch"], fmt.Sprintf(
-			"unknown fetch method %q — this indomain supports %s. If you need another, please open an issue at https://github.com/StevenACoffman/indomain/issues",
-			h.Fetch, quotedList(Methods()))})
-	default:
-		required = append(required, method...)
-	}
-
-	for _, key := range required {
-		if *h.field(key) == "" {
-			problems = append(problems, Problem{0, fmt.Sprintf(
-				"provenance header is missing %q", LinePrefix+key)})
-		}
-	}
-	if h.Digest != "" && !digestRE.MatchString(h.Digest) {
-		problems = append(problems, Problem{seen["digest"], fmt.Sprintf(
-			"provenance digest %q is not in the form sha256:<64 hex digits>", h.Digest)})
-	}
-	if h.RefType != "" && !slices.Contains(refTypes, h.RefType) {
-		problems = append(problems, Problem{seen["ref-type"], fmt.Sprintf(
-			"provenance ref-type %q is not one of %s", h.RefType, quotedList(refTypes))})
-	}
-	return problems
 }
 
 // ValidDigest reports whether s is a digest in the form a header records. A
@@ -269,12 +225,78 @@ func Digest(src []byte) string {
 // Format renders h as the header block, every line terminated.
 func (h *Header) Format() string {
 	var b strings.Builder
-	for _, key := range keyOrder {
+	for _, key := range keyOrder() {
 		if v := *h.field(key); v != "" {
 			fmt.Fprintf(&b, "%s%s: %s\n", LinePrefix, key, v)
 		}
 	}
 	return b.String()
+}
+
+func (h *Header) field(key string) *string {
+	switch key {
+	case "vendored":
+		return &h.Vendored
+	case "fetch":
+		return &h.Fetch
+	case "origin":
+		return &h.Origin
+	case "path":
+		return &h.Path
+	case "ref":
+		return &h.Ref
+	case "ref-type":
+		return &h.RefType
+	case "commit":
+		return &h.Commit
+	case "imported":
+		return &h.Imported
+	case "digest":
+		return &h.Digest
+	}
+	return nil
+}
+
+// validate checks the key set against the fetch method and the shape of the
+// values that have one. seen maps a key to the line it was read from, so a
+// problem about a value points at it.
+func (h *Header) validate(seen map[string]int) []Problem {
+	var problems []Problem
+
+	required := commonKeys()
+	method, known := methodKeys()[h.Fetch]
+	switch {
+	case h.Fetch == "":
+		// The missing-key report below names it; naming a method that is not
+		// there as unknown too would report one mistake twice.
+	case !known:
+		problems = append(problems, Problem{
+			seen["fetch"],
+			fmt.Sprintf(
+				"unknown fetch method %q — this indomain supports %s. If you need another, please open an issue at https://github.com/StevenACoffman/indomain/issues",
+				h.Fetch,
+				quotedList(Methods()),
+			),
+		})
+	default:
+		required = append(required, method...)
+	}
+
+	for _, key := range required {
+		if *h.field(key) == "" {
+			problems = append(problems, Problem{0, fmt.Sprintf(
+				"provenance header is missing %q", LinePrefix+key)})
+		}
+	}
+	if h.Digest != "" && !digestRE.MatchString(h.Digest) {
+		problems = append(problems, Problem{seen["digest"], fmt.Sprintf(
+			"provenance digest %q is not in the form sha256:<64 hex digits>", h.Digest)})
+	}
+	if h.RefType != "" && !slices.Contains(refTypes(), h.RefType) {
+		problems = append(problems, Problem{seen["ref-type"], fmt.Sprintf(
+			"provenance ref-type %q is not one of %s", h.RefType, quotedList(refTypes()))})
+	}
+	return problems
 }
 
 // Stamp returns src with h's header inserted: after a leading

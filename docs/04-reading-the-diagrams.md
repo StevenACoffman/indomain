@@ -16,7 +16,7 @@ site renders the live examples below. Other Markdown viewers may show the source
 instead. You never write this notation by hand: `modelith render` generates it
 from `*.modelith.yaml`.
 
-## What the diagram shows (and what it doesn't)
+## What the Diagram Shows (And What It Doesn't)
 
 The ER diagram shows **two things**: the entities (the named concepts) and the
 **relationships** between them. That's deliberate. Everything else about an
@@ -49,7 +49,7 @@ labelled with its full `scope.Entity` name. It represents the external entity
 only; its attributes and relationships remain in the imported model's rendered
 document.
 
-## The lines: relationships and cardinality
+## The Lines: Relationships and Cardinality
 
 A line between two entities is a relationship. The **symbols at each end** tell
 you *how many* of that entity participate — this is crow's-foot notation. Read
@@ -58,17 +58,17 @@ the other."
 
 modelith uses just two endpoint symbols:
 
-| Symbol | At an entity's end, means |
-| --- | --- |
-| `││` (two bars) | **exactly one** |
-| `>○` (crow's foot + circle) | **zero or many** |
+| Symbol                      | At an entity's end, means |
+| --------------------------- | ------------------------- |
+| `││` (two bars)             | **exactly one**           |
+| `>○` (crow's foot + circle) | **zero or many**          |
 
 Combine the two ends and you get the four cardinalities a model can declare.
 Each example below is exactly what modelith emits for that cardinality when the
 relationship declares no role and no ownership — which is why the lines are
 dashed and the labels empty. Both are explained in the next two sections.
 
-### `1:1` — one to one
+### `1:1` — One to One
 
 ```mermaid
 erDiagram
@@ -78,7 +78,7 @@ erDiagram
 A bar (`|`) at both ends: **one** `User` relates to **one** `Profile`, and vice
 versa.
 
-### `1:n` — one to many
+### `1:n` — One to Many
 
 ```mermaid
 erDiagram
@@ -89,7 +89,7 @@ A bar at `Project`, a crow's foot at `Policy`: **one** `Project` relates to
 **zero or many** `Policies`, and each `Policy` relates back to exactly **one**
 `Project`. This is the most common shape.
 
-### `n:1` — many to one
+### `n:1` — Many to One
 
 ```mermaid
 erDiagram
@@ -100,7 +100,7 @@ The mirror of the above, declared from the *many* side. **Many** `Policies` to
 **one** `Project`. `1:n` and `n:1` describe the same shape from opposite ends —
 which one you see just reflects which entity declared it.
 
-### `n:n` — many to many
+### `n:n` — Many to Many
 
 ```mermaid
 erDiagram
@@ -110,14 +110,14 @@ erDiagram
 A crow's foot at both ends: **many** `Users` relate to **many** `Projects`. A
 `User` can be in several `Projects`; a `Project` can have several `Users`.
 
-## The line style: owned vs referenced
+## The Line Style: Owned vs Referenced
 
 The line itself is either **solid** or **dashed**, and that is where a
 relationship's `ownership` shows up:
 
-| Line | Means |
-| --- | --- |
-| **solid** (`--`) | **`owned`** (composition, an *identifying* relationship): the related entity is a *part of* this one and can't exist without it — delete the parent and it goes too. |
+| Line              | Means                                                                                                                                                                      |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **solid** (`--`)  | **`owned`** (composition, an *identifying* relationship): the related entity is a *part of* this one and can't exist without it — delete the parent and it goes too.       |
 | **dashed** (`..`) | **`referenced`** (a *non-identifying* relationship): the related entity is independent; this one merely points at it. This is the default when a relationship doesn't say. |
 
 ```mermaid
@@ -152,7 +152,7 @@ nothing you wrote vanishes from the picture:
   declaration draws its own line, and `modelith lint` warns that the pairing is
   ambiguous. Declaring each relationship from one end only clears it up.
 
-## The labels on the lines
+## The Labels on the Lines
 
 A label on a line is the relationship's **`role`** — the part the related entity
 plays, e.g. `"Owner or Member"`. Nothing else is ever written there: a
@@ -170,7 +170,7 @@ collide with neighbouring lines. Keep a `role` to a short role name, ideally a
 glossary term; `modelith lint` warns when a role reads as prose and points you
 at the relationship's `note` field instead.
 
-## Self-relationships live inside the box
+## Self-Relationships Live Inside the Box
 
 When an entity relates to *itself* — a `Project` that replaced an earlier one, a
 `Task` that blocks another `Task` — the relationship is drawn as a **row inside
@@ -194,9 +194,9 @@ role. An entity with several self-relationships gets one row each (`self`,
 
 This is a layout necessity, not a modeling statement: Mermaid's ER layout has no
 self-loop handling and draws an arc that swamps the rest of the diagram. See
-[ADR-0008](https://github.com/stacklok/modelith/blob/main/project-docs/adr/0008-er-diagram-conventions.md).
+[ADR-0008](https://github.com/StevenACoffman/indomain/blob/main/project-docs/adr/0008-er-diagram-conventions.md).
 
-## What the diagram can't tell you
+## What the Diagram Can't Tell You
 
 The notation is structural, so some rules simply aren't expressible in it — read
 them in the text:
@@ -212,9 +212,9 @@ them in the text:
 - **Actions** (what can be done to an entity, and which invariants they
   preserve) are listed per entity.
 
-## A full example, read end to end
+## A Full Example, Read End to End
 
-Here is the diagram modelith renders for the [worked example](https://github.com/stacklok/modelith/blob/main/examples/example.modelith.md):
+Here is the diagram modelith renders for the [worked example](https://github.com/StevenACoffman/indomain/blob/main/examples/example.modelith.md):
 
 ```mermaid
 erDiagram
@@ -242,7 +242,7 @@ Reading it:
 - **the `Project self` row** — a `Project` optionally points at the archived
   `Project` it replaced, its `Predecessor`.
 
-## Related information
+## Related Information
 
 - [Understand the model contents](./03-understanding-your-model.md).
 - [Review the diagram fields in the schema](./06-schema-reference.md#relationship).

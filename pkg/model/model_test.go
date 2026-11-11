@@ -146,7 +146,14 @@ func TestParseMultiplicity(t *testing.T) {
 			continue
 		}
 		if ok && (got.Min != c.min || got.Max != c.max) {
-			t.Errorf("ParseMultiplicity(%q) = {%d,%d}, want {%d,%d}", c.in, got.Min, got.Max, c.min, c.max)
+			t.Errorf(
+				"ParseMultiplicity(%q) = {%d,%d}, want {%d,%d}",
+				c.in,
+				got.Min,
+				got.Max,
+				c.min,
+				c.max,
+			)
 		}
 	}
 }

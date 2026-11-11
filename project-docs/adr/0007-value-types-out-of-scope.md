@@ -1,4 +1,4 @@
-# Structured value types are out of scope
+# Structured Value Types Are Out of Scope
 
 Do not add a `types:` section or any structured value-type construct. A value
 type with named, typed fields defines record structure — implementation

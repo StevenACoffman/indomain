@@ -1,9 +1,9 @@
 # InDomain (Temporary Fork of Modelith)
 
 Note: This is just a fork of the upstream [Modelith](https://github.com/stacklok/modelith) with `internal` -> `pkg` because
-I wanted to be able to read [Modelith](https://github.com/stacklok/modelith) output files. 
+I wanted to be able to read [Modelith](https://github.com/stacklok/modelith) output files.
 
-## Modelith stuff below here
+## Modelith Stuff Below Here
 
 Tooling for authoring, validating, and rendering **domain models** — the
 canonical, plain-language expression of what a system *is*: its concepts, how
@@ -14,9 +14,9 @@ you author it by talking to an AI agent. The agent drafts and validates the YAML
 and renders it to Markdown (with embedded Mermaid diagrams); you commit both
 alongside your code. The `modelith` CLI is the engine the agent and CI run for you.
 
-## The workflow
+## The Workflow
 
-```
+```text
 describe concepts in plain language
    │
    ▼
@@ -32,7 +32,7 @@ model.modelith.yaml  ─▶ canonical source (you edit this, via the agent)
 CI regenerates the Markdown and fails on drift (`modelith render --check`) — like
 a generated-code check.
 
-## Getting started
+## Getting Started
 
 You need two things, in this order: the **CLI** (the engine that lints and
 renders) and the **Claude Code plugin** (the skills that drive it by
@@ -40,16 +40,11 @@ conversation) — the skills shell out to the binary, so install it first.
 
 **1. Install the CLI:**
 
-```sh
-brew install stacklok/tap/indomain
-```
-
-Or download a prebuilt binary from the
-[Releases page](https://github.com/stacklok/modelith/releases), or build from
-source:
+Download a prebuilt binary from the
+[Releases page](https://github.com/StevenACoffman/indomain/releases), or build from source:
 
 ```sh
-go install github.com/stacklok/indomain/cmd/indomain@latest
+go install github.com/StevenACoffman/indomain/cmd/indomain@latest
 ```
 
 **2. Install the Claude Code plugin** (the skills that author the model):
@@ -62,7 +57,7 @@ go install github.com/stacklok/indomain/cmd/indomain@latest
 Install with the [skills CLI](https://skills.sh) (also works with Cursor, Windsurf, and others):
 
 ```sh
-npx skills add stacklok/indomain
+npx skills add StevenACoffman/indomain
 ```
 
 Once the marketplace listing is approved:
@@ -78,7 +73,7 @@ it, and keeps the rendered Markdown in sync.
 
 → Full walkthrough: **[Getting Started](https://modelith.sh/getting-started)**.
 
-## The format, briefly
+## The Format, Briefly
 
 A `*.modelith.yaml` file is **self-describing** (`kind` + `version`) with four
 top-level sections — `glossary`, `enums`, `entities`, and `scenarios`:

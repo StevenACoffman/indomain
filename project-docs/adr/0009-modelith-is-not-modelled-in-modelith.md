@@ -1,4 +1,4 @@
-# modelith is not modelled in modelith
+# modelith Is Not Modelled in modelith
 
 Do not write a `*.modelith.yaml` describing modelith's own domain — the domain
 model format itself. The vocabulary it would capture is already defined in

@@ -1,4 +1,4 @@
-# Cross-model references resolve against vendored copies
+# Cross-Model References Resolve Against Vendored Copies
 
 A model may declare a `scope:` slug and reference another model's items as
 `slug.Name`. References resolve against a *copy of the other model committed to

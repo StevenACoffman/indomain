@@ -2,6 +2,7 @@ package deps
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -13,6 +14,44 @@ import (
 
 	"github.com/StevenACoffman/indomain/pkg/provenance"
 )
+
+const upstream = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
+kind: DomainModel
+version: v1
+title: Payments
+enums:
+  PaymentMethod:
+    values:
+      - name: card
+`
+
+const blobURL = "https://github.com/acme/billing/blob/main/docs/payments.modelith.yaml"
+
+const sha = "4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21"
+
+// --- Azure DevOps tests ---
+
+const adoBlobURL = "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/payments.modelith.yaml&version=GBmain"
+
+const adoContent = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
+kind: DomainModel
+version: v1
+title: Payments
+enums:
+  PaymentMethod:
+    values:
+      - name: card
+`
+
+const adoCommit = "4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21"
+
+// adoRefs are the refs the fake repository serves, keyed the way the refs API's
+// filter names them.
+var adoRefs = map[string]bool{
+	"heads/main":       true,
+	"tags/v1.0.0":      true,
+	"heads/release/v2": true,
+}
 
 // fakeRunner answers the gh/az calls Import makes. It behaves like gh or az,
 // answering the endpoints it knows and failing the way they fail on anything
@@ -32,6 +71,23 @@ type fakeRunner struct {
 	unusable string
 }
 
+// --- Timeout decorator tests ---
+
+// runnerFunc adapts a func to the Runner interface for tests.
+type runnerFunc func(ctx context.Context, name string, args ...string) ([]byte, error)
+
+// hungRunner blocks every call until the context Import gave it expires, the
+// way a stalled az/gh process behaves under exec.CommandContext.
+type hungRunner struct{ calls int }
+
+// ctxRecordingRunner records the context each call received, so a test can
+// assert what Import delivered: a deadline when Timeout is set, the caller's
+// bare ctx when it is zero.
+type ctxRecordingRunner struct {
+	fakeRunner
+	ctxs []context.Context
+}
+
 func (f *fakeRunner) Run(_ context.Context, name string, args ...string) ([]byte, error) {
 	f.calls = append(f.calls, append([]string{name}, args...))
 
@@ -49,7 +105,7 @@ func (f *fakeRunner) runGh(args []string) ([]byte, error) {
 		}
 	}
 	if f.unusable != "" && strings.Contains(endpoint, f.unusable) {
-		return nil, unusable{fmt.Errorf("gh is not installed — indomain delegates fetching to it")}
+		return nil, unusable{errors.New("gh is not installed — indomain delegates fetching to it")}
 	}
 	if f.fail != "" && strings.Contains(endpoint, f.fail) {
 		return nil, fmt.Errorf("gh: HTTP 404: Not Found (%s)", endpoint)
@@ -75,7 +131,10 @@ func (f *fakeRunner) runAz(args []string) ([]byte, error) {
 	}
 	// The ADO resource ID must be present.
 	if resource != "499b84ac-1321-427f-aa17-267ca6975798" {
-		return nil, fmt.Errorf("az: expected --resource 499b84ac-1321-427f-aa17-267ca6975798, got %q", resource)
+		return nil, fmt.Errorf(
+			"az: expected --resource 499b84ac-1321-427f-aa17-267ca6975798, got %q",
+			resource,
+		)
 	}
 	if f.fail != "" && strings.Contains(uri, f.fail) {
 		return nil, fmt.Errorf("az: HTTP 404: Not Found (%s)", uri)
@@ -108,7 +167,11 @@ func (f *fakeRunner) runAz(args []string) ([]byte, error) {
 			vt = "branch"
 		}
 		if !adoVersionKnown(vt, ver, f.sha) {
-			return nil, fmt.Errorf("az: TF401175: The version descriptor <%s: %s> could not be resolved to a version (https://dev.azure.com/x/_apis/git/repositories/y/items)", adoTypeLabel(vt), ver)
+			return nil, fmt.Errorf(
+				"az: TF401175: The version descriptor <%s: %s> could not be resolved to a version (https://dev.azure.com/x/_apis/git/repositories/y/items)",
+				adoTypeLabel(vt),
+				ver,
+			)
 		}
 		// The real fetch writes the body to --output-file (az rest appends a
 		// newline when printing a body to stdout, which would drift the
@@ -130,7 +193,9 @@ func (f *fakeRunner) runAz(args []string) ([]byte, error) {
 		// rather than a surprise against a real endpoint.
 		body := []byte(f.content)
 		if !strings.Contains(uri, "download=true") {
-			body = []byte(`{"objectId":"` + f.sha + `","gitObjectType":"blob","path":"/payments.modelith.yaml"}`)
+			body = []byte(
+				`{"objectId":"` + f.sha + `","gitObjectType":"blob","path":"/payments.modelith.yaml"}`,
+			)
 		}
 		if err := os.WriteFile(outPath, body, 0o644); err != nil {
 			return nil, err
@@ -139,7 +204,7 @@ func (f *fakeRunner) runAz(args []string) ([]byte, error) {
 	case strings.Contains(uri, "/commits"):
 		// The commit endpoint must not shell-escape $top.
 		if strings.Contains(uri, "\\$top") {
-			return nil, fmt.Errorf("az: $top is shell-escaped, but ExecRunner uses argv (no shell)")
+			return nil, errors.New("az: $top is shell-escaped, but ExecRunner uses argv (no shell)")
 		}
 		// The commits query is typed the same way the items request is, so the
 		// same resolution rule applies.
@@ -148,19 +213,15 @@ func (f *fakeRunner) runAz(args []string) ([]byte, error) {
 			vt = "branch"
 		}
 		if !adoVersionKnown(vt, ver, f.sha) {
-			return nil, fmt.Errorf("az: TF401175: the commits query could not resolve <%s: %s>", adoTypeLabel(vt), ver)
+			return nil, fmt.Errorf(
+				"az: TF401175: the commits query could not resolve <%s: %s>",
+				adoTypeLabel(vt),
+				ver,
+			)
 		}
 		return []byte(f.sha + "\n"), nil
 	}
 	return nil, fmt.Errorf("az: unexpected uri %q", uri)
-}
-
-// adoRefs are the refs the fake repository serves, keyed the way the refs API's
-// filter names them.
-var adoRefs = map[string]bool{
-	"heads/main":       true,
-	"tags/v1.0.0":      true,
-	"heads/release/v2": true,
 }
 
 // adoVersionParams reads the version and its type out of an ADO URI. The items
@@ -224,20 +285,6 @@ func adoTypeLabel(vt string) string {
 	}
 	return vt
 }
-
-const upstream = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
-kind: DomainModel
-version: v1
-title: Payments
-enums:
-  PaymentMethod:
-    values:
-      - name: card
-`
-
-const blobURL = "https://github.com/acme/billing/blob/main/docs/payments.modelith.yaml"
-
-const sha = "4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21"
 
 func TestParseSource(t *testing.T) {
 	t.Parallel()
@@ -357,10 +404,10 @@ func TestParseSource(t *testing.T) {
 	}
 }
 
-func importInto(t *testing.T, dir string, r *fakeRunner, url string) (*Result, error) {
+func importInto(t *testing.T, dir string, r *fakeRunner, rawURL string) (*Result, error) {
 	t.Helper()
-	return Import(context.Background(), Options{
-		URL: url,
+	return Import(context.Background(), &Options{
+		URL: rawURL,
 		Dir: dir,
 		Now: time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local),
 		Run: r,
@@ -383,7 +430,10 @@ func TestADR_0019_RefTypeIsRecordedOnlyWhereItIsNeeded(t *testing.T) {
 		t.Fatal(err)
 	}
 	if gh.Header.RefType != "" {
-		t.Errorf("a GitHub header carries a ref type (%q); its API needs none, and the key must be omitted", gh.Header.RefType)
+		t.Errorf(
+			"a GitHub header carries a ref type (%q); its API needs none, and the key must be omitted",
+			gh.Header.RefType,
+		)
 	}
 	if got := readImportFile(t, gh.Path); strings.Contains(got, "# modelith-ref-type:") {
 		t.Errorf("a GitHub copy was stamped with a ref-type line:\n%s", got)
@@ -395,7 +445,11 @@ func TestADR_0019_RefTypeIsRecordedOnlyWhereItIsNeeded(t *testing.T) {
 		t.Fatal(err)
 	}
 	if ado.Header.RefType != "branch" {
-		t.Errorf("an ADO header recorded ref type %q, want %q for a GB URL", ado.Header.RefType, "branch")
+		t.Errorf(
+			"an ADO header recorded ref type %q, want %q for a GB URL",
+			ado.Header.RefType,
+			"branch",
+		)
 	}
 }
 
@@ -476,11 +530,15 @@ func TestImport_CallsGhWithTheExpectedEndpoints(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := [][]string{
-		{"gh", "api", "-H", "Accept: application/vnd.github.raw",
-			"repos/acme/billing/contents/docs/payments.modelith.yaml?ref=main"},
-		{"gh", "api",
+		{
+			"gh", "api", "-H", "Accept: application/vnd.github.raw",
+			"repos/acme/billing/contents/docs/payments.modelith.yaml?ref=main",
+		},
+		{
+			"gh", "api",
 			"repos/acme/billing/commits?path=docs%2Fpayments.modelith.yaml&sha=main&per_page=1",
-			"--jq", ".[0].sha"},
+			"--jq", ".[0].sha",
+		},
 	}
 	if len(r.calls) != len(want) {
 		t.Fatalf("want %d gh calls, got %d: %+v", len(want), len(r.calls), r.calls)
@@ -498,8 +556,8 @@ func TestImport_EscapesAPathThatNeedsIt(t *testing.T) {
 	t.Parallel()
 
 	r := &fakeRunner{content: upstream, sha: sha}
-	url := "https://github.com/acme/billing/blob/main/docs/a b&c/payments.modelith.yaml"
-	if _, err := importInto(t, t.TempDir(), r, url); err != nil {
+	rawURL := "https://github.com/acme/billing/blob/main/docs/a b&c/payments.modelith.yaml"
+	if _, err := importInto(t, t.TempDir(), r, rawURL); err != nil {
 		t.Fatal(err)
 	}
 	const wantContents = "repos/acme/billing/contents/docs/a%20b&c/payments.modelith.yaml?ref=main"
@@ -541,8 +599,11 @@ func TestImport_Rejections(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name:    "a file that is already a vendored copy",
-			runner:  &fakeRunner{content: "# modelith-origin: https://github.com/other/repo\n" + upstream, sha: sha},
+			name: "a file that is already a vendored copy",
+			runner: &fakeRunner{
+				content: "# modelith-origin: https://github.com/other/repo\n" + upstream,
+				sha:     sha,
+			},
 			url:     blobURL,
 			wantErr: "reads it as somebody else's copy",
 		},
@@ -668,7 +729,12 @@ func TestImport_RefusesUnknownReservedPrefixAtTarget(t *testing.T) {
 
 	dir := t.TempDir()
 	target := filepath.Join(dir, "payments.modelith.yaml")
-	existing := "# modelith-note: locally owned\n" + strings.Replace(upstream, "title: Payments", "title: Ours", 1)
+	existing := "# modelith-note: locally owned\n" + strings.Replace(
+		upstream,
+		"title: Payments",
+		"title: Ours",
+		1,
+	)
 	if err := os.WriteFile(target, []byte(existing), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -710,18 +776,31 @@ func TestSplitHint(t *testing.T) {
 		err  error
 		want bool
 	}{
-		{"a not-found", src, fmt.Errorf("gh: HTTP 404: Not Found"), true},
-		{"gh missing", src, fmt.Errorf("gh is not installed — indomain delegates fetching to it"), false},
-		{"a rejected credential", src, fmt.Errorf("gh: HTTP 401: Bad credentials"), false},
-		{"a forbidden repository", src, fmt.Errorf("gh: HTTP 403: Forbidden"), false},
-		{"an unreachable network", src, fmt.Errorf("dial tcp: lookup api.github.com: no such host"), false},
-		{"a single-segment path has nothing to lose to the ref",
-			Source{Host: HostGitHub, Ref: "main", Path: "payments.modelith.yaml"}, fmt.Errorf("gh: HTTP 404: Not Found"), false},
+		{"a not-found", src, errors.New("gh: HTTP 404: Not Found"), true},
+		{
+			"gh missing",
+			src,
+			errors.New("gh is not installed — indomain delegates fetching to it"),
+			false,
+		},
+		{"a rejected credential", src, errors.New("gh: HTTP 401: Bad credentials"), false},
+		{"a forbidden repository", src, errors.New("gh: HTTP 403: Forbidden"), false},
+		{
+			"an unreachable network",
+			src,
+			errors.New("dial tcp: lookup api.github.com: no such host"),
+			false,
+		},
+		{
+			"a single-segment path has nothing to lose to the ref",
+			Source{Host: HostGitHub, Ref: "main", Path: "payments.modelith.yaml"},
+			errors.New("gh: HTTP 404: Not Found"), false,
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if got := splitHint(tc.src, tc.err) != ""; got != tc.want {
+			if got := splitHint(&tc.src, tc.err) != ""; got != tc.want {
 				t.Errorf("splitHint offered = %v, want %v", got, tc.want)
 			}
 		})
@@ -741,7 +820,12 @@ func TestImport_RefreshIsNotRefusedOverCasing(t *testing.T) {
 		"https://github.com/Acme/Billing/blob/main/docs/payments.modelith.yaml"); err != nil {
 		t.Fatal(err)
 	}
-	res, err := importInto(t, dir, &fakeRunner{content: upstream + "  # newer\n", sha: "9" + sha[1:]}, blobURL)
+	res, err := importInto(
+		t,
+		dir,
+		&fakeRunner{content: upstream + "  # newer\n", sha: "9" + sha[1:]},
+		blobURL,
+	)
 	if err != nil {
 		t.Fatalf("a refresh differing only in the origin's casing was refused: %v", err)
 	}
@@ -774,7 +858,12 @@ func TestImport_RefreshIsNotRefusedOverATrailingSlash(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err = importInto(t, dir, &fakeRunner{content: upstream + "  # newer\n", sha: "9" + sha[1:]}, blobURL)
+	res, err = importInto(
+		t,
+		dir,
+		&fakeRunner{content: upstream + "  # newer\n", sha: "9" + sha[1:]},
+		blobURL,
+	)
 	if err != nil {
 		t.Fatalf("a refresh differing only in a trailing slash was refused: %v", err)
 	}
@@ -839,30 +928,14 @@ func TestImport_ReplacesAnEarlierCopy(t *testing.T) {
 	}
 }
 
-// --- Azure DevOps tests ---
-
-const adoBlobURL = "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/payments.modelith.yaml&version=GBmain"
-
-const adoContent = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
-kind: DomainModel
-version: v1
-title: Payments
-enums:
-  PaymentMethod:
-    values:
-      - name: card
-`
-
-const adoCommit = "4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21"
-
 func adoRunner(content, sha string) *fakeRunner {
 	return &fakeRunner{content: content, sha: sha, ado: true}
 }
 
-func importAdoInto(t *testing.T, dir string, r *fakeRunner, url string) (*Result, error) {
+func importAdoInto(t *testing.T, dir string, r *fakeRunner, rawURL string) (*Result, error) {
 	t.Helper()
-	return Import(context.Background(), Options{
-		URL: url,
+	return Import(context.Background(), &Options{
+		URL: rawURL,
 		Dir: dir,
 		Now: time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local),
 		Run: r,
@@ -1144,7 +1217,10 @@ func TestImport_ADO_CallsAzWithTheExpectedEndpoints(t *testing.T) {
 					// Without download=true the Items API returns a JSON
 					// GitItem, and the import cannot parse the model out of it.
 					if !strings.Contains(uri, "download=true") {
-						t.Errorf("the items request omits download=true, so the API returns JSON metadata rather than the model: %s", uri)
+						t.Errorf(
+							"the items request omits download=true, so the API returns JSON metadata rather than the model: %s",
+							uri,
+						)
 					}
 				}
 				if strings.Contains(uri, "/commits") {
@@ -1223,7 +1299,7 @@ func TestImport_ADO_OverrideRefResolvesTheType(t *testing.T) {
 	t.Parallel()
 
 	r := adoRunner(adoContent, adoCommit)
-	res, err := Import(context.Background(), Options{
+	res, err := Import(context.Background(), &Options{
 		URL: adoBlobURL, // names GBmain, overridden below
 		Dir: t.TempDir(),
 		Ref: "v1.0.0", // a tag in the fake repository
@@ -1234,7 +1310,11 @@ func TestImport_ADO_OverrideRefResolvesTheType(t *testing.T) {
 		t.Fatal(err)
 	}
 	if res.Header.RefType != "tag" {
-		t.Errorf("the header recorded ref-type %q, want %q — the override named a tag", res.Header.RefType, "tag")
+		t.Errorf(
+			"the header recorded ref-type %q, want %q — the override named a tag",
+			res.Header.RefType,
+			"tag",
+		)
 	}
 
 	var sawRefs, sawTypedFetch bool
@@ -1274,7 +1354,7 @@ func TestImport_ADO_OverrideRefCommitNeedsNoRefsLookup(t *testing.T) {
 	t.Parallel()
 
 	r := adoRunner(adoContent, adoCommit)
-	res, err := Import(context.Background(), Options{
+	res, err := Import(context.Background(), &Options{
 		URL: adoBlobURL,
 		Dir: t.TempDir(),
 		Ref: adoCommit,
@@ -1299,7 +1379,10 @@ func TestImport_ADO_OverrideRefCommitNeedsNoRefsLookup(t *testing.T) {
 func TestImport_ADO_RejectsAlreadyVendored(t *testing.T) {
 	t.Parallel()
 
-	r := adoRunner("# modelith-origin: https://dev.azure.com/other/proj/_git/repo\n"+adoContent, adoCommit)
+	r := adoRunner(
+		"# modelith-origin: https://dev.azure.com/other/proj/_git/repo\n"+adoContent,
+		adoCommit,
+	)
 	_, err := importAdoInto(t, t.TempDir(), r, adoBlobURL)
 	if err == nil || !strings.Contains(err.Error(), "reads it as somebody else's copy") {
 		t.Fatalf("want 'reads it as somebody else's copy', got %v", err)
@@ -1364,9 +1447,9 @@ func TestImport_ADO_Rejections(t *testing.T) {
 func TestImport_ADO_RejectsEmptyRef(t *testing.T) {
 	t.Parallel()
 
-	url := "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/payments.modelith.yaml"
-	_, err := Import(context.Background(), Options{
-		URL: url,
+	rawURL := "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/payments.modelith.yaml"
+	_, err := Import(context.Background(), &Options{
+		URL: rawURL,
 		Dir: t.TempDir(),
 		Now: time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local),
 		Run: adoRunner(adoContent, adoCommit),
@@ -1388,36 +1471,19 @@ func TestSplitHint_ADO(t *testing.T) {
 		Ref:     "main",
 		Path:    "docs/payments.modelith.yaml",
 	}
-	if got := splitHint(src, fmt.Errorf("HTTP 404: Not Found")); got != "" {
+	if got := splitHint(&src, errors.New("HTTP 404: Not Found")); got != "" {
 		t.Errorf("splitHint for ADO source should be empty, got %q", got)
 	}
 }
-
-// --- Timeout decorator tests ---
-
-// runnerFunc adapts a func to the Runner interface for tests.
-type runnerFunc func(ctx context.Context, name string, args ...string) ([]byte, error)
 
 func (f runnerFunc) Run(ctx context.Context, name string, args ...string) ([]byte, error) {
 	return f(ctx, name, args...)
 }
 
-// hungRunner blocks every call until the context Import gave it expires, the
-// way a stalled az/gh process behaves under exec.CommandContext.
-type hungRunner struct{ calls int }
-
-func (h *hungRunner) Run(ctx context.Context, name string, args ...string) ([]byte, error) {
+func (h *hungRunner) Run(ctx context.Context, _ string, _ ...string) ([]byte, error) {
 	h.calls++
 	<-ctx.Done()
 	return nil, ctx.Err()
-}
-
-// ctxRecordingRunner records the context each call received, so a test can
-// assert what Import delivered: a deadline when Timeout is set, the caller's
-// bare ctx when it is zero.
-type ctxRecordingRunner struct {
-	fakeRunner
-	ctxs []context.Context
 }
 
 func (r *ctxRecordingRunner) Run(ctx context.Context, name string, args ...string) ([]byte, error) {
@@ -1432,13 +1498,19 @@ func (r *ctxRecordingRunner) Run(ctx context.Context, name string, args ...strin
 func TestTimeoutRunner_ReturnsAClearErrorOnDeadline(t *testing.T) {
 	t.Parallel()
 
-	inner := runnerFunc(func(ctx context.Context, name string, args ...string) ([]byte, error) {
+	inner := runnerFunc(func(ctx context.Context, _ string, _ ...string) ([]byte, error) {
 		<-ctx.Done()
 		return nil, ctx.Err()
 	})
 	r := timeoutRunner{inner: inner, timeout: 10 * time.Millisecond}
 
-	_, err := r.Run(context.Background(), "az", "rest", "--uri", "https://dev.azure.com/secret/org/_apis/items")
+	_, err := r.Run(
+		context.Background(),
+		"az",
+		"rest",
+		"--uri",
+		"https://dev.azure.com/secret/org/_apis/items",
+	)
 	if err == nil {
 		t.Fatal("expected a timeout error, got nil")
 	}
@@ -1501,10 +1573,8 @@ func TestTimeoutRunner_ParentCancelIsNotReportedAsTimeout(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go func() {
-		time.Sleep(100 * time.Millisecond)
-		cancel()
-	}()
+	timer := time.AfterFunc(100*time.Millisecond, cancel)
+	defer timer.Stop()
 
 	r := timeoutRunner{inner: ExecRunner{}, timeout: time.Minute}
 	start := time.Now()
@@ -1530,7 +1600,7 @@ func TestImport_TimeoutIsPerCommand(t *testing.T) {
 	t.Parallel()
 
 	hung := &hungRunner{}
-	_, err := Import(context.Background(), Options{
+	_, err := Import(context.Background(), &Options{
 		URL:     blobURL,
 		Dir:     t.TempDir(),
 		Now:     time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local),
@@ -1558,7 +1628,7 @@ func TestImport_ADO_TimeoutBoundsTheAzCall(t *testing.T) {
 	t.Parallel()
 
 	hung := &hungRunner{}
-	_, err := Import(context.Background(), Options{
+	_, err := Import(context.Background(), &Options{
 		URL:     adoBlobURL,
 		Dir:     t.TempDir(),
 		Now:     time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local),
@@ -1583,7 +1653,7 @@ func TestImport_ZeroTimeoutPassesTheCallerContextThrough(t *testing.T) {
 	t.Parallel()
 
 	rec := &ctxRecordingRunner{fakeRunner: fakeRunner{content: upstream, sha: sha}}
-	if _, err := Import(context.Background(), Options{
+	if _, err := Import(context.Background(), &Options{
 		URL:     blobURL,
 		Dir:     t.TempDir(),
 		Now:     time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local),
@@ -1609,7 +1679,7 @@ func TestImport_WithTimeoutBoundsEachCall(t *testing.T) {
 	t.Parallel()
 
 	rec := &ctxRecordingRunner{fakeRunner: fakeRunner{content: upstream, sha: sha}}
-	if _, err := Import(context.Background(), Options{
+	if _, err := Import(context.Background(), &Options{
 		URL:     blobURL,
 		Dir:     t.TempDir(),
 		Now:     time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local),
@@ -1621,7 +1691,11 @@ func TestImport_WithTimeoutBoundsEachCall(t *testing.T) {
 	for i, ctx := range rec.ctxs {
 		d, ok := ctx.Deadline()
 		if !ok {
-			t.Errorf("call %d received no deadline; Timeout %v should bound each call", i, time.Minute)
+			t.Errorf(
+				"call %d received no deadline; Timeout %v should bound each call",
+				i,
+				time.Minute,
+			)
 			continue
 		}
 		if time.Until(d) > time.Minute {

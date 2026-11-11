@@ -9,6 +9,30 @@ import (
 	"testing"
 )
 
+// importerPath is where the model under test lives; its imports resolve
+// relative to the "docs" directory.
+const importerPath = "docs/garage.modelith.yaml"
+
+const paymentsModel = `kind: DomainModel
+version: v1
+title: Payments
+enums:
+  PaymentMethod:
+    description: How a bill is settled.
+    values:
+      - name: card
+      - name: transfer
+entities:
+  Invoice:
+    definition: A request for payment.
+`
+
+// chainedModel is an imported model that imports something itself — the case
+// where an unresolved item might really be one hop further away.
+const chainedModel = paymentsModel + `imports:
+  - ./payments.modelith.yaml
+`
+
 // fakeFiles is a map-backed Files keyed by cleaned, slash-separated path. A
 // hand-written fake rather than a mock: it behaves like a filesystem, reporting
 // a missing file the way os.ReadFile does and answering containment from its own
@@ -19,6 +43,20 @@ import (
 // A ".git" key marks a repository, exactly as the entry does on disk. Paths in
 // the map are relative, so the whole tree hangs off ".".
 type fakeFiles map[string]string
+
+type wantFinding struct {
+	severity Severity
+	category Category
+	path     string
+	contains string
+}
+
+// countingFiles records how many times each path was read, so a test can assert
+// a file was never opened. Everything else about the filesystem it inherits.
+type countingFiles struct {
+	fakeFiles
+	read map[string]int
+}
 
 func (f fakeFiles) ReadFile(path string) ([]byte, error) {
 	src, ok := f[filepath.ToSlash(filepath.Clean(path))]
@@ -49,30 +87,6 @@ func (f fakeFiles) ResolutionRoot(modelPath string) (string, bool) {
 	}
 }
 
-// importerPath is where the model under test lives; its imports resolve
-// relative to the "docs" directory.
-const importerPath = "docs/garage.modelith.yaml"
-
-const paymentsModel = `kind: DomainModel
-version: v1
-title: Payments
-enums:
-  PaymentMethod:
-    description: How a bill is settled.
-    values:
-      - name: card
-      - name: transfer
-entities:
-  Invoice:
-    definition: A request for payment.
-`
-
-// chainedModel is an imported model that imports something itself — the case
-// where an unresolved item might really be one hop further away.
-const chainedModel = paymentsModel + `imports:
-  - ./payments.modelith.yaml
-`
-
 // importer builds a model that lists the given imports and types one attribute
 // with the given type. Each entry is written verbatim as a YAML sequence item,
 // so a case can use either the bare-path form or the explicit {scope, path} one.
@@ -93,13 +107,6 @@ func importer(imports []string, attrType string) string {
         type: %s
 `, attrType)
 	return b.String()
-}
-
-type wantFinding struct {
-	severity Severity
-	category Category
-	path     string
-	contains string
 }
 
 // importFindings narrows a result to the surfaces these tests drive: the
@@ -222,18 +229,24 @@ func TestImports_Resolution(t *testing.T) {
 		{
 			name:     "a wire-format type name is an error in a model with no imports",
 			attrType: "google.protobuf.Timestamp",
-			want: []wantFinding{{
-				SeverityError, CategorySemantic, typePath,
-				`attribute type "google.protobuf.Timestamp" is a malformed cross-model reference (more than one dot)`,
-			}},
+			want: []wantFinding{
+				{
+					SeverityError,
+					CategorySemantic,
+					typePath,
+					`attribute type "google.protobuf.Timestamp" is a malformed cross-model reference (more than one dot)`,
+				},
+			},
 		},
 		{
 			name:     "qualified type naming an unimported scope",
 			imports:  []string{`"./payments.modelith.yaml"`},
 			attrType: "shipping.Carrier",
 			want: []wantFinding{
-				{SeverityError, CategorySemantic, typePath,
-					`references the scope "shipping", which no import binds`},
+				{
+					SeverityError, CategorySemantic, typePath,
+					`references the scope "shipping", which no import binds`,
+				},
 				{SeverityWarning, CategoryCompleteness, "/imports/0", "is never referenced"},
 			},
 		},
@@ -291,8 +304,11 @@ func TestImports_Resolution(t *testing.T) {
 			attrType: "payments.PaymentMethod",
 		},
 		{
-			name:     "two imports binding the same scope",
-			imports:  []string{`"./payments.modelith.yaml"`, `"../payments/payments.modelith.yaml"`},
+			name: "two imports binding the same scope",
+			imports: []string{
+				`"./payments.modelith.yaml"`,
+				`"../payments/payments.modelith.yaml"`,
+			},
 			attrType: "payments.PaymentMethod",
 			want: []wantFinding{{
 				SeverityError, CategorySemantic, "/imports/1",
@@ -339,10 +355,14 @@ func TestImports_Resolution(t *testing.T) {
 			name:     "import nothing references",
 			imports:  []string{`"./payments.modelith.yaml"`},
 			attrType: "string",
-			want: []wantFinding{{
-				SeverityWarning, CategoryCompleteness, "/imports/0",
-				"is never referenced — drop it, or reference one of its enums as payments.Name in an attribute type or one of its entities as payments.Entity in a relationship or subtypeOf",
-			}},
+			want: []wantFinding{
+				{
+					SeverityWarning,
+					CategoryCompleteness,
+					"/imports/0",
+					"is never referenced — drop it, or reference one of its enums as payments.Name in an attribute type or one of its entities as payments.Entity in a relationship or subtypeOf",
+				},
+			},
 		},
 		{
 			name:     "unqualified PascalCase type is still only a warning",
@@ -398,24 +418,49 @@ entities:
 		parent string
 		want   []wantFinding
 	}{
-		{name: "direct imported entities resolve", target: "payments.Invoice", parent: "payments.Invoice"},
 		{
-			name: "unbound scope", target: "shipping.Carrier", parent: "payments.Invoice",
-			want: []wantFinding{{SeverityError, CategorySemantic, entityPath, `references the scope "shipping", which no import binds`}},
+			name:   "direct imported entities resolve",
+			target: "payments.Invoice",
+			parent: "payments.Invoice",
 		},
 		{
-			name: "missing imported entity", target: "payments.Receipt", parent: "payments.Invoice",
-			want: []wantFinding{{SeverityError, CategorySemantic, entityPath, `names no entity "Receipt"`}},
+			name:   "unbound scope",
+			target: "shipping.Carrier",
+			parent: "payments.Invoice",
+			want: []wantFinding{
+				{
+					SeverityError,
+					CategorySemantic,
+					entityPath,
+					`references the scope "shipping", which no import binds`,
+				},
+			},
 		},
 		{
-			name: "missing imported subtype parent", target: "payments.Invoice", parent: "payments.Receipt",
-			want: []wantFinding{{SeverityError, CategorySemantic, subtypePath, `names no entity "Receipt"`}},
+			name:   "missing imported entity",
+			target: "payments.Receipt",
+			parent: "payments.Invoice",
+			want: []wantFinding{
+				{SeverityError, CategorySemantic, entityPath, `names no entity "Receipt"`},
+			},
+		},
+		{
+			name:   "missing imported subtype parent",
+			target: "payments.Invoice",
+			parent: "payments.Receipt",
+			want: []wantFinding{
+				{SeverityError, CategorySemantic, subtypePath, `names no entity "Receipt"`},
+			},
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			res, err := Run(importerPath, []byte(base(tc.target, tc.parent)), fakeFiles{"docs/payments.modelith.yaml": paymentsModel})
+			res, err := Run(
+				importerPath,
+				[]byte(base(tc.target, tc.parent)),
+				fakeFiles{"docs/payments.modelith.yaml": paymentsModel},
+			)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -459,7 +504,10 @@ func TestImports_ContainmentUsesTheFileSeam(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			src := importer([]string{`"../payments/payments.modelith.yaml"`}, "payments.PaymentMethod")
+			src := importer(
+				[]string{`"../payments/payments.modelith.yaml"`},
+				"payments.PaymentMethod",
+			)
 			res, err := Run(importerPath, []byte(src), tc.files)
 			if err != nil {
 				t.Fatal(err)
@@ -487,19 +535,41 @@ func TestImports_MalformedQualifiedType(t *testing.T) {
 		unusedImport bool
 	}{
 		{name: "two dots", attrType: "payments.v2.PaymentMethod", reason: "more than one dot"},
-		{name: "leading dot", attrType: ".PaymentMethod", reason: "nothing before the dot", unusedImport: true},
+		{
+			name:         "leading dot",
+			attrType:     ".PaymentMethod",
+			reason:       "nothing before the dot",
+			unusedImport: true,
+		},
 		{name: "trailing dot", attrType: "payments.", reason: "nothing after the dot"},
-		{name: "scope is not a slug", attrType: "Payments.PaymentMethod", reason: `the scope "Payments" is not lowercase kebab-case`, unusedImport: true},
-		{name: "item is not PascalCase", attrType: "payments.paymentMethod", reason: `the item name "paymentMethod" is not PascalCase`},
+		{
+			name:         "scope is not a slug",
+			attrType:     "Payments.PaymentMethod",
+			reason:       `the scope "Payments" is not lowercase kebab-case`,
+			unusedImport: true,
+		},
+		{
+			name:     "item is not PascalCase",
+			attrType: "payments.paymentMethod",
+			reason:   `the item name "paymentMethod" is not PascalCase`,
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			want := []wantFinding{{
-				SeverityError, CategorySemantic, typePath,
-				fmt.Sprintf("attribute type %q is a malformed cross-model reference (%s)", tc.attrType, tc.reason),
-			}}
+			want := []wantFinding{
+				{
+					SeverityError,
+					CategorySemantic,
+					typePath,
+					fmt.Sprintf(
+						"attribute type %q is a malformed cross-model reference (%s)",
+						tc.attrType,
+						tc.reason,
+					),
+				},
+			}
 			if tc.unusedImport {
 				want = append(want, wantFinding{
 					SeverityWarning, CategoryCompleteness, "/imports/0", "is never referenced",
@@ -522,15 +592,22 @@ func TestImports_MalformedQualifiedType(t *testing.T) {
 func TestImports_PathRejectsControlCharacters(t *testing.T) {
 	t.Parallel()
 
-	src := importer([]string{`{scope: payments, path: "./pay\n## Injected\nments.modelith.yaml"}`}, "payments.PaymentMethod")
+	src := importer(
+		[]string{`{scope: payments, path: "./pay\n## Injected\nments.modelith.yaml"}`},
+		"payments.PaymentMethod",
+	)
 	res, err := Run(importerPath, []byte(src), fakeFiles{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertFindings(t, importFindings(res.Findings), []wantFinding{{
-		SeverityError, CategorySemantic, "/imports/0",
-		`import path "./pay\n## Injected\nments.modelith.yaml" contains a control character at byte 5`,
-	}})
+	assertFindings(t, importFindings(res.Findings), []wantFinding{
+		{
+			SeverityError,
+			CategorySemantic,
+			"/imports/0",
+			`import path "./pay\n## Injected\nments.modelith.yaml" contains a control character at byte 5`,
+		},
+	})
 	for _, f := range res.Findings {
 		if strings.ContainsAny(f.Message, "\n\r") {
 			t.Errorf("a diagnostic must stay on one line, got %q", f.Message)
@@ -547,7 +624,9 @@ func TestImports_UnresolvedScopeReportedOnce(t *testing.T) {
 
 	// Six attributes, all naming the same unbound scope.
 	var b strings.Builder
-	b.WriteString("kind: DomainModel\nversion: v1\nentities:\n  Visit:\n    definition: One stay.\n    attributes:\n")
+	b.WriteString(
+		"kind: DomainModel\nversion: v1\nentities:\n  Visit:\n    definition: One stay.\n    attributes:\n",
+	)
 	for i := 0; i < 6; i++ {
 		fmt.Fprintf(&b, "      - name: a%d\n        type: shipping.Carrier\n", i)
 	}
@@ -555,11 +634,15 @@ func TestImports_UnresolvedScopeReportedOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertFindings(t, importFindings(res.Findings), []wantFinding{{
-		SeverityError, CategorySemantic, "/entities/Visit/attributes/0/type",
-		`references the scope "shipping", which no import binds — add the model that defines Carrier to ` +
-			"`imports:` (6 attribute types reference this scope; this is the first)",
-	}})
+	assertFindings(t, importFindings(res.Findings), []wantFinding{
+		{
+			SeverityError,
+			CategorySemantic,
+			"/entities/Visit/attributes/0/type",
+			`references the scope "shipping", which no import binds — add the model that defines Carrier to ` +
+				"`imports:` (6 attribute types reference this scope; this is the first)",
+		},
+	})
 
 	t.Run("an import that failed to load speaks for its own scope", func(t *testing.T) {
 		t.Parallel()
@@ -601,17 +684,26 @@ func TestImports_UnsupportedVersionInAnImportedModel(t *testing.T) {
 	t.Parallel()
 
 	files := fakeFiles{
-		"docs/payments.modelith.yaml": strings.Replace(paymentsModel, "version: v1", "version: v99", 1),
+		"docs/payments.modelith.yaml": strings.Replace(
+			paymentsModel,
+			"version: v1",
+			"version: v99",
+			1,
+		),
 	}
 	src := importer([]string{`"./payments.modelith.yaml"`}, "payments.PaymentMethod")
 	res, err := Run(importerPath, []byte(src), files)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertFindings(t, importFindings(res.Findings), []wantFinding{{
-		SeverityError, CategorySemantic, "/imports/0",
-		`import "./payments.modelith.yaml" declares schema version "v99", which this indomain does not support: v1`,
-	}})
+	assertFindings(t, importFindings(res.Findings), []wantFinding{
+		{
+			SeverityError,
+			CategorySemantic,
+			"/imports/0",
+			`import "./payments.modelith.yaml" declares schema version "v99", which this indomain does not support: v1`,
+		},
+	})
 }
 
 // TestImports_SkippedWhenTheSchemaRejectedTheDocument checks that a scope the
@@ -624,7 +716,10 @@ func TestImports_SkippedWhenTheSchemaRejectedTheDocument(t *testing.T) {
 	for _, scope := range []string{`""`, "Payments", "pay.ments"} {
 		t.Run(scope, func(t *testing.T) {
 			t.Parallel()
-			src := importer([]string{"{scope: " + scope + ", path: ./payments.modelith.yaml}"}, "payments.PaymentMethod")
+			src := importer(
+				[]string{"{scope: " + scope + ", path: ./payments.modelith.yaml}"},
+				"payments.PaymentMethod",
+			)
 			res, err := Run(importerPath, []byte(src), files)
 			if err != nil {
 				t.Fatal(err)
@@ -649,7 +744,11 @@ func TestImports_SingleCharacterScope(t *testing.T) {
 	t.Parallel()
 
 	files := fakeFiles{"docs/a.modelith.yaml": paymentsModel}
-	res, err := Run(importerPath, []byte(importer([]string{`"./a.modelith.yaml"`}, "a.PaymentMethod")), files)
+	res, err := Run(
+		importerPath,
+		[]byte(importer([]string{`"./a.modelith.yaml"`}, "a.PaymentMethod")),
+		files,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -670,7 +769,11 @@ func TestADR_0012_ImporterBindsScope(t *testing.T) {
 			{`"./payments.modelith.yaml"`, "payments"},
 			{"{scope: money, path: ./payments.modelith.yaml}", "money"},
 		} {
-			res, err := Run(importerPath, []byte(importer([]string{binding.entry}, binding.scope+".PaymentMethod")), files)
+			res, err := Run(
+				importerPath,
+				[]byte(importer([]string{binding.entry}, binding.scope+".PaymentMethod")),
+				files,
+			)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -721,25 +824,27 @@ enums:
 		read: read,
 	}
 
-	res, err := Run(importerPath, []byte(importer([]string{`"./payments.modelith.yaml"`}, "shipping.Carrier")), files)
+	res, err := Run(
+		importerPath,
+		[]byte(importer([]string{`"./payments.modelith.yaml"`}, "shipping.Carrier")),
+		files,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assertFindings(t, importFindings(res.Findings), []wantFinding{
-		{SeverityError, CategorySemantic, "/entities/Visit/attributes/0/type",
-			`references the scope "shipping", which no import binds`},
+		{
+			SeverityError, CategorySemantic, "/entities/Visit/attributes/0/type",
+			`references the scope "shipping", which no import binds`,
+		},
 		{SeverityWarning, CategoryCompleteness, "/imports/0", "is never referenced"},
 	})
 	if n := read["docs/shipping.modelith.yaml"]; n != 0 {
-		t.Errorf("an imported model's own imports must not be read, but shipping was read %d time(s)", n)
+		t.Errorf(
+			"an imported model's own imports must not be read, but shipping was read %d time(s)",
+			n,
+		)
 	}
-}
-
-// countingFiles records how many times each path was read, so a test can assert
-// a file was never opened. Everything else about the filesystem it inherits.
-type countingFiles struct {
-	fakeFiles
-	read map[string]int
 }
 
 func (c countingFiles) ReadFile(path string) ([]byte, error) {
@@ -856,8 +961,10 @@ entities:
 		t.Fatal(err)
 	}
 	assertFindings(t, importFindings(res.Findings), []wantFinding{
-		{SeverityError, CategorySemantic, "/imports/0",
-			`import "./gone.modelith.yaml" cannot be read`},
+		{
+			SeverityError, CategorySemantic, "/imports/0",
+			`import "./gone.modelith.yaml" cannot be read`,
+		},
 	})
 }
 
@@ -867,7 +974,11 @@ func TestRun_NilFilesReadsFromDisk(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "payments.modelith.yaml"), []byte(paymentsModel), 0o600); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(dir, "payments.modelith.yaml"),
+		[]byte(paymentsModel),
+		0o600,
+	); err != nil {
 		t.Fatal(err)
 	}
 	src := importer([]string{`"./payments.modelith.yaml"`}, "payments.PaymentMethod")

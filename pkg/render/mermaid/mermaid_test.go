@@ -94,7 +94,12 @@ func TestERCardinalityNotation(t *testing.T) {
 	}
 	for card, want := range cases {
 		m := &model.Model{Entities: map[string]model.Entity{
-			"A": {Definition: "a", Relationships: []model.Relationship{{Entity: "B", Cardinality: card, Ownership: "owned"}}},
+			"A": {
+				Definition: "a",
+				Relationships: []model.Relationship{
+					{Entity: "B", Cardinality: card, Ownership: "owned"},
+				},
+			},
 			"B": {Definition: "b"},
 		}}
 		out := ER(m)
@@ -107,8 +112,14 @@ func TestERCardinalityNotation(t *testing.T) {
 func TestERDedupesReciprocalEdges(t *testing.T) {
 	// The same pair + same label declared from both sides should emit one edge.
 	m := &model.Model{Entities: map[string]model.Entity{
-		"A": {Definition: "a", Relationships: []model.Relationship{{Entity: "B", Cardinality: "n:n", Role: "peer"}}},
-		"B": {Definition: "b", Relationships: []model.Relationship{{Entity: "A", Cardinality: "n:n", Role: "peer"}}},
+		"A": {
+			Definition:    "a",
+			Relationships: []model.Relationship{{Entity: "B", Cardinality: "n:n", Role: "peer"}},
+		},
+		"B": {
+			Definition:    "b",
+			Relationships: []model.Relationship{{Entity: "A", Cardinality: "n:n", Role: "peer"}},
+		},
 	}}
 	out := ER(m)
 	if n := strings.Count(out, `: "peer"`); n != 1 {
@@ -121,8 +132,14 @@ func TestERDedupesInverseCardinality(t *testing.T) {
 	// and the same label: that's one relationship seen from two ends, so it must
 	// collapse to a single edge despite the differing raw cardinality strings.
 	m := &model.Model{Entities: map[string]model.Entity{
-		"A": {Definition: "a", Relationships: []model.Relationship{{Entity: "B", Cardinality: "1:n", Role: "owns"}}},
-		"B": {Definition: "b", Relationships: []model.Relationship{{Entity: "A", Cardinality: "n:1", Role: "owns"}}},
+		"A": {
+			Definition:    "a",
+			Relationships: []model.Relationship{{Entity: "B", Cardinality: "1:n", Role: "owns"}},
+		},
+		"B": {
+			Definition:    "b",
+			Relationships: []model.Relationship{{Entity: "A", Cardinality: "n:1", Role: "owns"}},
+		},
 	}}
 	out := ER(m)
 	if n := strings.Count(out, `: "owns"`); n != 1 {
@@ -136,8 +153,14 @@ func TestERRendersConflictingReciprocalEdges(t *testing.T) {
 	// visible in the diagram rather than one side silently winning. (`indomain lint`
 	// reports it as an error.)
 	m := &model.Model{Entities: map[string]model.Entity{
-		"A": {Definition: "a", Relationships: []model.Relationship{{Entity: "B", Cardinality: "1:n", Role: "x"}}},
-		"B": {Definition: "b", Relationships: []model.Relationship{{Entity: "A", Cardinality: "1:1", Role: "x"}}},
+		"A": {
+			Definition:    "a",
+			Relationships: []model.Relationship{{Entity: "B", Cardinality: "1:n", Role: "x"}},
+		},
+		"B": {
+			Definition:    "b",
+			Relationships: []model.Relationship{{Entity: "A", Cardinality: "1:1", Role: "x"}},
+		},
 	}}
 	out := ER(m)
 	if n := strings.Count(out, `: "x"`); n != 2 {
@@ -165,8 +188,16 @@ func TestERLabelSanitizesRole(t *testing.T) {
 // precise cardinality lives in the Markdown table, so neither is a fallback.
 func TestADR_0008_LabelIsRoleOrEmpty(t *testing.T) {
 	m := &model.Model{Entities: map[string]model.Entity{
-		"A": {Definition: "a", Relationships: []model.Relationship{{Entity: "B", Cardinality: "1:n", Ownership: "owned"}}},
-		"B": {Definition: "b", Relationships: []model.Relationship{{Entity: "C", Cardinality: "n:1"}}},
+		"A": {
+			Definition: "a",
+			Relationships: []model.Relationship{
+				{Entity: "B", Cardinality: "1:n", Ownership: "owned"},
+			},
+		},
+		"B": {
+			Definition:    "b",
+			Relationships: []model.Relationship{{Entity: "C", Cardinality: "n:1"}},
+		},
 		"C": {Definition: "c"},
 	}}
 	out := ER(m)
@@ -193,7 +224,12 @@ func TestADR_0008_OwnershipIsLineStyle(t *testing.T) {
 	}
 	for ownership, want := range cases {
 		m := &model.Model{Entities: map[string]model.Entity{
-			"A": {Definition: "a", Relationships: []model.Relationship{{Entity: "B", Cardinality: "1:n", Ownership: ownership}}},
+			"A": {
+				Definition: "a",
+				Relationships: []model.Relationship{
+					{Entity: "B", Cardinality: "1:n", Ownership: ownership},
+				},
+			},
 			"B": {Definition: "b"},
 		}}
 		if out := ER(m); !strings.Contains(out, want) {
@@ -209,8 +245,18 @@ func TestADR_0008_OwnershipIsLineStyle(t *testing.T) {
 func TestADR_0008_OwnershipFoldsAcrossDeclarations(t *testing.T) {
 	t.Parallel()
 	m := &model.Model{Entities: map[string]model.Entity{
-		"Parent": {Definition: "p", Relationships: []model.Relationship{{Entity: "Child", Cardinality: "1:n", Ownership: "owned"}}},
-		"Child":  {Definition: "c", Relationships: []model.Relationship{{Entity: "Parent", Cardinality: "n:1", Ownership: "referenced"}}},
+		"Parent": {
+			Definition: "p",
+			Relationships: []model.Relationship{
+				{Entity: "Child", Cardinality: "1:n", Ownership: "owned"},
+			},
+		},
+		"Child": {
+			Definition: "c",
+			Relationships: []model.Relationship{
+				{Entity: "Parent", Cardinality: "n:1", Ownership: "referenced"},
+			},
+		},
 	}}
 	out := ER(m)
 	if want := "    Child }o--|| Parent : \"\"\n"; !strings.Contains(out, want) {
@@ -272,8 +318,13 @@ func TestADR_0008_FoldsOnlyGenuineReciprocals(t *testing.T) {
 			want:  []string{"    A ||--o{ B : \"\"\n"},
 		},
 		{
-			name:  "opposite ends, roles differ: one line, labelled by the owning end",
-			a:     model.Relationship{Entity: "B", Cardinality: "1:n", Ownership: "owned", Role: "part"},
+			name: "opposite ends, roles differ: one line, labelled by the owning end",
+			a: model.Relationship{
+				Entity:      "B",
+				Cardinality: "1:n",
+				Ownership:   "owned",
+				Role:        "part",
+			},
 			b:     model.Relationship{Entity: "A", Cardinality: "n:1", Role: "whole"},
 			bFrom: "B",
 			want:  []string{"    A ||--o{ B : \"part\"\n"},
@@ -402,7 +453,9 @@ func TestERAmbiguousPairingIsOrderIndependent(t *testing.T) {
 				{Entity: "Beta", Cardinality: "1:n", Role: "P", Ownership: "owned"},
 				{Entity: "Beta", Cardinality: "1:n", Role: "Q", Ownership: "referenced"},
 			},
-			bet:       []model.Relationship{{Entity: "Alpha", Cardinality: "n:1", Role: "R", Ownership: "referenced"}},
+			bet: []model.Relationship{
+				{Entity: "Alpha", Cardinality: "n:1", Role: "R", Ownership: "referenced"},
+			},
 			swapAlpha: true,
 		},
 		{
@@ -411,12 +464,16 @@ func TestERAmbiguousPairingIsOrderIndependent(t *testing.T) {
 				{Entity: "Beta", Cardinality: "1:n", Role: "P", Ownership: "referenced"},
 				{Entity: "Beta", Cardinality: "1:n", Role: "Q", Ownership: "referenced"},
 			},
-			bet:       []model.Relationship{{Entity: "Alpha", Cardinality: "n:1", Role: "R", Ownership: "owned"}},
+			bet: []model.Relationship{
+				{Entity: "Alpha", Cardinality: "n:1", Role: "R", Ownership: "owned"},
+			},
 			swapAlpha: true,
 		},
 		{
-			name:  "one on the first end, two coming back",
-			alpha: []model.Relationship{{Entity: "Beta", Cardinality: "1:n", Role: "P", Ownership: "owned"}},
+			name: "one on the first end, two coming back",
+			alpha: []model.Relationship{
+				{Entity: "Beta", Cardinality: "1:n", Role: "P", Ownership: "owned"},
+			},
 			bet: []model.Relationship{
 				{Entity: "Alpha", Cardinality: "n:1", Role: "R1", Ownership: "referenced"},
 				{Entity: "Alpha", Cardinality: "n:1", Role: "R2", Ownership: "referenced"},
@@ -442,10 +499,19 @@ func TestERAmbiguousPairingIsOrderIndependent(t *testing.T) {
 			}
 			asDeclared, swapped := build(false), build(true)
 			if got, want := edgeLines(swapped), edgeLines(asDeclared); !slices.Equal(got, want) {
-				t.Errorf("swapping the declaration order changed the edges:\nas declared: %v\nswapped:     %v", want, got)
+				t.Errorf(
+					"swapping the declaration order changed the edges:\nas declared: %v\nswapped:     %v",
+					want,
+					got,
+				)
 			}
 			if n := len(edgeLines(asDeclared)); n != len(tc.alpha)+len(tc.bet) {
-				t.Errorf("expected every declaration drawn (%d), got %d:\n%s", len(tc.alpha)+len(tc.bet), n, asDeclared)
+				t.Errorf(
+					"expected every declaration drawn (%d), got %d:\n%s",
+					len(tc.alpha)+len(tc.bet),
+					n,
+					asDeclared,
+				)
 			}
 		})
 	}
@@ -467,7 +533,8 @@ func TestADR_0008_SelfRelationshipRendersInEntityBlock(t *testing.T) {
 	if !strings.Contains(out, want) {
 		t.Errorf("expected self-relationship row %q; got:\n%s", want, out)
 	}
-	if strings.Contains(out, "Record ||--o| Record") || strings.Contains(out, "Record ||..o| Record") {
+	if strings.Contains(out, "Record ||--o| Record") ||
+		strings.Contains(out, "Record ||..o| Record") {
 		t.Errorf("expected no self edge; got:\n%s", out)
 	}
 	if !strings.Contains(out, "    Note {}\n") {
@@ -499,17 +566,31 @@ func TestADR_0008_SelfRowCarriesBothCardinalitySides(t *testing.T) {
 		},
 		{
 			name: "owned is spelled out, since there is no line to carry it",
-			rel:  model.Relationship{Entity: "Record", Cardinality: "1:n", Ownership: "owned", Role: "`Part`"},
+			rel: model.Relationship{
+				Entity:      "Record",
+				Cardinality: "1:n",
+				Ownership:   "owned",
+				Role:        "`Part`",
+			},
 			want: `Record self "1:n owned — Part"`,
 		},
 		{
 			name: "referenced stays implicit, matching the dashed default",
-			rel:  model.Relationship{Entity: "Record", Cardinality: "1:0..1", Ownership: "referenced", Role: "Predecessor"},
+			rel: model.Relationship{
+				Entity:      "Record",
+				Cardinality: "1:0..1",
+				Ownership:   "referenced",
+				Role:        "Predecessor",
+			},
 			want: `Record self "1:0..1 — Predecessor"`,
 		},
 		{
 			name: "a quote in the role cannot break out of the comment",
-			rel:  model.Relationship{Entity: "Record", Cardinality: "n:n", Role: `a "quoted" [role]`},
+			rel: model.Relationship{
+				Entity:      "Record",
+				Cardinality: "n:n",
+				Role:        `a "quoted" [role]`,
+			},
 			want: `Record self "n:n — a 'quoted' (role)"`,
 		},
 		{
@@ -593,7 +674,12 @@ func TestADR_0003_BoundedCardinalityRendersNearestGlyph(t *testing.T) {
 	}
 	for card, want := range cases {
 		m := &model.Model{Entities: map[string]model.Entity{
-			"A": {Definition: "a", Relationships: []model.Relationship{{Entity: "B", Cardinality: card, Ownership: "owned"}}},
+			"A": {
+				Definition: "a",
+				Relationships: []model.Relationship{
+					{Entity: "B", Cardinality: card, Ownership: "owned"},
+				},
+			},
 			"B": {Definition: "b"},
 		}}
 		if out := ER(m); !strings.Contains(out, want) {
@@ -607,8 +693,14 @@ func TestADR_0003_BoundedCardinalityRendersNearestGlyph(t *testing.T) {
 // one edge.
 func TestERDedupesSemanticallyEqualInverses(t *testing.T) {
 	m := &model.Model{Entities: map[string]model.Entity{
-		"A": {Definition: "a", Relationships: []model.Relationship{{Entity: "B", Cardinality: "1:n", Role: "owns"}}},
-		"B": {Definition: "b", Relationships: []model.Relationship{{Entity: "A", Cardinality: "0..n:1", Role: "owns"}}},
+		"A": {
+			Definition:    "a",
+			Relationships: []model.Relationship{{Entity: "B", Cardinality: "1:n", Role: "owns"}},
+		},
+		"B": {
+			Definition:    "b",
+			Relationships: []model.Relationship{{Entity: "A", Cardinality: "0..n:1", Role: "owns"}},
+		},
 	}}
 	if n := strings.Count(ER(m), `: "owns"`); n != 1 {
 		t.Errorf("expected semantically-equal inverse deduped to 1 edge, got %d:\n%s", n, ER(m))
@@ -649,7 +741,10 @@ func TestERRole_HostileCharacters(t *testing.T) {
 // panic, or otherwise misrender.
 func TestERRole_LongUnbrokenWord(t *testing.T) {
 	t.Parallel()
-	longWord := strings.Repeat("Loremipsumdolorsitametconsecteturadipiscingelit", 4) // 188 chars, no spaces
+	longWord := strings.Repeat(
+		"Loremipsumdolorsitametconsecteturadipiscingelit",
+		4,
+	) // 188 chars, no spaces
 	m := &model.Model{Entities: map[string]model.Entity{
 		"A": {Definition: "a", Relationships: []model.Relationship{
 			{Entity: "B", Cardinality: "1:n", Role: longWord, Ownership: "owned"},
@@ -731,7 +826,10 @@ func TestERSelfRow_HostileRole(t *testing.T) {
 		}},
 	}}
 	got := ER(m)
-	if want := `Node self "n:n — %{init:{'theme':'dark'}}% &lt;angle&gt;"`; !strings.Contains(got, want) {
+	if want := `Node self "n:n — %{init:{'theme':'dark'}}% &lt;angle&gt;"`; !strings.Contains(
+		got,
+		want,
+	) {
 		t.Errorf("expected %q in:\n%s", want, got)
 	}
 }
