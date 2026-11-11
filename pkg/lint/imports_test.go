@@ -9,6 +9,30 @@ import (
 	"testing"
 )
 
+// importerPath is where the model under test lives; its imports resolve
+// relative to the "docs" directory.
+const importerPath = "docs/garage.modelith.yaml"
+
+const paymentsModel = `kind: DomainModel
+version: v1
+title: Payments
+enums:
+  PaymentMethod:
+    description: How a bill is settled.
+    values:
+      - name: card
+      - name: transfer
+entities:
+  Invoice:
+    definition: A request for payment.
+`
+
+// chainedModel is an imported model that imports something itself — the case
+// where an unresolved item might really be one hop further away.
+const chainedModel = paymentsModel + `imports:
+  - ./payments.modelith.yaml
+`
+
 // fakeFiles is a map-backed Files keyed by cleaned, slash-separated path. A
 // hand-written fake rather than a mock: it behaves like a filesystem, reporting
 // a missing file the way os.ReadFile does and answering containment from its own
@@ -19,6 +43,20 @@ import (
 // A ".git" key marks a repository, exactly as the entry does on disk. Paths in
 // the map are relative, so the whole tree hangs off ".".
 type fakeFiles map[string]string
+
+type wantFinding struct {
+	severity Severity
+	category Category
+	path     string
+	contains string
+}
+
+// countingFiles records how many times each path was read, so a test can assert
+// a file was never opened. Everything else about the filesystem it inherits.
+type countingFiles struct {
+	fakeFiles
+	read map[string]int
+}
 
 func (f fakeFiles) ReadFile(path string) ([]byte, error) {
 	src, ok := f[filepath.ToSlash(filepath.Clean(path))]
@@ -49,30 +87,6 @@ func (f fakeFiles) ResolutionRoot(modelPath string) (string, bool) {
 	}
 }
 
-// importerPath is where the model under test lives; its imports resolve
-// relative to the "docs" directory.
-const importerPath = "docs/garage.modelith.yaml"
-
-const paymentsModel = `kind: DomainModel
-version: v1
-title: Payments
-enums:
-  PaymentMethod:
-    description: How a bill is settled.
-    values:
-      - name: card
-      - name: transfer
-entities:
-  Invoice:
-    definition: A request for payment.
-`
-
-// chainedModel is an imported model that imports something itself — the case
-// where an unresolved item might really be one hop further away.
-const chainedModel = paymentsModel + `imports:
-  - ./payments.modelith.yaml
-`
-
 // importer builds a model that lists the given imports and types one attribute
 // with the given type. Each entry is written verbatim as a YAML sequence item,
 // so a case can use either the bare-path form or the explicit {scope, path} one.
@@ -93,13 +107,6 @@ func importer(imports []string, attrType string) string {
         type: %s
 `, attrType)
 	return b.String()
-}
-
-type wantFinding struct {
-	severity Severity
-	category Category
-	path     string
-	contains string
 }
 
 // importFindings narrows a result to the surfaces these tests drive: the
@@ -838,13 +845,6 @@ enums:
 			n,
 		)
 	}
-}
-
-// countingFiles records how many times each path was read, so a test can assert
-// a file was never opened. Everything else about the filesystem it inherits.
-type countingFiles struct {
-	fakeFiles
-	read map[string]int
 }
 
 func (c countingFiles) ReadFile(path string) ([]byte, error) {

@@ -14,6 +14,44 @@ import (
 	"github.com/StevenACoffman/indomain/pkg/provenance"
 )
 
+const upstream = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
+kind: DomainModel
+version: v1
+title: Payments
+enums:
+  PaymentMethod:
+    values:
+      - name: card
+`
+
+const blobURL = "https://github.com/acme/billing/blob/main/docs/payments.modelith.yaml"
+
+const sha = "4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21"
+
+// --- Azure DevOps tests ---
+
+const adoBlobURL = "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/payments.modelith.yaml&version=GBmain"
+
+const adoContent = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
+kind: DomainModel
+version: v1
+title: Payments
+enums:
+  PaymentMethod:
+    values:
+      - name: card
+`
+
+const adoCommit = "4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21"
+
+// adoRefs are the refs the fake repository serves, keyed the way the refs API's
+// filter names them.
+var adoRefs = map[string]bool{
+	"heads/main":       true,
+	"tags/v1.0.0":      true,
+	"heads/release/v2": true,
+}
+
 // fakeRunner answers the gh/az calls Import makes. It behaves like gh or az,
 // answering the endpoints it knows and failing the way they fail on anything
 // else, so a test cannot accidentally assert a response the real command could
@@ -30,6 +68,23 @@ type fakeRunner struct {
 	// unusable, when set, makes calls to matching endpoints fail because gh itself
 	// cannot be used.
 	unusable string
+}
+
+// --- Timeout decorator tests ---
+
+// runnerFunc adapts a func to the Runner interface for tests.
+type runnerFunc func(ctx context.Context, name string, args ...string) ([]byte, error)
+
+// hungRunner blocks every call until the context Import gave it expires, the
+// way a stalled az/gh process behaves under exec.CommandContext.
+type hungRunner struct{ calls int }
+
+// ctxRecordingRunner records the context each call received, so a test can
+// assert what Import delivered: a deadline when Timeout is set, the caller's
+// bare ctx when it is zero.
+type ctxRecordingRunner struct {
+	fakeRunner
+	ctxs []context.Context
 }
 
 func (f *fakeRunner) Run(_ context.Context, name string, args ...string) ([]byte, error) {
@@ -168,14 +223,6 @@ func (f *fakeRunner) runAz(args []string) ([]byte, error) {
 	return nil, fmt.Errorf("az: unexpected uri %q", uri)
 }
 
-// adoRefs are the refs the fake repository serves, keyed the way the refs API's
-// filter names them.
-var adoRefs = map[string]bool{
-	"heads/main":       true,
-	"tags/v1.0.0":      true,
-	"heads/release/v2": true,
-}
-
 // adoVersionParams reads the version and its type out of an ADO URI. The items
 // endpoint names them versionDescriptor.version[Type]; the commits endpoint,
 // searchCriteria.itemVersion.version[Type].
@@ -237,20 +284,6 @@ func adoTypeLabel(vt string) string {
 	}
 	return vt
 }
-
-const upstream = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
-kind: DomainModel
-version: v1
-title: Payments
-enums:
-  PaymentMethod:
-    values:
-      - name: card
-`
-
-const blobURL = "https://github.com/acme/billing/blob/main/docs/payments.modelith.yaml"
-
-const sha = "4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21"
 
 func TestParseSource(t *testing.T) {
 	t.Parallel()
@@ -894,22 +927,6 @@ func TestImport_ReplacesAnEarlierCopy(t *testing.T) {
 	}
 }
 
-// --- Azure DevOps tests ---
-
-const adoBlobURL = "https://dev.azure.com/myorg/myproject/_git/myrepo?path=docs/payments.modelith.yaml&version=GBmain"
-
-const adoContent = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
-kind: DomainModel
-version: v1
-title: Payments
-enums:
-  PaymentMethod:
-    values:
-      - name: card
-`
-
-const adoCommit = "4f2c1e9c8b3ad0e5f71b2c9a6d4e8f30ab5c7d21"
-
 func adoRunner(content, sha string) *fakeRunner {
 	return &fakeRunner{content: content, sha: sha, ado: true}
 }
@@ -1458,31 +1475,14 @@ func TestSplitHint_ADO(t *testing.T) {
 	}
 }
 
-// --- Timeout decorator tests ---
-
-// runnerFunc adapts a func to the Runner interface for tests.
-type runnerFunc func(ctx context.Context, name string, args ...string) ([]byte, error)
-
 func (f runnerFunc) Run(ctx context.Context, name string, args ...string) ([]byte, error) {
 	return f(ctx, name, args...)
 }
-
-// hungRunner blocks every call until the context Import gave it expires, the
-// way a stalled az/gh process behaves under exec.CommandContext.
-type hungRunner struct{ calls int }
 
 func (h *hungRunner) Run(ctx context.Context, name string, args ...string) ([]byte, error) {
 	h.calls++
 	<-ctx.Done()
 	return nil, ctx.Err()
-}
-
-// ctxRecordingRunner records the context each call received, so a test can
-// assert what Import delivered: a deadline when Timeout is set, the caller's
-// bare ctx when it is zero.
-type ctxRecordingRunner struct {
-	fakeRunner
-	ctxs []context.Context
 }
 
 func (r *ctxRecordingRunner) Run(ctx context.Context, name string, args ...string) ([]byte, error) {

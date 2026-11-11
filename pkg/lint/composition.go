@@ -8,6 +8,23 @@ import (
 	"github.com/StevenACoffman/indomain/pkg/model"
 )
 
+// maxCycleNames bounds how many members a cycle message names, so a loop
+// through a large generated model stays one readable line.
+const maxCycleNames = 5
+
+// ownershipCycle is one loop of entities that own one another.
+type ownershipCycle struct {
+	members   []string // sorted
+	firstLink int      // index of members[0]'s owned relationship into the loop
+}
+
+// ownedLink is an owned relationship that requires an owner, by its position
+// in the declaring entity's relationships.
+type ownedLink struct {
+	target string
+	index  int
+}
+
 // runCompositionOwner warns on an owned relationship whose owner side is not
 // exactly one. `ownership: owned` says the target cannot exist without the
 // declaring entity, so each target instance has exactly one owner: "n:1 owned"
@@ -65,19 +82,6 @@ func runOwnershipCycles(m *model.Model, res *Result) {
 			Message: cycleMessage(c.members),
 		})
 	}
-}
-
-// ownershipCycle is one loop of entities that own one another.
-type ownershipCycle struct {
-	members   []string // sorted
-	firstLink int      // index of members[0]'s owned relationship into the loop
-}
-
-// ownedLink is an owned relationship that requires an owner, by its position
-// in the declaring entity's relationships.
-type ownedLink struct {
-	target string
-	index  int
 }
 
 // ownershipCycles returns each loop of local entities that own one another
@@ -187,10 +191,6 @@ func stronglyConnected(nodes []string, edges map[string][]string) [][]string {
 	}
 	return components
 }
-
-// maxCycleNames bounds how many members a cycle message names, so a loop
-// through a large generated model stays one readable line.
-const maxCycleNames = 5
 
 func cycleMessage(cycle []string) string {
 	if len(cycle) == 1 {

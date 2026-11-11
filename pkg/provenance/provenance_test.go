@@ -30,6 +30,8 @@ version: v1
 title: Payments
 `
 
+const issuesHint = "https://github.com/StevenACoffman/indomain/issues"
+
 func TestPresent(t *testing.T) {
 	t.Parallel()
 
@@ -255,8 +257,6 @@ func TestADR_0015_UnknownFetchMethodIsAnError(t *testing.T) {
 		t.Fatalf("no unknown-method problem; got %+v", problems)
 	}
 }
-
-const issuesHint = "https://github.com/StevenACoffman/indomain/issues"
 
 func TestDigest_ChangesWithTheContent(t *testing.T) {
 	t.Parallel()

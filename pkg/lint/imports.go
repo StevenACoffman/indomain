@@ -12,6 +12,25 @@ import (
 	"github.com/StevenACoffman/indomain/pkg/schema"
 )
 
+const (
+	importOutsideRepository importLoadFailureKind = iota + 1
+	importOutsideModelDirectory
+	importUnreadable
+	importNotDomainModel
+	importUnsupportedSchema
+)
+
+var (
+	// qualifiedRefRE matches a well-formed cross-model reference, "scope.Name":
+	// exactly one dot, a scope slug before it, a PascalCase item name after.
+	// Anything else containing a dot is a malformed reference, not a primitive
+	// type — malformedRefReason says which way it is malformed.
+	qualifiedRefRE = regexp.MustCompile(`^(` + model.ScopeSlug + `)\.([A-Z][A-Za-z0-9]*)$`)
+	// scopeRE is the slug a bare import's filename has to yield. An explicitly
+	// written scope is held to the same pattern by the schema.
+	scopeRE = regexp.MustCompile(`^` + model.ScopeSlug + `$`)
+)
+
 // Files is the filesystem seam import resolution runs on: reading an imported
 // model, and the two path questions that decide whether it may be read at all.
 // Reading and containment sit behind one interface deliberately — judging the
@@ -38,20 +57,6 @@ type Files interface {
 // methods are in root.go, alongside the containment rules they implement.
 type OSFiles struct{}
 
-// ReadFile reads the named file from the local filesystem.
-func (OSFiles) ReadFile(path string) ([]byte, error) { return os.ReadFile(path) }
-
-var (
-	// qualifiedRefRE matches a well-formed cross-model reference, "scope.Name":
-	// exactly one dot, a scope slug before it, a PascalCase item name after.
-	// Anything else containing a dot is a malformed reference, not a primitive
-	// type — malformedRefReason says which way it is malformed.
-	qualifiedRefRE = regexp.MustCompile(`^(` + model.ScopeSlug + `)\.([A-Z][A-Za-z0-9]*)$`)
-	// scopeRE is the slug a bare import's filename has to yield. An explicitly
-	// written scope is held to the same pattern by the schema.
-	scopeRE = regexp.MustCompile(`^` + model.ScopeSlug + `$`)
-)
-
 // importedModel is one successfully resolved entry of a model's imports list.
 type importedModel struct {
 	index int    // position in the importing model's imports list, for the finding path
@@ -69,14 +74,6 @@ type loadedImport struct {
 
 type importLoadFailureKind uint8
 
-const (
-	importOutsideRepository importLoadFailureKind = iota + 1
-	importOutsideModelDirectory
-	importUnreadable
-	importNotDomainModel
-	importUnsupportedSchema
-)
-
 // importLoadFailure retains the data loadImports needs to preserve its
 // import-specific diagnostics.
 type importLoadFailure struct {
@@ -85,6 +82,18 @@ type importLoadFailure struct {
 	err          error
 	version      string
 }
+
+// unboundScope accumulates the references to one scope no import binds, so a
+// single missing import is reported once rather than once per reference site.
+type unboundScope struct {
+	path  string // where the first reference is
+	typ   string // the first reference, verbatim
+	item  string
+	count int
+}
+
+// ReadFile reads the named file from the local filesystem.
+func (OSFiles) ReadFile(path string) ([]byte, error) { return os.ReadFile(path) }
 
 // runImports resolves the model's imports, checks every qualified reference
 // against them, and reports an import nothing references.
@@ -472,15 +481,6 @@ func unresolvedItemMessage(typ, item string, imp importedModel) string {
 		theirs,
 		item,
 	)
-}
-
-// unboundScope accumulates the references to one scope no import binds, so a
-// single missing import is reported once rather than once per reference site.
-type unboundScope struct {
-	path  string // where the first reference is
-	typ   string // the first reference, verbatim
-	item  string
-	count int
 }
 
 func reportUnboundScopes(unbound map[string]*unboundScope, res *Result) {

@@ -16,12 +16,31 @@ import (
 // position that matters, so a test cannot pass by comparing a prefix.
 const laterSHA = "a91b0c37e5d248fa6c0913be4b7f25d81a3c6e90"
 
+// moved is upstream with a real change to its content: an enum gains a value.
+const moved = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
+kind: DomainModel
+version: v1
+title: Payments
+enums:
+  PaymentMethod:
+    values:
+      - name: card
+      - name: bank-transfer
+`
+
 // updatedAt is the day an update runs, a day after importedAt, so a header's
 // imported: line proves which of the two wrote it.
 var (
 	importedAt = time.Date(2026, 7, 27, 12, 0, 0, 0, time.Local)
 	updatedAt  = time.Date(2026, 7, 28, 9, 0, 0, 0, time.Local)
 )
+
+// unusableRunner is gh being absent: every call fails the same way.
+type unusableRunner struct{ calls int }
+
+// hangRunner blocks until the context is done, then reports why — a stand-in
+// for a CLI that never answers.
+type hangRunner struct{ calls int }
 
 // vendored writes a copy of content into a fresh temp dir exactly as deps
 // import would, and hands back its path with the runner that served it. The
@@ -71,18 +90,6 @@ func update(t *testing.T, r Runner, ref string, paths ...string) []Report {
 	}
 	return reports
 }
-
-// moved is upstream with a real change to its content: an enum gains a value.
-const moved = `# yaml-language-server: $schema=https://modelith.sh/schema/domain-model/v1.json
-kind: DomainModel
-version: v1
-title: Payments
-enums:
-  PaymentMethod:
-    values:
-      - name: card
-      - name: bank-transfer
-`
 
 // vendoredFromADO writes a copy vendored from Azure DevOps — an origin this
 // build's refresh path cannot reach (see sourceFromHeader) — and hands back its
@@ -485,9 +492,6 @@ func TestSurvey_StopsWhenTheToolIsUnusable(t *testing.T) {
 	}
 }
 
-// unusableRunner is gh being absent: every call fails the same way.
-type unusableRunner struct{ calls int }
-
 func (u *unusableRunner) Run(context.Context, string, ...string) ([]byte, error) {
 	u.calls++
 	return nil, unusable{errors.New("gh is not installed — indomain delegates fetching to it")}
@@ -610,10 +614,6 @@ func TestSurvey_TimeoutBoundsEachDelegatedCall(t *testing.T) {
 		}
 	})
 }
-
-// hangRunner blocks until the context is done, then reports why — a stand-in
-// for a CLI that never answers.
-type hangRunner struct{ calls int }
 
 func (h *hangRunner) Run(ctx context.Context, _ string, _ ...string) ([]byte, error) {
 	h.calls++

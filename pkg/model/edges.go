@@ -5,6 +5,23 @@ import (
 	"strings"
 )
 
+// Declaration is one relationship declaration together with where it was made,
+// so a caller can point a diagnostic at it.
+type Declaration struct {
+	From  string // the entity whose relationships list holds it
+	Index int    // its position in that list
+	Rel   Relationship
+}
+
+// EdgeGroup is every declaration that could draw one relationship line. First
+// holds the declarations made by the alphabetically earlier entity of the pair,
+// Second those made by the later one; either may be empty.
+type EdgeGroup struct {
+	Key             string
+	First, Second   []Declaration
+	FirstN, SecondN string // the two entity names, First's and Second's
+}
+
 // This file holds the one definition of "which relationship line does this
 // declaration describe". The renderer uses it to decide what to fold into one
 // line; the linter uses it to warn when that decision cannot be made. Keeping
@@ -43,23 +60,6 @@ func DeclarationKey(from string, rel Relationship) string {
 		owned = "1"
 	}
 	return EdgeKey(from, rel) + "\x00" + from + "\x00" + owned + "\x00" + NormalizeRole(rel.Role)
-}
-
-// Declaration is one relationship declaration together with where it was made,
-// so a caller can point a diagnostic at it.
-type Declaration struct {
-	From  string // the entity whose relationships list holds it
-	Index int    // its position in that list
-	Rel   Relationship
-}
-
-// EdgeGroup is every declaration that could draw one relationship line. First
-// holds the declarations made by the alphabetically earlier entity of the pair,
-// Second those made by the later one; either may be empty.
-type EdgeGroup struct {
-	Key             string
-	First, Second   []Declaration
-	FirstN, SecondN string // the two entity names, First's and Second's
 }
 
 // AmbiguousPairing reports whether the group's declarations cannot be paired up

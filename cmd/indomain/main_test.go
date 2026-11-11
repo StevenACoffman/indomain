@@ -16,6 +16,13 @@ import (
 	"github.com/StevenACoffman/indomain/pkg/provenance"
 )
 
+const minimalValid = `kind: DomainModel
+version: v1
+entities:
+  Thing:
+    definition: A thing that exists in the model.
+`
+
 // run executes the CLI with args, capturing stdout+stderr, and returns the
 // output and the error main() would turn into an exit code.
 func run(t *testing.T, args ...string) (string, error) {
@@ -28,13 +35,6 @@ func run(t *testing.T, args ...string) (string, error) {
 	err := root.ExecuteContext(context.Background())
 	return buf.String(), err
 }
-
-const minimalValid = `kind: DomainModel
-version: v1
-entities:
-  Thing:
-    definition: A thing that exists in the model.
-`
 
 func writeTemp(t *testing.T, dir, name, content string) string {
 	t.Helper()

@@ -23,13 +23,22 @@ import (
 	"github.com/StevenACoffman/indomain/pkg/provenance"
 )
 
-// Host identifies the source-code platform a Source was parsed from.
-type Host string
-
 const (
 	HostGitHub Host = "github"
 	HostADO    Host = "azure-devops"
 )
+
+const issuesURL = "https://github.com/StevenACoffman/indomain/issues"
+
+// --- Azure DevOps transport (az rest) ---
+
+// adoResourceID is the Azure DevOps application ID that az rest needs to
+// request an AAD token with the correct audience when the URL alone doesn't
+// let it derive one.
+const adoResourceID = "499b84ac-1321-427f-aa17-267ca6975798"
+
+// Host identifies the source-code platform a Source was parsed from.
+type Host string
 
 // Runner runs an external command and returns its standard output. It is the
 // seam the gh calls go through, so Import is testable without a network.
@@ -39,6 +48,63 @@ type Runner interface {
 
 // ExecRunner runs commands with os/exec.
 type ExecRunner struct{}
+
+// timeoutRunner bounds each delegated command to timeout. It is a decorator on
+// the Runner seam: the deadline is enforced per command, so a slow-but-working
+// content fetch does not consume the commit fetch's budget.
+type timeoutRunner struct {
+	inner   Runner
+	timeout time.Duration
+}
+
+// unusable marks a failure of the tool itself rather than of the request, so
+// errors.Is(err, ErrToolUnavailable) reports true without the sentinel's text
+// appearing in the message the user reads.
+type unusable struct{ error }
+
+// Source is a model file in another repository, as an origin URL parsed into
+// the parts a fetch and a later refresh both need.
+type Source struct {
+	Host    Host   // HostGitHub or HostADO
+	Origin  string // https://github.com/owner/repo or https://dev.azure.com/org/project/_git/repo
+	Owner   string // GitHub owner, or ADO organization
+	Project string // ADO project; empty for GitHub
+	Repo    string
+	Ref     string
+	RefType string // ADO version type: "branch", "tag", or "commit"; empty for GitHub
+	Path    string // path within the repository
+}
+
+// Options are the inputs to Import.
+type Options struct {
+	// URL is the GitHub or Azure DevOps blob URL of the model to vendor.
+	URL string
+	// Dir is the directory to write into. Empty means the working directory.
+	Dir string
+	// Ref overrides the ref in URL.
+	Ref string
+	// Now stamps the header's imported date, in local time.
+	Now time.Time
+	// Timeout bounds each delegated command (gh, az) individually. Zero means
+	// no bound: a hung CLI becomes a fast, actionable error instead of a
+	// silent wait.
+	Timeout time.Duration
+	// Run is the command seam; nil uses ExecRunner.
+	Run Runner
+}
+
+// Result reports what Import did, so the caller can print it.
+type Result struct {
+	// Path is where the vendored copy was written.
+	Path string
+	// Header is what was stamped into it.
+	Header *provenance.Header
+	// Replaced says an earlier copy was overwritten.
+	Replaced bool
+	// TheirImports are the fetched model's own imports. Vendoring fetches one
+	// file, so these were not followed; the caller says so.
+	TheirImports []string
+}
 
 // runCommand executes cmd and folds its outcome into an error, because the
 // CLI reports why it refused on standard error. It is the shared tail of the
@@ -82,14 +148,6 @@ func installHint(name string) string {
 		return "; install it from https://aka.ms/azure-cli and run `az login`"
 	}
 	return ""
-}
-
-// timeoutRunner bounds each delegated command to timeout. It is a decorator on
-// the Runner seam: the deadline is enforced per command, so a slow-but-working
-// content fetch does not consume the commit fetch's budget.
-type timeoutRunner struct {
-	inner   Runner
-	timeout time.Duration
 }
 
 // Run derives a per-command deadline from the caller's context and abandons the
@@ -146,25 +204,7 @@ func unauthenticated(msg string) bool {
 	return false
 }
 
-// unusable marks a failure of the tool itself rather than of the request, so
-// errors.Is(err, ErrToolUnavailable) reports true without the sentinel's text
-// appearing in the message the user reads.
-type unusable struct{ error }
-
 func (unusable) Is(target error) bool { return target == ErrToolUnavailable }
-
-// Source is a model file in another repository, as an origin URL parsed into
-// the parts a fetch and a later refresh both need.
-type Source struct {
-	Host    Host   // HostGitHub or HostADO
-	Origin  string // https://github.com/owner/repo or https://dev.azure.com/org/project/_git/repo
-	Owner   string // GitHub owner, or ADO organization
-	Project string // ADO project; empty for GitHub
-	Repo    string
-	Ref     string
-	RefType string // ADO version type: "branch", "tag", or "commit"; empty for GitHub
-	Path    string // path within the repository
-}
 
 // ParseSource reads a GitHub or Azure DevOps blob URL — the address of the file
 // as it appears in a browser — into its parts. A non-empty ref overrides the
@@ -327,39 +367,6 @@ func parseADOSource(u *url.URL, ref string) (Source, error) {
 		)
 	}
 	return src, nil
-}
-
-const issuesURL = "https://github.com/StevenACoffman/indomain/issues"
-
-// Options are the inputs to Import.
-type Options struct {
-	// URL is the GitHub or Azure DevOps blob URL of the model to vendor.
-	URL string
-	// Dir is the directory to write into. Empty means the working directory.
-	Dir string
-	// Ref overrides the ref in URL.
-	Ref string
-	// Now stamps the header's imported date, in local time.
-	Now time.Time
-	// Timeout bounds each delegated command (gh, az) individually. Zero means
-	// no bound: a hung CLI becomes a fast, actionable error instead of a
-	// silent wait.
-	Timeout time.Duration
-	// Run is the command seam; nil uses ExecRunner.
-	Run Runner
-}
-
-// Result reports what Import did, so the caller can print it.
-type Result struct {
-	// Path is where the vendored copy was written.
-	Path string
-	// Header is what was stamped into it.
-	Header *provenance.Header
-	// Replaced says an earlier copy was overwritten.
-	Replaced bool
-	// TheirImports are the fetched model's own imports. Vendoring fetches one
-	// file, so these were not followed; the caller says so.
-	TheirImports []string
 }
 
 // Import fetches the model at opts.URL and writes it into opts.Dir as a
@@ -748,13 +755,6 @@ func escapePath(p string) string {
 	}
 	return strings.Join(segments, "/")
 }
-
-// --- Azure DevOps transport (az rest) ---
-
-// adoResourceID is the Azure DevOps application ID that az rest needs to
-// request an AAD token with the correct audience when the URL alone doesn't
-// let it derive one.
-const adoResourceID = "499b84ac-1321-427f-aa17-267ca6975798"
 
 // adoVersionType returns the versionDescriptor.versionType for a Source. When
 // the version prefix was not one of the known three (GB/GT/GC), the API

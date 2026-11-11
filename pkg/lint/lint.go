@@ -28,22 +28,33 @@ import (
 	"github.com/StevenACoffman/indomain/pkg/schema"
 )
 
-// Severity classifies how serious a finding is.
-type Severity string
-
 const (
 	SeverityError   Severity = "error"
 	SeverityWarning Severity = "warning"
 )
-
-// Category groups findings by the layer that produced them.
-type Category string
 
 const (
 	CategoryStructural   Category = "structural"
 	CategorySemantic     Category = "semantic"
 	CategoryCompleteness Category = "completeness"
 )
+
+// roleLabelMax is the longest a role may be before it crowds the diagram line
+// it labels, whatever its shape. Measured in runes, so a non-ASCII role is not
+// judged by its byte count.
+const roleLabelMax = 40
+
+var (
+	backtickRE   = regexp.MustCompile("`([^`]+)`")
+	pascalCaseRE = regexp.MustCompile(`^[A-Z][A-Za-z0-9]*$`)
+	printer      = message.NewPrinter(language.English)
+)
+
+// Severity classifies how serious a finding is.
+type Severity string
+
+// Category groups findings by the layer that produced them.
+type Category string
 
 // Finding is a single lint result.
 type Finding struct {
@@ -71,12 +82,6 @@ func (r *Result) HasBlocking(completenessAsError bool) bool {
 	}
 	return false
 }
-
-var (
-	backtickRE   = regexp.MustCompile("`([^`]+)`")
-	pascalCaseRE = regexp.MustCompile(`^[A-Z][A-Za-z0-9]*$`)
-	printer      = message.NewPrinter(language.English)
-)
 
 // Run validates the model at path and returns all findings. src is the model's
 // own bytes; files reads the ones its `imports:` name, resolved relative to
@@ -996,11 +1001,6 @@ func entityRefs(text string) []string {
 	}
 	return out
 }
-
-// roleLabelMax is the longest a role may be before it crowds the diagram line
-// it labels, whatever its shape. Measured in runes, so a non-ASCII role is not
-// judged by its byte count.
-const roleLabelMax = 40
 
 // readsAsProse reports whether a relationship role is written as a sentence
 // rather than a role name. It judges the role as the diagram will draw it, so

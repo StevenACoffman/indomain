@@ -32,6 +32,12 @@ import (
 // it from the embedded build info.
 var version = ""
 
+// errBlocking signals that `lint` found blocking findings. RunE returns it
+// rather than calling os.Exit, so deferred cleanup runs and the blocking path
+// is testable; main() turns it into a non-zero exit without re-printing it (the
+// findings are already on stdout).
+var errBlocking = errors.New("blocking findings")
+
 // buildVersion resolves the version string, in precedence order: an explicit
 // ldflags override, the module version embedded by `go install module@version`,
 // then VCS info for a local `go build`/`go install ./...` checkout.
@@ -66,12 +72,6 @@ func buildVersion() string {
 	}
 	return "dev"
 }
-
-// errBlocking signals that `lint` found blocking findings. RunE returns it
-// rather than calling os.Exit, so deferred cleanup runs and the blocking path
-// is testable; main() turns it into a non-zero exit without re-printing it (the
-// findings are already on stdout).
-var errBlocking = errors.New("blocking findings")
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

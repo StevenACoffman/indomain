@@ -41,28 +41,6 @@ type State struct {
 	Model *model.Model
 }
 
-// Moved reports whether the origin has changed since this copy was taken, which
-// is the question deps check answers. It compares against the recorded digest,
-// which import wrote over the upstream bytes before stamping — so this holds
-// whether or not the copy on disk was edited (ADR-0016).
-func (s *State) Moved() bool { return provenance.Digest(s.Upstream) != s.Header.Digest }
-
-// Edited reports whether the copy on disk drifted from the version its own
-// header claims. lint answers this offline and it is not check's business; it
-// is here because it is half of why an update writes.
-func (s *State) Edited() bool { return provenance.Digest(s.Local) != s.Header.Digest }
-
-// Repinned reports whether the ref being consulted is not the recorded one.
-func (s *State) Repinned() bool { return s.Ref != s.Header.Ref }
-
-// Current reports whether the copy on disk already holds what the origin
-// serves. It is not on its own the condition for leaving a copy alone: content
-// can match the origin while the header still describes an older version — a
-// merge that took the incoming content and kept the recorded header — and that
-// copy needs its header brought forward even though its bytes are already
-// right. Edited is what catches it (ADR-0016).
-func (s *State) Current() bool { return provenance.Digest(s.Local) == provenance.Digest(s.Upstream) }
-
 // Report is what happened to one file in a check or update run.
 type Report struct {
 	// Path is the file as it was named on the command line.
@@ -93,10 +71,6 @@ type Report struct {
 	NewImports []string
 }
 
-// Stale reports whether this file needs updating, which is the verdict deps
-// check prints and the condition its exit code carries.
-func (r *Report) Stale() bool { return r.State != nil && r.State.Moved() }
-
 // CheckOptions are the inputs to Check.
 type CheckOptions struct {
 	// Paths are the files to check. One that carries no provenance header is
@@ -125,6 +99,41 @@ type UpdateOptions struct {
 	// Run is the command seam; nil uses ExecRunner.
 	Run Runner
 }
+
+type surveyOptions struct {
+	paths   []string
+	ref     string
+	now     time.Time
+	timeout time.Duration
+	run     Runner
+	write   bool
+}
+
+// Moved reports whether the origin has changed since this copy was taken, which
+// is the question deps check answers. It compares against the recorded digest,
+// which import wrote over the upstream bytes before stamping — so this holds
+// whether or not the copy on disk was edited (ADR-0016).
+func (s *State) Moved() bool { return provenance.Digest(s.Upstream) != s.Header.Digest }
+
+// Edited reports whether the copy on disk drifted from the version its own
+// header claims. lint answers this offline and it is not check's business; it
+// is here because it is half of why an update writes.
+func (s *State) Edited() bool { return provenance.Digest(s.Local) != s.Header.Digest }
+
+// Repinned reports whether the ref being consulted is not the recorded one.
+func (s *State) Repinned() bool { return s.Ref != s.Header.Ref }
+
+// Current reports whether the copy on disk already holds what the origin
+// serves. It is not on its own the condition for leaving a copy alone: content
+// can match the origin while the header still describes an older version — a
+// merge that took the incoming content and kept the recorded header — and that
+// copy needs its header brought forward even though its bytes are already
+// right. Edited is what catches it (ADR-0016).
+func (s *State) Current() bool { return provenance.Digest(s.Local) == provenance.Digest(s.Upstream) }
+
+// Stale reports whether this file needs updating, which is the verdict deps
+// check prints and the condition its exit code carries.
+func (r *Report) Stale() bool { return r.State != nil && r.State.Moved() }
 
 // Check reports, for each path, whether the vendored copy there has fallen
 // behind its origin. It writes nothing, which is what makes it safe to run in
@@ -161,15 +170,6 @@ func Update(ctx context.Context, opts UpdateOptions) ([]Report, error) {
 			write:   true,
 		},
 	)
-}
-
-type surveyOptions struct {
-	paths   []string
-	ref     string
-	now     time.Time
-	timeout time.Duration
-	run     Runner
-	write   bool
 }
 
 func survey(ctx context.Context, opts surveyOptions) ([]Report, error) {

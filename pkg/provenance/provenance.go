@@ -23,6 +23,11 @@ import (
 // see its own comment.
 const LinePrefix = "# modelith-"
 
+// Banner is the value deps import writes for the vendored key. Nothing enforces
+// it — a digest computed over the file cannot cover the header that records it —
+// but an agent editing the file reads it and stops, which is the point.
+const Banner = "DO NOT EDIT — this file is a copy. Change it at its origin."
+
 // lineRE matches one provenance line and splits it into key and value. The
 // value is everything after the colon, trimmed; a free-text value such as the
 // vendored banner is deliberately unconstrained.
@@ -30,31 +35,6 @@ var lineRE = regexp.MustCompile(`^# modelith-([a-z][a-z0-9-]*):(.*)$`)
 
 // digestRE is the recorded digest's shape.
 var digestRE = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
-
-// Banner is the value deps import writes for the vendored key. Nothing enforces
-// it — a digest computed over the file cannot cover the header that records it —
-// but an agent editing the file reads it and stops, which is the point.
-const Banner = "DO NOT EDIT — this file is a copy. Change it at its origin."
-
-// Header is the provenance block of a vendored model file.
-type Header struct {
-	Vendored string
-	Fetch    string
-	Origin   string
-	Path     string
-	Ref      string
-	// RefType is the kind of ref Ref names, for a host whose API distinguishes
-	// them: "branch", "tag", or "commit". It is optional and omitted for a host,
-	// such as GitHub, whose API resolves an untyped ref on its own — so a header
-	// written before this key existed still parses, and a GitHub header keeps
-	// its shape. It is also omitted when the type is not known, which the layer
-	// that fetches then resolves; there is no value meaning "let the origin
-	// decide", because the Azure DevOps API does not.
-	RefType  string
-	Commit   string
-	Imported string
-	Digest   string
-}
 
 // refTypes is the closed set a ref-type value may name. There is deliberately
 // no "auto": the Azure DevOps API does not infer a version's type — an untyped
@@ -86,6 +66,35 @@ var (
 		"git": {"origin", "path", "ref", "commit"},
 	}
 )
+
+// Header is the provenance block of a vendored model file.
+type Header struct {
+	Vendored string
+	Fetch    string
+	Origin   string
+	Path     string
+	Ref      string
+	// RefType is the kind of ref Ref names, for a host whose API distinguishes
+	// them: "branch", "tag", or "commit". It is optional and omitted for a host,
+	// such as GitHub, whose API resolves an untyped ref on its own — so a header
+	// written before this key existed still parses, and a GitHub header keeps
+	// its shape. It is also omitted when the type is not known, which the layer
+	// that fetches then resolves; there is no value meaning "let the origin
+	// decide", because the Azure DevOps API does not.
+	RefType  string
+	Commit   string
+	Imported string
+	Digest   string
+}
+
+// Problem is a defect in the header itself — an unknown key, a missing required
+// one, a line outside the leading comment block. It carries the 1-based line so
+// a diagnostic can point at it; Line is zero for a problem about the header as a
+// whole rather than about one line.
+type Problem struct {
+	Line    int
+	Message string
+}
 
 // Methods returns the fetch methods this build understands.
 func Methods() []string {
@@ -121,15 +130,6 @@ func (h *Header) field(key string) *string {
 		return &h.Digest
 	}
 	return nil
-}
-
-// Problem is a defect in the header itself — an unknown key, a missing required
-// one, a line outside the leading comment block. It carries the 1-based line so
-// a diagnostic can point at it; Line is zero for a problem about the header as a
-// whole rather than about one line.
-type Problem struct {
-	Line    int
-	Message string
 }
 
 // Present reports whether src carries a provenance line anywhere, which is what

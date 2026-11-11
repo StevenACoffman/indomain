@@ -13,6 +13,21 @@ import (
 	"github.com/StevenACoffman/indomain/pkg/model"
 )
 
+var qualifiedEntityRE = regexp.MustCompile(`^` + model.ScopeSlug + `\.[A-Z][A-Za-z0-9]*$`)
+
+// percentRunRE finds the doubled percent signs a Mermaid directive or comment
+// is built from; see sanitize.
+var percentRunRE = regexp.MustCompile(`%{2,}`)
+
+// edge is one rendered relationship line, accumulated before emission so that
+// declarations of the same relationship from both ends fold into it.
+type edge struct {
+	from, to string
+	card     string // as declared by `from`, so the markers read left to right
+	label    string
+	owned    bool
+}
+
 // erMarkers renders a cardinality as Mermaid erDiagram crow's-foot notation,
 // using the nearest glyph the notation can express. Mermaid has no numeric
 // bound, so an exact or bounded count (e.g. "1:2") renders as one-or-many; the
@@ -73,15 +88,6 @@ func rightMarker(m model.Multiplicity) string {
 		return minChar(m) + "{"
 	}
 	return minChar(m) + "|"
-}
-
-// edge is one rendered relationship line, accumulated before emission so that
-// declarations of the same relationship from both ends fold into it.
-type edge struct {
-	from, to string
-	card     string // as declared by `from`, so the markers read left to right
-	label    string
-	owned    bool
 }
 
 // merge folds a reciprocal declaration into e, choosing the label the single
@@ -231,8 +237,6 @@ func subtypeRow(parent string) string {
 	return fmt.Sprintf("string subtypeOf %q", parent)
 }
 
-var qualifiedEntityRE = regexp.MustCompile(`^` + model.ScopeSlug + `\.[A-Z][A-Za-z0-9]*$`)
-
 // selfRows renders an entity's self-referential relationships as rows inside
 // its own block. Mermaid's dagre ER layout has no self-loop handling, so an
 // edge from an entity to itself draws a runaway arc that swamps the canvas
@@ -286,10 +290,6 @@ func selfComment(rel model.Relationship) string {
 func relationshipLabel(rel model.Relationship) string {
 	return sanitize(rel.Role)
 }
-
-// percentRunRE finds the doubled percent signs a Mermaid directive or comment
-// is built from; see sanitize.
-var percentRunRE = regexp.MustCompile(`%{2,}`)
 
 // sanitize strips or replaces characters that would break a quoted Mermaid
 // label, so a role reaches the diagram as the text its author wrote. Entity

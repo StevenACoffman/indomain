@@ -19,13 +19,19 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
-//go:embed v1/modelith.schema.json
-var rawV1 []byte
-
 // Current is the format version this build of indomain writes and renders. It
 // is the version whose schema is used for the "# yaml-language-server" header
 // indomain emits and the default for commands that print the schema.
 const Current = "v1"
+
+// urlBase is the published location of the canonical schemas. The version is the
+// final path segment (".../v1.json"). The schema's $id and the YAML header use
+// these URLs as identity; they need not resolve for the CLI to validate, since
+// Compile registers the embedded bytes against the URL locally.
+const urlBase = "https://modelith.sh/schema/domain-model/"
+
+//go:embed v1/modelith.schema.json
+var rawV1 []byte
 
 // registry maps each supported format version to its embedded schema bytes.
 // Evolution is additive: to add a version, drop its schema under a new vN/
@@ -36,20 +42,14 @@ var registry = map[string][]byte{
 	"v1": rawV1,
 }
 
-// urlBase is the published location of the canonical schemas. The version is the
-// final path segment (".../v1.json"). The schema's $id and the YAML header use
-// these URLs as identity; they need not resolve for the CLI to validate, since
-// Compile registers the embedded bytes against the URL locally.
-const urlBase = "https://modelith.sh/schema/domain-model/"
+// URL is the canonical published URL for the current schema version. It is the
+// value indomain writes into a "# yaml-language-server: $schema=" header.
+var URL = URLFor(Current)
 
 // URLFor returns the canonical published URL ($id) for a format version.
 func URLFor(version string) string {
 	return urlBase + version + ".json"
 }
-
-// URL is the canonical published URL for the current schema version. It is the
-// value indomain writes into a "# yaml-language-server: $schema=" header.
-var URL = URLFor(Current)
 
 // Supported reports whether version is a format version this build understands.
 func Supported(version string) bool {
