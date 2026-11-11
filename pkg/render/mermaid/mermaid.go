@@ -162,7 +162,7 @@ func ER(m *model.Model) string {
 			}
 			// Two declarations from one end that agree on everything draw two
 			// indistinguishable lines; the second carries nothing.
-			dk := model.DeclarationKey(name, rel)
+			dk := model.DeclarationKey(name, &rel)
 			if seen[dk] {
 				continue
 			}
@@ -170,7 +170,7 @@ func ER(m *model.Model) string {
 
 			label := relationshipLabel(rel)
 			owned := rel.Ownership == "owned"
-			key := model.EdgeKey(name, rel)
+			key := model.EdgeKey(name, &rel)
 
 			// A reciprocal folds when the pairing is unambiguous, it comes from
 			// the opposite end, and at most one end claims `owned` — mutual

@@ -109,7 +109,7 @@ func TestParse_Problems(t *testing.T) {
 	header := func(edits map[string]string) string {
 		var b strings.Builder
 		b.WriteString("# yaml-language-server: $schema=x\n")
-		for _, key := range keyOrder {
+		for _, key := range keyOrder() {
 			value := map[string]string{
 				"vendored": Banner,
 				"fetch":    "git",
@@ -274,7 +274,7 @@ func TestDigest_IgnoresEveryHeaderChange(t *testing.T) {
 	t.Parallel()
 
 	base := Digest([]byte(vendored))
-	for _, key := range keyOrder {
+	for _, key := range keyOrder() {
 		src := strings.Replace(vendored, LinePrefix+key+": ", LinePrefix+key+": changed-", 1)
 		if src == vendored {
 			t.Fatalf("test did not rewrite %q", key)
@@ -330,8 +330,8 @@ func TestPresent_ADisplacedHeaderStaysLoud(t *testing.T) {
 			missing++
 		}
 	}
-	if misplaced != len(keyOrder) {
-		t.Errorf("reported %d misplaced lines, want one per key (%d)", misplaced, len(keyOrder))
+	if misplaced != len(keyOrder()) {
+		t.Errorf("reported %d misplaced lines, want one per key (%d)", misplaced, len(keyOrder()))
 	}
 	if missing == 0 {
 		t.Error("no key was reported missing, so the header read as complete")

@@ -30,6 +30,10 @@ const Current = "v1"
 // Compile registers the embedded bytes against the URL locally.
 const urlBase = "https://modelith.sh/schema/domain-model/"
 
+// URL is the canonical published URL for the current schema version. It is the
+// value indomain writes into a "# yaml-language-server: $schema=" header.
+const URL = urlBase + Current + ".json"
+
 //go:embed v1/modelith.schema.json
 var rawV1 []byte
 
@@ -38,13 +42,11 @@ var rawV1 []byte
 // directory, embed it, and add an entry here. Existing version entries are
 // never touched, so models pinned to an older version keep validating exactly
 // as they did before — adding a version is not a breaking change.
-var registry = map[string][]byte{
-	"v1": rawV1,
+func registry() map[string][]byte {
+	return map[string][]byte{
+		"v1": rawV1,
+	}
 }
-
-// URL is the canonical published URL for the current schema version. It is the
-// value indomain writes into a "# yaml-language-server: $schema=" header.
-var URL = URLFor(Current)
 
 // URLFor returns the canonical published URL ($id) for a format version.
 func URLFor(version string) string {
@@ -53,15 +55,15 @@ func URLFor(version string) string {
 
 // Supported reports whether version is a format version this build understands.
 func Supported(version string) bool {
-	_, ok := registry[version]
+	_, ok := registry()[version]
 	return ok
 }
 
 // SupportedVersions returns the known versions in a stable order, for error
 // messages and help text.
 func SupportedVersions() []string {
-	vs := make([]string, 0, len(registry))
-	for v := range registry {
+	vs := make([]string, 0, len(registry()))
+	for v := range registry() {
 		vs = append(vs, v)
 	}
 	sort.Strings(vs)
@@ -74,7 +76,7 @@ func JSON() []byte { return JSONFor(Current) }
 // JSONFor returns the raw bytes of the schema for a given version, or nil if the
 // version is unknown.
 func JSONFor(version string) []byte {
-	raw, ok := registry[version]
+	raw, ok := registry()[version]
 	if !ok {
 		return nil
 	}
@@ -89,7 +91,7 @@ func Compile() (*jsonschema.Schema, error) { return CompileVersion(Current) }
 // CompileVersion parses and compiles the embedded schema for a given format
 // version. It returns an error if the version is not supported by this build.
 func CompileVersion(version string) (*jsonschema.Schema, error) {
-	raw, ok := registry[version]
+	raw, ok := registry()[version]
 	if !ok {
 		return nil, fmt.Errorf("unsupported schema version %q", version)
 	}

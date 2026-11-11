@@ -8,6 +8,7 @@ package model
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path"
 	"sort"
@@ -157,12 +158,12 @@ type Multiplicity struct {
 func (i *Import) UnmarshalJSON(data []byte) error {
 	trimmed := bytes.TrimSpace(data)
 	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
-		return fmt.Errorf("import must be a path string or an object, not null")
+		return errors.New("import must be a path string or an object, not null")
 	}
 	if trimmed[0] == '"' {
 		var s string
 		if err := json.Unmarshal(trimmed, &s); err != nil {
-			return err
+			return fmt.Errorf("decoding import: %w", err)
 		}
 		*i = Import{Scope: ScopeFromPath(s), Path: s}
 		return nil
@@ -172,7 +173,7 @@ func (i *Import) UnmarshalJSON(data []byte) error {
 	dec := json.NewDecoder(bytes.NewReader(trimmed))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&r); err != nil {
-		return err
+		return fmt.Errorf("decoding import: %w", err)
 	}
 	*i = Import(r)
 	return nil
@@ -209,12 +210,12 @@ func RenderedPath(p string) string {
 func (a *Action) UnmarshalJSON(data []byte) error {
 	trimmed := bytes.TrimSpace(data)
 	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
-		return fmt.Errorf("action must be a string or an object, not null")
+		return errors.New("action must be a string or an object, not null")
 	}
 	if trimmed[0] == '"' {
 		var s string
 		if err := json.Unmarshal(trimmed, &s); err != nil {
-			return err
+			return fmt.Errorf("decoding action: %w", err)
 		}
 		a.Name = s
 		return nil
@@ -224,7 +225,7 @@ func (a *Action) UnmarshalJSON(data []byte) error {
 	dec := json.NewDecoder(bytes.NewReader(trimmed))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&r); err != nil {
-		return err
+		return fmt.Errorf("decoding action: %w", err)
 	}
 	*a = Action(r)
 	return nil
@@ -268,18 +269,18 @@ func ParseMultiplicity(s string) (Multiplicity, bool) {
 		}
 		return Multiplicity{Min: n, Max: n}, true
 	}
-	min, err := strconv.Atoi(lo)
-	if err != nil || min < 0 {
+	loN, err := strconv.Atoi(lo)
+	if err != nil || loN < 0 {
 		return Multiplicity{}, false
 	}
 	if hi == "n" {
-		return Multiplicity{Min: min, Max: -1}, true
+		return Multiplicity{Min: loN, Max: -1}, true
 	}
-	max, err := strconv.Atoi(hi)
-	if err != nil || max < min {
+	hiN, err := strconv.Atoi(hi)
+	if err != nil || hiN < loN {
 		return Multiplicity{}, false
 	}
-	return Multiplicity{Min: min, Max: max}, true
+	return Multiplicity{Min: loN, Max: hiN}, true
 }
 
 // ParseCardinality splits an "left:right" cardinality and parses both sides. ok
