@@ -1,4 +1,4 @@
-# Richer relationship cardinality: bounds and symmetry
+# Richer Relationship Cardinality: Bounds and Symmetry
 
 Extend relationship `cardinality` to express bounds and exact counts, and add a
 `symmetric` marker for unordered relationships. Resolves issues #9 and #10.
@@ -17,7 +17,7 @@ drew "many" where the truth was "exactly two."
 **Bounds (#9).** `cardinality` becomes a pattern-validated string. Each side is
 a multiplicity:
 
-```
+```text
 multiplicity ::= 1 | n | 0..1 | 1..n | <int> | <int>..<int> | <int>..n
 ```
 

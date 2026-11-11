@@ -22,22 +22,21 @@ the schema). Print the schema any time with `modelith schema`.
 
 :::
 
+## Top Level
 
-## Top level
-
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `kind` | string | yes | Must be `DomainModel`. |
-| `version` | string | yes | Schema revision. Currently `v1`. |
-| `title` | string | no | Heading used when rendering. |
-| `description` | string | no | One-paragraph summary. |
-| `shared` | boolean | no | `true` if other models import this one. Relaxes the completeness checks that flag a definition nothing in *this* file uses. See [Imports](#imports). |
-| `imports` | list | no | Other model files whose items this one references, each a path relative to this file. See [Imports](#imports). |
-| `glossary` | map | no | Ubiquitous-language terms that aren't entities. See [Glossary](#glossary). |
-| `enums` | map | no | First-class enumerated types. See [Enum](#enum). |
-| `entities` | map | no | Keyed by canonical PascalCase entity name. If present, must contain at least one entity. |
-| `scenarios` | list | no | Narratives that exercise the model. |
-| `invariants` | list | no | Model-level rules that span several entities. Same shape as entity invariants. See [Invariant](#invariant). |
+| Field         | Type    | Required | Notes                                                                                                                                                |
+| ------------- | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `kind`        | string  | yes      | Must be `DomainModel`.                                                                                                                               |
+| `version`     | string  | yes      | Schema revision. Currently `v1`.                                                                                                                     |
+| `title`       | string  | no       | Heading used when rendering.                                                                                                                         |
+| `description` | string  | no       | One-paragraph summary.                                                                                                                               |
+| `shared`      | boolean | no       | `true` if other models import this one. Relaxes the completeness checks that flag a definition nothing in *this* file uses. See [Imports](#imports). |
+| `imports`     | list    | no       | Other model files whose items this one references, each a path relative to this file. See [Imports](#imports).                                       |
+| `glossary`    | map     | no       | Ubiquitous-language terms that aren't entities. See [Glossary](#glossary).                                                                           |
+| `enums`       | map     | no       | First-class enumerated types. See [Enum](#enum).                                                                                                     |
+| `entities`    | map     | no       | Keyed by canonical PascalCase entity name. If present, must contain at least one entity.                                                             |
+| `scenarios`   | list    | no       | Narratives that exercise the model.                                                                                                                  |
+| `invariants`  | list    | no       | Model-level rules that span several entities. Same shape as entity invariants. See [Invariant](#invariant).                                          |
 
 `kind` and `version` make the file **self-describing**: tooling dispatches on
 them, and they let the format evolve without guesswork.
@@ -77,10 +76,10 @@ enums:
         definition: "Retired and read-only."
 ```
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `description` | string | no | What the enumerated type represents. |
-| `values` | list | yes | Each value has a `name` and optional `definition` so a state like `active` has one agreed meaning. |
+| Field         | Type   | Required | Notes                                                                                              |
+| ------------- | ------ | -------- | -------------------------------------------------------------------------------------------------- |
+| `description` | string | no       | What the enumerated type represents.                                                               |
+| `values`      | list   | yes      | Each value has a `name` and optional `definition` so a state like `active` has one agreed meaning. |
 
 Enums **name** the states; the legal *transitions* between them live in invariants
 and action `preserves`, not a separate transitions construct — that's a deliberate
@@ -92,16 +91,16 @@ is an invariant the `archive` action preserves, not an edge in a state machine.)
 Each key under `entities` is the entity's canonical name (PascalCase, e.g.
 `Project`). Its value:
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `definition` | string | yes | Two to four sentences: what it is, what it is not. |
-| `subtypeOf` | string | no | Names the entity this one is a kind of (an is-a link). May name a defined local entity or an entity in a direct import as `scope.Entity`. |
-| `relationships` | list | no | See [Relationship](#relationship). |
-| `attributes` | list | no | See [Attribute](#attribute). |
-| `actions` | list | no | Mutations the system exposes. See [Action](#action). |
-| `invariants` | list | no | Rules that must always hold. See [Invariant](#invariant). |
-| `derived` | boolean | no | True if the entity is wholly computed from other state rather than persisted — never stored, recomputed on demand. |
-| `derivation` | string | no | How a derived entity is computed. Unlike an attribute's `derivation`, this is optional even when `derived` is true — the `definition` often already explains it. |
+| Field           | Type    | Required | Notes                                                                                                                                                            |
+| --------------- | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `definition`    | string  | yes      | Two to four sentences: what it is, what it is not.                                                                                                               |
+| `subtypeOf`     | string  | no       | Names the entity this one is a kind of (an is-a link). May name a defined local entity or an entity in a direct import as `scope.Entity`.                        |
+| `relationships` | list    | no       | See [Relationship](#relationship).                                                                                                                               |
+| `attributes`    | list    | no       | See [Attribute](#attribute).                                                                                                                                     |
+| `actions`       | list    | no       | Mutations the system exposes. See [Action](#action).                                                                                                             |
+| `invariants`    | list    | no       | Rules that must always hold. See [Invariant](#invariant).                                                                                                        |
+| `derived`       | boolean | no       | True if the entity is wholly computed from other state rather than persisted — never stored, recomputed on demand.                                               |
+| `derivation`    | string  | no       | How a derived entity is computed. Unlike an attribute's `derivation`, this is optional even when `derived` is true — the `definition` often already explains it. |
 
 Mark an entity `derived` when it has no persisted identity of its own — a
 computed report, a query result, a set of findings recomputed on every read.
@@ -129,14 +128,14 @@ deliberately lossy ER per the same principle as derived entities.
 
 ## Relationship
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `entity` | string | yes | Target entity name. Must reference a defined local entity or an entity in a direct import as `scope.Entity`. |
-| `cardinality` | string | yes | Written `left:right` (see below). `1:1`, `1:n`, `n:1`, `n:n` are the common shorthands. |
-| `symmetric` | boolean | no | The relationship carries no inherent order: `(a, b)` is the same as `(b, a)`. Only valid on a self-referential relationship or one whose target side is more than one. |
-| `role` | string | no | The **short** role the related entity plays (`Owner`, `Predecessor`) — ideally a glossary term. Backtick entity and glossary names. It is the only label the diagram draws, so prose belongs in `note`; the linter warns on a role that reads as a sentence. |
-| `ownership` | enum | no | Is the related entity *part of* this one? `owned` = it can't exist independently (composition: created within, and deleted with, this entity); `referenced` = an independent entity this one points at. Omitted ⇒ `referenced`. An `owned` part has exactly one owner, so its cardinality's left side is `1` (the linter warns otherwise). |
-| `note` | string | no | Freeform note. |
+| Field         | Type    | Required | Notes                                                                                                                                                                                                                                                                                                                                      |
+| ------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `entity`      | string  | yes      | Target entity name. Must reference a defined local entity or an entity in a direct import as `scope.Entity`.                                                                                                                                                                                                                               |
+| `cardinality` | string  | yes      | Written `left:right` (see below). `1:1`, `1:n`, `n:1`, `n:n` are the common shorthands.                                                                                                                                                                                                                                                    |
+| `symmetric`   | boolean | no       | The relationship carries no inherent order: `(a, b)` is the same as `(b, a)`. Only valid on a self-referential relationship or one whose target side is more than one.                                                                                                                                                                     |
+| `role`        | string  | no       | The **short** role the related entity plays (`Owner`, `Predecessor`) — ideally a glossary term. Backtick entity and glossary names. It is the only label the diagram draws, so prose belongs in `note`; the linter warns on a role that reads as a sentence.                                                                               |
+| `ownership`   | enum    | no       | Is the related entity *part of* this one? `owned` = it can't exist independently (composition: created within, and deleted with, this entity); `referenced` = an independent entity this one points at. Omitted ⇒ `referenced`. An `owned` part has exactly one owner, so its cardinality's left side is `1` (the linter warns otherwise). |
+| `note`        | string  | no       | Freeform note.                                                                                                                                                                                                                                                                                                                             |
 
 **Cardinality grammar.** Each side is a multiplicity: `1` (exactly one), `n`
 (zero or more), an exact count like `2`, or a range like `0..1`, `1..n`, `0..5`.
@@ -188,13 +187,13 @@ and covered in full in [Reading the Diagrams](./04-reading-the-diagrams.md):
 
 ## Attribute
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `name` | string | yes | Attribute name. |
-| `type` | string | yes | A **primitive** (lowercase, e.g. `string`, `integer`, `boolean`, `timestamp`) or the **PascalCase name of a defined [enum](#enum)**. A PascalCase type that names no enum is flagged. A dot is reserved for a [cross-model reference](#imports) and is an error anywhere else, `imports` or no `imports`. |
-| `description` | string | no | |
-| `derived` | boolean | no | True if computed from other state rather than stored. Forces `derivation`. |
-| `derivation` | string | no | How a derived attribute is computed. Required when `derived` is true. |
+| Field         | Type    | Required | Notes                                                                                                                                                                                                                                                                                                     |
+| ------------- | ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | string  | yes      | Attribute name.                                                                                                                                                                                                                                                                                           |
+| `type`        | string  | yes      | A **primitive** (lowercase, e.g. `string`, `integer`, `boolean`, `timestamp`) or the **PascalCase name of a defined [enum](#enum)**. A PascalCase type that names no enum is flagged. A dot is reserved for a [cross-model reference](#imports) and is an error anywhere else, `imports` or no `imports`. |
+| `description` | string  | no       |                                                                                                                                                                                                                                                                                                           |
+| `derived`     | boolean | no       | True if computed from other state rather than stored. Forces `derivation`.                                                                                                                                                                                                                                |
+| `derivation`  | string  | no       | How a derived attribute is computed. Required when `derived` is true.                                                                                                                                                                                                                                     |
 
 Attributes are the properties that matter for reasoning about the entity — not
 every database column. Mark computed values `derived` so they aren't mistaken
@@ -215,12 +214,12 @@ actions:
     description: "Retire the project."
 ```
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `name` | string | yes | The action name. |
-| `actor` | string | no | Who performs it — a defined entity or glossary term. |
-| `preserves` | list of string | no | Ids of invariants this action must preserve. |
-| `description` | string | no | |
+| Field         | Type           | Required | Notes                                                |
+| ------------- | -------------- | -------- | ---------------------------------------------------- |
+| `name`        | string         | yes      | The action name.                                     |
+| `actor`       | string         | no       | Who performs it — a defined entity or glossary term. |
+| `preserves`   | list of string | no       | Ids of invariants this action must preserve.         |
+| `description` | string         | no       |                                                      |
 
 ## Invariant
 
@@ -234,10 +233,10 @@ invariants:
     statement: "Must have at least one `Owner` at all times"
 ```
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `id` | string | yes | Stable identifier, lowercase kebab-case. Unique across the model. |
-| `statement` | string | yes | The rule. Short, declarative, testable. Backtick entity names. |
+| Field       | Type   | Required | Notes                                                             |
+| ----------- | ------ | -------- | ----------------------------------------------------------------- |
+| `id`        | string | yes      | Stable identifier, lowercase kebab-case. Unique across the model. |
+| `statement` | string | yes      | The rule. Short, declarative, testable. Backtick entity names.    |
 
 An invariant can be declared in one of two places:
 
@@ -256,13 +255,13 @@ entity-level ones render with their entity.
 
 ## Scenario
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `name` | string | yes | Short title. |
-| `description` | string | no | Short prose summary of what the scenario tests or demonstrates. |
-| `actors` | list of string | no | Entity names or glossary roles involved. Ad-hoc participants (e.g. `TargetUser`) are allowed and not required to be glossary terms. |
-| `steps` | list of string | yes | Ordered steps. Backtick entity names. |
-| `invariants_touched` | list of string | no | **Ids** of invariants this scenario exercises. Each must reference a declared invariant. |
+| Field                | Type           | Required | Notes                                                                                                                               |
+| -------------------- | -------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `name`               | string         | yes      | Short title.                                                                                                                        |
+| `description`        | string         | no       | Short prose summary of what the scenario tests or demonstrates.                                                                     |
+| `actors`             | list of string | no       | Entity names or glossary roles involved. Ad-hoc participants (e.g. `TargetUser`) are allowed and not required to be glossary terms. |
+| `steps`              | list of string | yes      | Ordered steps. Backtick entity names.                                                                                               |
+| `invariants_touched` | list of string | no       | **Ids** of invariants this scenario exercises. Each must reference a declared invariant.                                            |
 
 A scenario is a diagnostic, not a backlog item: it tests whether the entities
 and actions actually hang together. If writing one reveals an invariant that
@@ -307,10 +306,10 @@ imports:
     path: ./legacy/pay-v2.modelith.yaml
 ```
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `scope` | string | yes (explicit form) | The slug written before an item's name. Lowercase kebab-case (`^[a-z][a-z0-9-]*$`). |
-| `path` | string | yes (explicit form) | Path to the model file, relative to *this* one. Relative, and free of control characters. |
+| Field   | Type   | Required            | Notes                                                                                     |
+| ------- | ------ | ------------------- | ----------------------------------------------------------------------------------------- |
+| `scope` | string | yes (explicit form) | The slug written before an item's name. Lowercase kebab-case (`^[a-z][a-z0-9-]*$`).       |
+| `path`  | string | yes (explicit form) | Path to the model file, relative to *this* one. Relative, and free of control characters. |
 
 A bare string is the same thing with the scope derived — `./x.modelith.yaml` is
 exactly `{scope: x, path: ./x.modelith.yaml}`. If the filename doesn't yield a
@@ -385,7 +384,7 @@ The full rationale, including where this is heading, is
 and the boundary itself is
 [ADR-0013](https://github.com/stacklok/modelith/blob/main/project-docs/adr/0013-imports-confined-to-the-repository.md).
 
-### The model on the other end: `shared: true`
+### The Model on the Other End: `shared: true`
 
 A model that exists to be imported has a problem the completeness checks would
 otherwise punish it for: the references that justify its enums and glossary
@@ -415,7 +414,7 @@ and an entity no scenario exercises, are gaps in the model itself, and being
 imported does not fill them. Nothing verifies the claim, and nothing needs to:
 overstating it costs two advisory warnings, not correctness.
 
-## What this format deliberately leaves out
+## What This Format Deliberately Leaves Out
 
 modelith is a light, agent-authored subset of domain-driven design, not a full
 DDD notation. Several classic DDD concepts are left out on purpose. Knowing what
@@ -446,7 +445,7 @@ These omissions keep the format small enough for an agent to author reliably and
 for a human to read in one sitting. Any of them can become a roadmap item if a
 real model needs it; none is here yet beyond what is linked above.
 
-## What the linter adds on top of the schema
+## What the Linter Adds on Top of the Schema
 
 The JSON Schema covers structure. [`modelith lint`](./07-cli.md) adds:
 
@@ -514,7 +513,7 @@ The JSON Schema covers structure. [`modelith lint`](./07-cli.md) adds:
   only restates its cardinality or its type. The warning is a prompt to check,
   not a demand to fill.
 
-### What the linter can't see
+### What the Linter Can't See
 
 A clean lint means the model's references resolve and its structure is
 consistent. It doesn't mean the rules are right:

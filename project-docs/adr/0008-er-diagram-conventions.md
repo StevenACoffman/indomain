@@ -1,4 +1,4 @@
-# ER diagram conventions: line style, labels, and self-relationships
+# ER Diagram Conventions: Line Style, Labels, and Self-Relationships
 
 Rendering a real 13-entity model made two defects obvious (issues
 [#26](https://github.com/stacklok/modelith/issues/26),

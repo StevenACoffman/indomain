@@ -1,4 +1,4 @@
-# The network boundary is lint and render, not the whole binary
+# The Network Boundary Is Lint and Render, Not the Whole Binary
 
 `lint`, `render`, and the packages behind them never perform network I/O.
 Commands that do are named, opt-in, and delegate transport to an external tool

@@ -1,4 +1,4 @@
-# Azure DevOps is a second transport for vendoring
+# Azure DevOps Is a Second Transport for Vendoring
 
 Vendoring can fetch from Azure DevOps (`dev.azure.com`) as well as GitHub,
 delegating each host to its own CLI — `gh api` for GitHub, `az rest` for Azure

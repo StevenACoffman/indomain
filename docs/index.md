@@ -18,9 +18,9 @@ renders a Markdown version (with diagrams) that you commit alongside your code.
 The `modelith` CLI is the engine the agent and CI run for you. It validates,
 renders, and manages vendored models; it is not your starting point.
 
-## The workflow
+## The Workflow
 
-```
+```text
 describe concepts in plain language
    │
    ▼
@@ -38,7 +38,7 @@ read the model without running anything. Configure `modelith render --check` in
 CI to fail on drift, like a generated-code check. The GitHub Action enables that
 check by default.
 
-## Where to start
+## Where to Start
 
 - **Authoring a model for the first time?** → [Getting Started](./02-getting-started.md)
   — install the CLI and authoring skills, then build a model by conversation.
@@ -48,12 +48,12 @@ check by default.
 - **See it all come together?** → the [Parking Garage worked
   example](./05-parking-garage/index.md) builds a real model from nothing.
 
-## The pieces
+## The Pieces
 
-| Piece | What it does |
-|---|---|
+| Piece                                      | What it does                                                       |
+| ------------------------------------------ | ------------------------------------------------------------------ |
 | [Agent authoring](./02-getting-started.md) | The Claude Code plugin and skills — how you actually build a model |
-| [Schema](./06-schema-reference.md) | The JSON Schema that defines a valid model |
-| [`modelith` CLI](./07-cli.md) | The `lint`, `render`, and `deps` commands the agent and CI run |
-| [GitHub Action](./08-github-action.md) | The same checks in CI |
-| [Vendoring](./10-vendoring.md) | Referencing a model that lives in another repository |
+| [Schema](./06-schema-reference.md)         | The JSON Schema that defines a valid model                         |
+| [`modelith` CLI](./07-cli.md)              | The `lint`, `render`, and `deps` commands the agent and CI run     |
+| [GitHub Action](./08-github-action.md)     | The same checks in CI                                              |
+| [Vendoring](./10-vendoring.md)             | Referencing a model that lives in another repository               |

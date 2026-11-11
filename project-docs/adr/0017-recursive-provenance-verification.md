@@ -1,4 +1,4 @@
-# Recursive provenance verification follows locally readable vendored imports
+# Recursive Provenance Verification Follows Locally Readable Vendored Imports
 
 `modelith lint` follows locally readable import edges while verifying provenance,
 including edges declared by vendored models. This narrowly supersedes only

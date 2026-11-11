@@ -3,7 +3,7 @@
 We take security seriously and appreciate responsible disclosure of any
 vulnerabilities found in modelith.
 
-## Reporting a vulnerability
+## Reporting a Vulnerability
 
 Please report security issues using the GitHub Security Advisory
 ["Report a Vulnerability"](https://github.com/stacklok/modelith/security/advisories/new)
@@ -17,7 +17,7 @@ Please don't report security vulnerabilities using public GitHub issues.
 Include as much detail as you can: steps to reproduce, the affected version(s),
 and any sample files needed to reproduce the issue.
 
-## What to expect
+## What to Expect
 
 - We'll acknowledge your report within a few business days.
 - We'll work with you privately to understand and fix the issue before any

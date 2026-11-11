@@ -29,12 +29,12 @@ jobs:
 
 ## Inputs
 
-| Input | Default | Description |
-|---|---|---|
-| `files` | — (required) | YAML files or globs, space-, comma-, or newline-separated. |
-| `completeness` | `warn` | Treat completeness gaps as `warn` or `error`. |
-| `check-rendered` | `true` | Verify the committed `*.md` matches the YAML. |
-| `version` | action-ref-dependent | Published `indomain` release to install; defaults to the release configured by the referenced action version. Set another published release to select it. |
+| Input            | Default              | Description                                                                                                                                               |
+| ---------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `files`          | — (required)         | YAML files or globs, space-, comma-, or newline-separated.                                                                                                |
+| `completeness`   | `warn`               | Treat completeness gaps as `warn` or `error`.                                                                                                             |
+| `check-rendered` | `true`               | Verify the committed `*.md` matches the YAML.                                                                                                             |
+| `version`        | action-ref-dependent | Published `indomain` release to install; defaults to the release configured by the referenced action version. Set another published release to select it. |
 
 Multiple files / globs:
 
@@ -45,7 +45,7 @@ with:
     services/**/model.modelith.yaml
 ```
 
-## How it works
+## How It Works
 
 The action downloads the prebuilt `indomain` release binary for the runner's OS
 and architecture, verifies it against the release's published checksums, and runs
@@ -54,7 +54,7 @@ another published release when you need a different version. Pinning your
 `uses:` reference to a commit SHA keeps CI runs reproducible: a given action
 commit installs the selected `indomain` version.
 
-## Vendored models in the glob
+## Vendored Models in the Glob
 
 When the selected release supports vendored models, a glob can include a
 [vendored model](./10-vendoring.md). A clean provenance header suppresses

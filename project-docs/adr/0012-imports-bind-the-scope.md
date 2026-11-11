@@ -1,4 +1,4 @@
-# The importer binds an import's scope
+# The Importer Binds an Import's Scope
 
 An `imports:` entry names the scope it binds, defaulting to the imported file's
 basename with `.modelith.yaml` stripped. A model does not declare a name for

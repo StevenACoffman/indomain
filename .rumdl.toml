@@ -40,6 +40,11 @@ exclude = [
     # Specific files or patterns
     "CHANGELOG.md",
     "LICENSE.md",
+
+    # Rendered by `indomain render` and pinned by render --check and the golden
+    # test. Their shape is the renderer's contract with every user's committed
+    # Markdown, so they follow the renderer, not this config.
+    "*.modelith.md",
 ]
 
 # Respect .gitignore files when scanning directories (default: true)
@@ -99,3 +104,17 @@ aligned-delimiter = true    # Pad delimiter dashes to header widths under compac
 enabled = true
 style = "title-case"
 preserve-cased-words = true
+# Names written in lowercase on purpose: the CLIs, the scratch directory, and
+# schema versions keep their spelling inside a title-cased heading.
+ignore-words = ["indomain", "modelith", ".scratch", "v1", "v2", "vs", "vs."]
+
+[MD025]
+# Docusaurus pages carry a front-matter `title:` for the sidebar and a `# Title`
+# heading for the page; the two are the same heading, not a second H1.
+front-matter-title = ""
+
+[per-file-ignores]
+# The worked example is a dialogue: each turn is its own blockquote, separated
+# by a blank line so the agent's and the user's turns render apart. MDX rejects
+# the HTML comment an inline disable would need.
+"docs/05-parking-garage/index.md" = ["MD028"]

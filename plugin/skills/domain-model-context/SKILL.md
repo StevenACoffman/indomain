@@ -8,13 +8,13 @@ description: >
   team's vocabulary — entity names, relationships, and invariants.
 ---
 
-# Loading the domain model as context
+# Loading the Domain Model as Context
 
 A well-formed domain model is a type system for the problem space. Loading it
 before a coding task means you use the team's exact names, respect the declared
 relationships, and don't violate invariants.
 
-## What to load
+## What to Load
 
 1. Find the domain model in the repo — a `*.modelith.yaml` and its rendered
    `*.modelith.md` (often under `docs/` or the repo root).
@@ -31,7 +31,7 @@ relationships, and don't violate invariants.
    `type` values) name vocabulary that lives in the imported file, not this
    one — load that file too before treating a `scope.Name` term as unknown.
 
-## How to apply it while coding
+## How to Apply It While Coding
 
 - Name variables, types, functions, and UI strings using the model's terms.
 - When a requirement seems to need a concept the model doesn't have, stop: that
@@ -42,7 +42,7 @@ relationships, and don't violate invariants.
 - When code would violate an invariant, treat that as a bug in the plan, not a
   detail to smooth over.
 
-## Keep the model honest
+## Keep the Model Honest
 
 If implementing the feature reveals the model is wrong or incomplete — a missing
 entity, an invariant that can't hold — surface it. The model is meant to be a

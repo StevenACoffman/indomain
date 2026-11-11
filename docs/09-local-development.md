@@ -21,7 +21,7 @@ bottom of this page.
 - **Node.js / `npx`** — only needed for `task mermaid-check` (runs
   `@mermaid-js/mermaid-cli` via `npx`); not required for `task check`.
 
-## Building the binary
+## Building the Binary
 
 ```sh
 task build            # → ./bin/indomain
@@ -32,7 +32,7 @@ During development you can also skip the build and run from source —
 `go run ./cmd/modelith lint <file>` — which is what the `lint-models` and
 `render` tasks do.
 
-## The Task workflow
+## The Task Workflow
 
 The repo uses [Task](https://taskfile.dev). The one that matters before pushing:
 
@@ -43,20 +43,20 @@ task check
 It runs the CI checks plus stricter local plugin validation. Run `task` with no
 arguments to list every target.
 
-| Command | What it does |
-|---|---|
-| `task build` | Build the binary into `./bin/modelith`. |
-| `task install` | `go install` modelith into `GOBIN`. |
-| `task test` | Run unit tests with cross-package coverage (writes `coverage.out`). |
-| `task cover` | Show the per-function coverage report (run `task test` first). |
-| `task vet` | Run `go vet`. |
-| `task staticcheck` | Run staticcheck (pinned version). |
-| `task lint-models` | Lint the example models (strict: completeness gaps are errors). |
-| `task render` | Re-render the example models to Markdown. |
-| `task render-check` | Verify the committed Markdown is up to date. |
-| `task validate-plugin` | Validate the plugin with `claude plugin validate --strict` (needs the `claude` CLI). |
-| `task mermaid-check` | Parse every emitted/committed Mermaid diagram with the real `mermaid-cli` (needs `npx`/node). Not part of `task check` — see below. |
-| `task check` | CI parity (vet, staticcheck, golangci-lint, test, lint-models, render-check) plus `validate-plugin`. It does **not** run `mermaid-check`, so contributors without node/npm still get a green `task check`; CI runs the Mermaid parse check separately. |
+| Command                | What it does                                                                                                                                                                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `task build`           | Build the binary into `./bin/modelith`.                                                                                                                                                                                                                |
+| `task install`         | `go install` modelith into `GOBIN`.                                                                                                                                                                                                                    |
+| `task test`            | Run unit tests with cross-package coverage (writes `coverage.out`).                                                                                                                                                                                    |
+| `task cover`           | Show the per-function coverage report (run `task test` first).                                                                                                                                                                                         |
+| `task vet`             | Run `go vet`.                                                                                                                                                                                                                                          |
+| `task staticcheck`     | Run staticcheck (pinned version).                                                                                                                                                                                                                      |
+| `task lint-models`     | Lint the example models (strict: completeness gaps are errors).                                                                                                                                                                                        |
+| `task render`          | Re-render the example models to Markdown.                                                                                                                                                                                                              |
+| `task render-check`    | Verify the committed Markdown is up to date.                                                                                                                                                                                                           |
+| `task validate-plugin` | Validate the plugin with `claude plugin validate --strict` (needs the `claude` CLI).                                                                                                                                                                   |
+| `task mermaid-check`   | Parse every emitted/committed Mermaid diagram with the real `mermaid-cli` (needs `npx`/node). Not part of `task check` — see below.                                                                                                                    |
+| `task check`           | CI parity (vet, staticcheck, golangci-lint, test, lint-models, render-check) plus `validate-plugin`. It does **not** run `mermaid-check`, so contributors without node/npm still get a green `task check`; CI runs the Mermaid parse check separately. |
 
 <details>
 <summary>CI runs a lighter plugin check</summary>
@@ -68,7 +68,7 @@ Go pipeline does not depend on the Claude Code CLI.
 
 </details>
 
-## Developing the plugin locally
+## Developing the Plugin Locally
 
 modelith ships a Claude Code plugin under [`plugin/`](https://github.com/StevenACoffman/indomain/tree/main/plugin)
 (skills that author, lint, and load domain models). The plugin files live here,
@@ -112,7 +112,7 @@ Validate after any change to a manifest or skill:
 task validate-plugin          # or: claude plugin validate ./plugin --strict
 ```
 
-## Conventions that break CI (summary)
+## Conventions That Break CI (Summary)
 
 The full contract lives in [`CLAUDE.md`](https://github.com/StevenACoffman/indomain/blob/main/CLAUDE.md);
 the load-bearing ones:

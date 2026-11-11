@@ -1,4 +1,4 @@
-# Action consequences are reports, not invariants
+# Action Consequences Are Reports, Not Invariants
 
 Add a minimal `reports:` list to the structured action form: prose strings
 naming what an action tells the caller it did. No typed `inputs`/`reports`.
@@ -18,7 +18,7 @@ Add `reports:` to the structured action: a list of plain prose strings, each a
 consequence the action tells the caller about. Backtick entity names as in any
 freeform text. No `inputs`, and reports carry no `type` field.
 
-## Why reports belong on the action, not in an invariant
+## Why Reports Belong on the Action, Not in an Invariant
 
 An **invariant is unconditional**: it must hold regardless of what any action
 does. "There are no dangling `Endpoint`s" is an invariant. A statement of the
@@ -28,7 +28,7 @@ Placing it in an invariant misfiles it: the invariant then only "holds after
 delete." Its correct home is the action's own description, which is what
 `reports:` provides.
 
-## Considered options
+## Considered Options
 
 - **Typed `inputs` + `reports`** (the issue's original) — rejected. Typed
   entries turn an action from a *description* into a *signature*, the clearest

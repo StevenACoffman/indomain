@@ -6,7 +6,7 @@ license.
 
 ## Developer Certificate of Origin 1.1
 
-```
+```text
 Developer Certificate of Origin
 Version 1.1
 
@@ -46,12 +46,12 @@ By making a contribution to this project, I certify that:
     this project or the open source license(s) involved.
 ```
 
-## How to sign off
+## How to Sign Off
 
 Add a `Signed-off-by` trailer to your commit message with your real name and
 email address:
 
-```
+```text
 Signed-off-by: Jane Doe <jane@example.com>
 ```
 

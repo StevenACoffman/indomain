@@ -8,12 +8,12 @@ description: >
   the model (add or edit entities, fix the gaps), use domain-model-author.
 ---
 
-# Linting a domain model
+# Linting a Domain Model
 
 Run the linter and interpret it for the user. The point is not a clean bill of
 health — it's making gaps *visible* so the user can decide whether they matter.
 
-## Run it
+## Run It
 
 First confirm `modelith` is installed (`modelith --version`); if it is not on
 `PATH`, tell the user to install it before going further — don't eyeball the
@@ -35,7 +35,7 @@ advisory gaps listed below) to blocking errors. It does **not** affect semantic
 errors — those (including a dangling `invariants_touched` id) block regardless of
 the flag.
 
-## Interpret the three layers
+## Interpret the Three Layers
 
 - **Structural (error).** The file violates the JSON Schema — wrong type,
   missing required field, bad `cardinality`. Must be fixed; the model won't
@@ -86,7 +86,7 @@ the flag.
   import or the invariant that only restates a cardinality) or genuinely fine — a
   `shared: true` model in particular.
 
-## How to report back
+## How to Report Back
 
 1. Lead with **errors** — these block. Give the fix for each.
 2. Then **semantic warnings** — likely typos or missing definitions.

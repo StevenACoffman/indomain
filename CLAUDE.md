@@ -7,9 +7,9 @@ modelith is a single static Go binary (cobra CLI: `lint`, `render`, `schema`)
 that validates and renders `*.modelith.yaml` domain models. Module path
 `github.com/stacklok/modelith`.
 
-## Repository layout
+## Repository Layout
 
-```
+```text
 modelith/
 ├── cmd/modelith/                 # CLI entrypoint (cobra)
 ├── internal/
@@ -31,7 +31,7 @@ modelith/
 ├── action.yaml · Taskfile.yaml · .goreleaser.yaml · .github/workflows/
 ```
 
-### Why this layout
+### Why This Layout
 
 - **`pkg/schema/` is the source of truth for the format.** The Go code
   embeds each version's JSON Schema via `go:embed`; the canonical copy is
@@ -50,7 +50,7 @@ modelith/
 - **`plugin/` ships the agent tooling next to the binary it drives**, so skills
   and the CLI version stay in lockstep.
 
-## Dev workflow
+## Dev Workflow
 
 The repo uses [Task](https://taskfile.dev). The one that matters:
 
@@ -64,7 +64,7 @@ target. The full target table, build/install steps, and how to develop the
 Claude Code plugin with `--plugin-dir` live in
 [`docs/09-local-development.md`](./docs/09-local-development.md).
 
-## Conventions to keep (these break CI if ignored)
+## Conventions to Keep (These Break CI If Ignored)
 
 - **The example is a golden fixture.** `examples/example.modelith.yaml` and its
   committed `examples/example.modelith.md` must stay in sync. After any change to
@@ -92,7 +92,7 @@ Claude Code plugin with `--plugin-dir` live in
   `.github/workflows/ci.yaml` — renumber that dir and you must update both. Full
   rules: [`docs/_docs-conventions.md`](./docs/_docs-conventions.md).
 
-## Format decisions (already made — don't relitigate without reason)
+## Format Decisions (Already Made — Don't Relitigate Without Reason)
 
 - **Format evolution requires the new structured forms; no legacy string forms.**
   Invariants are `{id, statement}` referenced by `id`; enums are first-class
@@ -107,7 +107,7 @@ Claude Code plugin with `--plugin-dir` live in
   [ADR-0020](./project-docs/adr/0020-v1-schema-is-frozen.md), pinned by
   `TestADR_0020_SchemaV1Frozen`.
 
-## Cutting a release
+## Cutting a Release
 
 Push a `vX.Y.Z` tag on `main` — `release.yaml` builds, signs, generates SBOMs,
 and publishes the GitHub Release. After it succeeds:
@@ -135,7 +135,7 @@ and publishes the GitHub Release. After it succeeds:
   writing (submission is via <https://clau.de/plugin-directory-submission>,
   not a PR — direct PRs against that repo are auto-closed).
 
-## Design history
+## Design History
 
 Durable project records live under [`project-docs/`](./project-docs/), kept off
 the published site to keep the root clean:
@@ -148,7 +148,7 @@ the published site to keep the root clean:
   multi-agent audit snapshots (rationale for the choices above) and the process
   for running new ones.
 
-## Working conventions
+## Working Conventions
 
 - **Every commit must be signed off (DCO).** Commit with `git commit -s` so a
   `Signed-off-by:` trailer is added, certifying you have the right to submit

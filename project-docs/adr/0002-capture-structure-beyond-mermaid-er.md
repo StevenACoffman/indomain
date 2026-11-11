@@ -1,4 +1,4 @@
-# Capture structure the Mermaid ER cannot render
+# Capture Structure the Mermaid ER Cannot Render
 
 The domain model captures structure at full fidelity even when the Mermaid
 `erDiagram` cannot draw it. Render fidelity is a separate, evolving concern, not

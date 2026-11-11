@@ -4,7 +4,7 @@ title: Vendoring a model from another repository
 description: Copy a model from another repository, reference its items, and keep the copy current as its origin moves on.
 ---
 
-# Vendoring a model from another repository
+# Vendoring a Model from Another Repository
 
 [Imports](./06-schema-reference.md#imports) let one model reference an item
 another one defines — but only across files that are already in your
@@ -26,7 +26,7 @@ indomain deps import https://github.com/acme/billing/blob/main/docs/payments.mod
 indomain deps import "https://dev.azure.com/acme/billing/_git/models?path=docs/payments.modelith.yaml&version=GBmain" docs/
 ```
 
-## What you get
+## What You Get
 
 A copy of the file, byte for byte, with a **provenance header** added at the
 top:
@@ -46,17 +46,17 @@ top:
 The header is a comment, not part of the schema — a model you write yourself
 never has one, and never meets any of this.
 
-| Key | What it records |
-|---|---|
-| `vendored` | That this file is a copy. Nothing enforces it; it is there so a person or an agent about to edit the file stops. |
-| `fetch` | How to get it again. `git` today. |
-| `origin`, `path`, `ref` | Where it came from and what to track. A tag in `ref` pins the copy; a branch follows it. |
-| `ref-type` | Azure DevOps only: the kind of ref `ref` names — `branch`, `tag`, or `commit`. Omitted for GitHub, whose API resolves an untyped ref, and when the type is not yet known, in which case a refresh resolves it. |
-| `commit` | The commit that last touched *this file* at that ref — so it does not move when unrelated commits land. |
-| `imported` | When you fetched it. |
-| `digest` | SHA-256 of the file with the header lines removed, so stamping the header does not change it. |
+| Key                     | What it records                                                                                                                                                                                                |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vendored`              | That this file is a copy. Nothing enforces it; it is there so a person or an agent about to edit the file stops.                                                                                               |
+| `fetch`                 | How to get it again. `git` today.                                                                                                                                                                              |
+| `origin`, `path`, `ref` | Where it came from and what to track. A tag in `ref` pins the copy; a branch follows it.                                                                                                                       |
+| `ref-type`              | Azure DevOps only: the kind of ref `ref` names — `branch`, `tag`, or `commit`. Omitted for GitHub, whose API resolves an untyped ref, and when the type is not yet known, in which case a refresh resolves it. |
+| `commit`                | The commit that last touched *this file* at that ref — so it does not move when unrelated commits land.                                                                                                        |
+| `imported`              | When you fetched it.                                                                                                                                                                                           |
+| `digest`                | SHA-256 of the file with the header lines removed, so stamping the header does not change it.                                                                                                                  |
 
-## Then add it to your model
+## Then Add It to Your Model
 
 `deps import` writes the file and stops. It does **not** edit your model's
 `imports:` — it prints the line to add:
@@ -84,7 +84,7 @@ docs. Vendoring is designed for projects that already trust each other.
 
 :::
 
-## How a vendored file is treated differently
+## How a Vendored File Is Treated Differently
 
 A provenance line marks the file as a copy whose home is elsewhere. `lint`
 reports every provenance-header defect as a semantic error. It still suppresses
@@ -109,7 +109,7 @@ render-check exemptions, and `lint` reports the header error.
 The [GitHub Action](./08-github-action.md) applies the same `lint` and
 `render --check` behavior to every matching file.
 
-## What it will not overwrite
+## What It Will Not Overwrite
 
 The filename comes from the origin, so a copy can land on a file you already
 have. `deps import` refuses two cases rather than clobbering them:
@@ -131,12 +131,12 @@ ordinary refresh, and that goes through — it reports `replaced` rather than
 `wrote`. Only the origin's *casing* is ignored in that comparison, because
 GitHub treats an owner and repository name case-insensitively.
 
-## Keeping the copy honest
+## Keeping the Copy Honest
 
 Every `modelith lint` re-checks a vendored file against the digest in its own
 header. If someone edits the copy, lint says so:
 
-```
+```text
 error [semantic] (root): this vendored file no longer matches the digest its
 provenance header records (recorded sha256:9a1f…, computed sha256:2c7b…) — it
 has been edited since it was imported. Restore it with `modelith deps update
@@ -160,7 +160,7 @@ copy that needs repair, not its importer. This stays offline and does not add
 new diagnostics for a nested import that cannot be read; lint does not become a
 recursive semantic validator.
 
-## Keeping the copy current
+## Keeping the Copy Current
 
 The section above is about your copy. This one is about the model it came from,
 which moves on without you.
@@ -169,7 +169,7 @@ which moves on without you.
 indomain deps check docs/*.modelith.yaml
 ```
 
-```
+```text
 docs/payments.modelith.yaml: up to date at v2.1.0
 docs/ledger.modelith.yaml: stale at main — the origin is now at a91b0c3
 
@@ -184,7 +184,7 @@ the copies forward:
 indomain deps update docs/ledger.modelith.yaml
 ```
 
-```
+```text
 docs/ledger.modelith.yaml: 4f2c1e9 → a91b0c3 at main
 
 updated 1 of 1 vendored copy
@@ -219,7 +219,7 @@ key: its API resolves an untyped ref on its own.
 
 :::
 
-### Two ways to track a model
+### Two Ways to Track a Model
 
 Which one you are on is whatever `# modelith-ref:` records.
 
@@ -246,7 +246,7 @@ against.
 
 :::
 
-### What "stale" means
+### What "Stale" Means
 
 A copy is stale when its origin serves **different content**, compared against
 the digest in the copy's own header. It is not a commit comparison: a merge or
@@ -263,13 +263,13 @@ produces a diff exactly where one belongs. A copy that was hand-edited is not
 holding what its origin serves, so it gets rewritten too, and the edits go —
 make the change at the origin instead.
 
-## Vendoring is one file, not a dependency tree
+## Vendoring Is One File, Not a Dependency Tree
 
 If the model you fetch imports models of its own, **those are not fetched**.
 `deps import` tells you they exist, and `deps update` says the same thing again
 if a refresh brings imports the copy did not have before:
 
-```
+```text
 Note: payments.modelith.yaml declares an import of its own (./ledger.modelith.yaml).
 modelith vendors one file, not a dependency tree, and resolution is not
 transitive — if you need items from those models, import them directly.
@@ -281,7 +281,7 @@ defined *directly* in the file bound to `payments`. If the item you want lives
 one hop further away, vendor that model too and give it its own scope. The
 linter says so at the reference site when it can tell:
 
-```
+```text
 attribute type "payments.Carrier" names no enum "Carrier" in
 "./payments.modelith.yaml" — that model imports a model of its own, and
 resolution is not transitive: if "Carrier" is defined in one of them, add that
@@ -293,7 +293,7 @@ for what happens when two models want different versions of the same third
 model — a package manager, for a problem an explicit second `deps import`
 already solves.
 
-## Requirements and limits
+## Requirements and Limits
 
 - **Install the CLI for the host you import from.** For GitHub, install and
   authenticate the [GitHub CLI](https://cli.github.com). For Azure DevOps,

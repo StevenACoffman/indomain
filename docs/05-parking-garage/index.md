@@ -28,9 +28,9 @@ The finished artifacts:
 - **[The source `garage.modelith.yaml`](https://github.com/stacklok/modelith/blob/main/docs/05-parking-garage/garage.modelith.yaml)**
   — the canonical YAML the conversation produced.
 
----
+______________________________________________________________________
 
-## Getting started
+## Getting Started
 
 > **You:** I want to build a system to track a parking garage. I think the top
 > level is `Garage` or `Location`, and off of that an array of `Spot`s. Some
@@ -61,7 +61,7 @@ important decision in the model.
 > assigned to a monthly account. Temporary visitors are just a plate on the
 > ticket — no `Car`. And yes, an `Account` owns its keycards and cars.
 
-## Pass 1 — the skeleton
+## Pass 1 — the Skeleton
 
 The agent names every entity, writes a crisp definition for each, and declares
 the relationships and cardinality. **Nothing else** - no attributes, rules, or
@@ -110,7 +110,7 @@ erDiagram
 
 A one-line change to the cardinality; the diagram updates to `Spot }o..|| Account`.
 
-## Pass 2 — the behavior
+## Pass 2 — the Behavior
 
 With the skeleton settled, the agent adds **invariants** (rules that must always
 hold) and **scenarios** (short narratives that exercise every entity).
@@ -135,7 +135,7 @@ This is where a vague idea turned into a sharper model:
 > the "monthly parker with no reserved spot" path so it's exercised, not just
 > asserted.
 
-### Where the agent caught a contradiction
+### Where the Agent Caught a Contradiction
 
 > **You:** That sounds like a good invariant — you shouldn't have more keycards
 > than spots. Also, a keycard is tied to a `Visit`; you can't use the same
@@ -162,7 +162,7 @@ This is the skill earning its keep: it didn't silently take the instruction; it
 noticed the new rule contradicted an established one and made the human resolve
 it. The result is `account-spots-within-keycards`, stated the consistent way.
 
-## Pass 3 — refinement
+## Pass 3 — Refinement
 
 Last, the agent layers in **attributes** (including the *derived* "state" ones
 the conversation surfaced), **enums**, **actions** tied to actors and the
@@ -224,7 +224,7 @@ invariant. The diagram is the structure; the rules are the text. See
 A model is never "finished." Leaving those visible — rather than inventing a rate
 schedule or quietly asserting a rule — is the behavior you want.
 
-## The result
+## The Result
 
 **8 entities, 2 enums, 3 glossary roles, 11 invariants, 7 scenarios** — built in
 one conversation, lints completely clean, rendered Markdown committed alongside
@@ -235,7 +235,7 @@ the source.
 
 Want to try it yourself? See [Authoring with Agents](../02-getting-started.md).
 
-## Beyond the three core passes: import a shared concept
+## Beyond the Three Core Passes: Import a Shared Concept
 
 :::note[Advanced]
 
@@ -298,7 +298,7 @@ uses that live in importing files; it changes nothing else.
 Full rules, including how to name a scope explicitly when the filename won't do:
 [Imports](../06-schema-reference.md#imports).
 
-## Next steps
+## Next Steps
 
 - [Create a model with the authoring workflow](../02-getting-started.md).
 - [Use imports and `shared`](../06-schema-reference.md#imports) when models need

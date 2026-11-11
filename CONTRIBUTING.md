@@ -7,24 +7,24 @@ conventions you should know before making structural changes (the example
 fixture, schema/struct sync, and docs numbering rules all have CI checks
 behind them).
 
-## Code of conduct
+## Code of Conduct
 
 This project adheres to the [Contributor Covenant](./CODE_OF_CONDUCT.md). By
 participating, you're expected to uphold it. Report unacceptable behavior to
 [code-of-conduct@stacklok.com](mailto:code-of-conduct@stacklok.com).
 
-## Reporting security vulnerabilities
+## Reporting Security Vulnerabilities
 
 Please don't report security vulnerabilities using GitHub issues. Instead,
 follow the process in [`SECURITY.md`](./SECURITY.md).
 
-## How to contribute
+## How to Contribute
 
 Use [GitHub Issues](https://github.com/stacklok/modelith/issues) for bugs and
 feature requests. For small, obvious fixes, feel free to just open a pull
 request directly.
 
-## Pull request process
+## Pull Request Process
 
 - All commits must include a `Signed-off-by` trailer certifying the
   [Developer Certificate of Origin](./dco.md). Use `git commit -s`.
@@ -36,7 +36,7 @@ request directly.
 - Open a PR; ensure CI passes.
 - PRs are squash-merged.
 
-## Commit message guidelines
+## Commit Message Guidelines
 
 We follow the conventions from
 [Chris Beams' "How to Write a Git Commit Message"](https://chris.beams.io/posts/git-commit/):

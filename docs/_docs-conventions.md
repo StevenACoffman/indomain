@@ -1,4 +1,4 @@
-# Conventions for these docs
+# Conventions for These Docs
 
 > This file is **not published**. Docusaurus excludes `_`-prefixed Markdown, so
 > it stays a contributor note here and on GitHub but never renders on the site.
@@ -7,7 +7,7 @@ These docs are built with Docusaurus from the `website/` directory and published
 at **<https://modelith.sh>**. The `docs/` directory here is the content source;
 `website/docusaurus.config.ts` points at it via `docsPath: '../docs'`.
 
-## File order and naming
+## File Order and Naming
 
 - **Number page files `NN-name.md`** (`02-getting-started.md`, …,
   `09-local-development.md`) so they read in order when browsed on GitHub.
@@ -18,7 +18,7 @@ at **<https://modelith.sh>**. The `docs/` directory here is the content source;
 - Renaming or renumbering a page **changes its published URL.** Update any
   inbound links (README, other docs pages) when you do.
 
-## Front matter
+## Front Matter
 
 - Set **`title:`** (controls the page title and sidebar label).
 - **`sidebar_position:`** is fine and harmless alongside the number prefix.
@@ -32,7 +32,7 @@ at **<https://modelith.sh>**. The `docs/` directory here is the content source;
 - **No HTML comments** (`<!-- -->`) — the site is MDX and rejects them. Use
   `{/* */}` instead.
 
-## CI coupling — the parking-garage example
+## CI Coupling — the Parking-Garage Example
 
 The worked example lives in **`docs/05-parking-garage/`**, and its
 `garage.modelith.yaml` is linted and render-checked in CI alongside the

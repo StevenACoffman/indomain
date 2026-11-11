@@ -1,4 +1,4 @@
-# Subtype / generalization via `subtypeOf`
+# Subtype / Generalization via `subtypeOf`
 
 Add an is-a link between entities: `subtypeOf: <Parent>` as a top-level field on
 the child entity. Resolves issue #8.
@@ -17,7 +17,7 @@ the enumeration.
 
 The child declares its own membership: `subtypeOf: Parent`.
 
-## Considered options
+## Considered Options
 
 - **`subtypes: [...]` on the parent** — rejected. It couples the parent to every
   child and does not scale to an open hierarchy. The child knowing its own

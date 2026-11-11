@@ -4,25 +4,25 @@
 
 ## Summary
 
-| Lens | Findings | Blockers | Easy | Q | Design |
-|------|----------|----------|------|---|--------|
-| Internal-ref sweep | 5 | 0 | 5 | 0 | 0 |
-| License / legal | 0 | 0 | 0 | 0 | 0 |
-| CLI / DX | 0 | 0 | 0 | 0 | 0 |
-| DevOps / GH | 9 | 0 | 6 | 2 | 0 |
-| JSON Schema | 9 | 0 | 9 | 0 | 0 |
-| Security | 4 | 0 | 1 | 3 | 0 |
-| Docs accuracy | 4 | 2 | 4 | 0 | 0 |
-| Go code | 6 | 0 | 4 | 0 | 0 |
-| DDD (pragmatic) | 7 | 0 | 0 | 0 | 7 |
-| Plugin / skills | 4 | 0 | 2 | 2 | 0 |
-| **Total** | **48** | **2** | **31** | **7** | **7** |
+| Lens               | Findings | Blockers | Easy   | Q     | Design |
+| ------------------ | -------- | -------- | ------ | ----- | ------ |
+| Internal-ref sweep | 5        | 0        | 5      | 0     | 0      |
+| License / legal    | 0        | 0        | 0      | 0     | 0      |
+| CLI / DX           | 0        | 0        | 0      | 0     | 0      |
+| DevOps / GH        | 9        | 0        | 6      | 2     | 0      |
+| JSON Schema        | 9        | 0        | 9      | 0     | 0      |
+| Security           | 4        | 0        | 1      | 3     | 0      |
+| Docs accuracy      | 4        | 2        | 4      | 0     | 0      |
+| Go code            | 6        | 0        | 4      | 0     | 0      |
+| DDD (pragmatic)    | 7        | 0        | 0      | 0     | 7      |
+| Plugin / skills    | 4        | 0        | 2      | 2     | 0      |
+| **Total**          | **48**   | **2**    | **31** | **7** | **7**  |
 
 License/legal and CLI/DX came back **clean**.
 
----
+______________________________________________________________________
 
-## Blockers (fix before opening)
+## Blockers (Fix Before Opening)
 
 - **[docs-accuracy]** `README.md:37` · easy · Plugin install commands advertise a marketplace entry that isn't published yet
   > README lines 37-39 present `claude plugin marketplace add anthropics/claude-plugins-community` + `claude plugin install modelith@claude-community` as working install steps. The roadmap at line 97 explicitly marks 'Published to anthropics/claude-plugins-community' as unchecked (TODO). Anyone following these instructions will get a 'not found' error. Either gate this doc section behind a "coming soon" admonition, or replace with the `--plugin-dir` local-checkout path as the interim primary path until the plugin is actually published.
@@ -30,7 +30,7 @@ License/legal and CLI/DX came back **clean**.
 - **[docs-accuracy]** `docs/02-getting-started.md:22` · easy · Same phantom marketplace install commands in the primary user-facing doc
   > docs/02-getting-started.md lines 22-24 show the claude-community install as the primary install path for a first-time user with no caveat that it doesn't work yet. The recovery block at lines 49-57 even describes uninstall/reinstall flows that presuppose a working install. Until the plugin is published, prefix with a clear "coming soon" note or replace with the `--plugin-dir` local-checkout path from docs/09-local-development.md.
 
----
+______________________________________________________________________
 
 ## High
 
@@ -54,7 +54,7 @@ License/legal and CLI/DX came back **clean**.
 - **[DDD]** `docs/06-schema-reference.md:79` · design · Silent on the four DDD concepts an external practitioner will look for first
   > The schema explains why state transitions are absent, but never addresses aggregates, value objects, domain events, or bounded contexts. A DDD-literate reader reads the silence as an oversight. Add a "What this format deliberately leaves out" section to the schema reference. Highest-leverage doc change for credibility with the target audience.
 
----
+______________________________________________________________________
 
 ## Medium
 
@@ -74,7 +74,7 @@ License/legal and CLI/DX came back **clean**.
 
 - **[docs]** `docs/06-schema-reference.md:9` · easy · Schema URL rendered as clickable hyperlink but not yet live. Move the caveat above the link, or render as plain text until the schema is served.
 
----
+______________________________________________________________________
 
 ## Low / Info
 
@@ -124,23 +124,23 @@ License/legal and CLI/DX came back **clean**.
 
 - **[plugin]** `plugin/skills/domain-model-lint/SKILL.md:19` · easy · Not-installed recovery is vague ("see CLI docs") — mirror the author skill's concrete `go install` command
 
----
+______________________________________________________________________
 
-## Questions (need a decision)
+## Questions (Need a Decision)
 
-| # | File | Question |
-|---|------|----------|
-| Q1 | `.goreleaser.yaml:14` | Support Windows? Or explicitly document as unsupported in action.yml + README? |
-| Q2 | `.github/workflows/ci.yml:1` | Add golangci-lint, or document the intentional skip? |
-| Q3 | `.goreleaser.yaml:6` | Remove `go mod tidy` pre-hook, or add a tidy-check to CI instead? |
-| Q4 | `.github/workflows/release.yml:8` | Move `contents: write` to job level? (Easy if yes.) |
-| Q5 | `.github/workflows/ci.yml:18` | Pin Go toolchain version in CI/release? |
-| Q6 | `plugin/skills/domain-model-author/SKILL.md:36` | Confirm modelith.sh docs are live before launch, or soften the link? |
-| Q7 | `../../pkg/schema/v1/modelith.schema.json:258` | Add `description` field to `scenario`? Intentional omission or gap? |
+| #   | File                                            | Question                                                                       |
+| --- | ----------------------------------------------- | ------------------------------------------------------------------------------ |
+| Q1  | `.goreleaser.yaml:14`                           | Support Windows? Or explicitly document as unsupported in action.yml + README? |
+| Q2  | `.github/workflows/ci.yml:1`                    | Add golangci-lint, or document the intentional skip?                           |
+| Q3  | `.goreleaser.yaml:6`                            | Remove `go mod tidy` pre-hook, or add a tidy-check to CI instead?              |
+| Q4  | `.github/workflows/release.yml:8`               | Move `contents: write` to job level? (Easy if yes.)                            |
+| Q5  | `.github/workflows/ci.yml:18`                   | Pin Go toolchain version in CI/release?                                        |
+| Q6  | `plugin/skills/domain-model-author/SKILL.md:36` | Confirm modelith.sh docs are live before launch, or soften the link?           |
+| Q7  | `../../pkg/schema/v1/modelith.schema.json:258`  | Add `description` field to `scenario`? Intentional omission or gap?            |
 
----
+______________________________________________________________________
 
-## Design items (park as GitHub issues)
+## Design Items (Park as GitHub Issues)
 
 1. **DDD omissions undocumented** — `docs/06-schema-reference.md:79` · Add "What this format deliberately leaves out" section covering aggregates, value objects, domain events, bounded contexts with a per-item out-of-scope/roadmap call.
 

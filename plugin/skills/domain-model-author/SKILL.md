@@ -9,7 +9,7 @@ description: >
   that explains findings without editing, use domain-model-lint instead.
 ---
 
-# Authoring a domain model
+# Authoring a Domain Model
 
 A domain model is the canonical, plain-language expression of what a product
 *is*: its named concepts (`entities`), how they relate, the rules that govern
@@ -17,12 +17,12 @@ them (`invariants`), and short narratives that stress-test the whole
 (`scenarios`). The YAML is the output of a conversation, not something the user
 hand-writes. Your job is to run that conversation and produce well-formed YAML.
 
-## Before you write anything
+## Before You Write Anything
 
 1. **Check that `modelith` is installed.** Run `modelith --version` (or `command -v modelith`).
    If it is not on `PATH`, **stop** and tell the user to install it:
    `go install github.com/stacklok/modelith/cmd/modelith@latest`, or download a
-   release binary from https://github.com/stacklok/modelith/releases. Do **not**
+   release binary from <https://github.com/stacklok/modelith/releases>. Do **not**
    hand-write YAML you cannot lint — the linter is what keeps the model valid;
    without it you are guessing.
 2. **Read the schema.** Run `modelith schema` — that is the source of truth and works
@@ -36,7 +36,7 @@ hand-writes. Your job is to run that conversation and produce well-formed YAML.
 4. **Read the philosophy** if you have not: the [modelith docs](https://modelith.sh)
    explain *why* naming and invariants matter.
 
-## Build order — skeleton first
+## Build Order — Skeleton First
 
 A model isn't built field-by-field down one entity; it's built in **passes
 across the whole model**, each pass a coherent layer you could stop at. Going
@@ -69,7 +69,7 @@ breadth-first, in this order:
 You can stop after any pass and have something honest. Treat Passes 2 and 3 as
 enrichment of a model that is already useful, not as the work of "finishing" it.
 
-## The conversation
+## The Conversation
 
 Your value is in the questions, not the typing. The questions track the passes
 above — settle naming, relationships, and cardinality across the whole model
@@ -204,7 +204,7 @@ Follow the format exactly (see the schema reference). Key conventions:
   an invariant that doesn't exist yet, add it (to the owning entity, or the
   top-level list if cross-entity) and reference that.
 
-### Hard rules the schema enforces (these are errors)
+### Hard Rules the Schema Enforces (These Are Errors)
 
 Get these right the first time; they fail `modelith lint` structurally:
 
@@ -222,7 +222,7 @@ Get these right the first time; they fail `modelith lint` structurally:
   else is an error. **`ownership`**, when present, is exactly `owned` or
   `referenced`.
 
-### Avoid these linter false positives
+### Avoid These Linter False Positives
 
 The semantic checks are heuristic; these patterns trip warnings that aren't real
 bugs, so steer around them:
@@ -241,7 +241,7 @@ bugs, so steer around them:
   (lowercase, or any name you haven't declared) warns — define it in the
   `glossary` first, or use the entity name.
 
-## Always finish by validating and rendering
+## Always Finish by Validating and Rendering
 
 After any edit:
 
@@ -260,7 +260,7 @@ Keep the `.yaml` and the regenerated `.md` in sync, and never edit the `.md` by
 hand — it is generated. Commit them **together when the user is ready**; don't
 commit on your own unless they ask.
 
-## Changing vs. adding
+## Changing vs. Adding
 
 - **Adding** (new entity, attribute, scenario) is low-ceremony: draft, lint,
   done.

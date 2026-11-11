@@ -30,10 +30,10 @@ indomain lint <file>...
 Validates one or more files across three layers — structural (JSON Schema),
 semantic (cross-references), and completeness (advisory gaps).
 
-| Flag | Default | Description |
-|---|---|---|
-| `--completeness` | `warn` | Treat completeness gaps as `warn` or `error`. |
-| `--format` | `text` | Output format: `text` or `json`. |
+| Flag             | Default | Description                                   |
+| ---------------- | ------- | --------------------------------------------- |
+| `--completeness` | `warn`  | Treat completeness gaps as `warn` or `error`. |
+| `--format`       | `text`  | Output format: `text` or `json`.              |
 
 Exit code is non-zero when there are errors, or when completeness gaps exist and
 `--completeness=error`. `--format json` is for CI annotations.
@@ -53,11 +53,11 @@ Renders the model to a single Markdown document with an embedded Mermaid
 `erDiagram`. By default it writes alongside the input (`model.modelith.yaml` →
 `model.modelith.md`).
 
-| Flag | Default | Description |
-|---|---|---|
-| `--out`, `-o` | input with `.md` extension | Output path (the input's `.yaml`/`.yml` replaced with `.md`). |
-| `--stdout` | `false` | Write to stdout instead of a file. |
-| `--check` | `false` | Verify the committed output is up to date; non-zero exit on drift. |
+| Flag          | Default                    | Description                                                        |
+| ------------- | -------------------------- | ------------------------------------------------------------------ |
+| `--out`, `-o` | input with `.md` extension | Output path (the input's `.yaml`/`.yml` replaced with `.md`).      |
+| `--stdout`    | `false`                    | Write to stdout instead of a file.                                 |
+| `--check`     | `false`                    | Verify the committed output is up to date; non-zero exit on drift. |
 
 `--stdout` cannot be combined with `--out` or `--check`.
 
@@ -100,12 +100,12 @@ Azure DevOps imports require the [Azure CLI](https://learn.microsoft.com/en-us/c
 and an `az login` session. The command prints the `imports:` entry to add; it
 does not edit your model.
 
-| Argument / flag | Meaning |
-|---|---|
-| `<url>` | The browser URL of a file on github.com or dev.azure.com. |
-| `[dir]` | Destination directory. |
-| `--ref` | Ref to fetch, overriding the ref in the URL. A tag pins the copy. |
-| `--timeout` | Maximum duration for each delegated `gh` or `az` fetch. Defaults to `60s`; `0` disables the limit. |
+| Argument / flag | Meaning                                                                                            |
+| --------------- | -------------------------------------------------------------------------------------------------- |
+| `<url>`         | The browser URL of a file on github.com or dev.azure.com.                                          |
+| `[dir]`         | Destination directory.                                                                             |
+| `--ref`         | Ref to fetch, overriding the ref in the URL. A tag pins the copy.                                  |
+| `--timeout`     | Maximum duration for each delegated `gh` or `az` fetch. Defaults to `60s`; `0` disables the limit. |
 
 GitHub browser URLs can be ambiguous when a branch or tag contains `/`. Pass
 `--ref` only when it names that same ref in the URL: it tells modelith where the
@@ -126,9 +126,9 @@ Checks vendored copies against their origins and exits non-zero when a copy is
 stale or cannot be reached. It writes nothing and skips files without provenance
 headers. Copies from github.com and dev.azure.com are both checked.
 
-| Flag | Default | Description |
-|---|---|---|
-| `--timeout` | `60s` | Maximum duration for each delegated `gh` or `az` fetch; `0` disables the limit. |
+| Flag        | Default | Description                                                                     |
+| ----------- | ------- | ------------------------------------------------------------------------------- |
+| `--timeout` | `60s`   | Maximum duration for each delegated `gh` or `az` fetch; `0` disables the limit. |
 
 ```sh
 indomain deps check docs/*.modelith.yaml
@@ -140,10 +140,10 @@ Updates vendored copies from their origins, for copies from github.com and
 dev.azure.com alike. `--ref` re-pins one copy to a tag or branch; it accepts
 exactly one file. The command does not edit `imports:` or lint the result.
 
-| Flag | Default | Description |
-|---|---|---|
-| `--ref` | header's ref | Re-pin one copy to this ref (a tag or branch). One file only. |
-| `--timeout` | `60s` | Maximum duration for each delegated `gh` or `az` fetch; `0` disables the limit. |
+| Flag        | Default      | Description                                                                     |
+| ----------- | ------------ | ------------------------------------------------------------------------------- |
+| `--ref`     | header's ref | Re-pin one copy to this ref (a tag or branch). One file only.                   |
+| `--timeout` | `60s`        | Maximum duration for each delegated `gh` or `az` fetch; `0` disables the limit. |
 
 ```sh
 indomain deps update docs/*.modelith.yaml

@@ -20,7 +20,7 @@ Commit both. The Markdown is generated from the YAML — never hand-edit it; cha
 the YAML (via the agent) and re-render. A model [vendored from another
 repository](./10-vendoring.md) is a copy with different rendering obligations.
 
-## Model contents
+## Model Contents
 
 A model can define `glossary`, `enums`, `entities`, `scenarios`, and model-level
 `invariants`:
@@ -87,7 +87,7 @@ scenarios:
 See the [Schema Reference](./06-schema-reference.md) for every field, and [Reading
 the Diagrams](./04-reading-the-diagrams.md) for how the rendered ER diagram works.
 
-## The backtick convention
+## The Backtick Convention
 
 In freeform text (definitions, steps, invariants), entity names are wrapped in
 backticks — `` `Project` `` — so the renderer formats them as code and the

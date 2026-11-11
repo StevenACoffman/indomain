@@ -1,4 +1,4 @@
-# Adopt ADRs alongside audits, both under `project-docs/`
+# Adopt ADRs Alongside Audits, Both Under `project-docs/`
 
 We keep two kinds of record and had only one. `audits/` captures retrospective
 multi-agent review snapshots; it does not capture a decision at the moment it

@@ -9,7 +9,7 @@ edited in place: a new ADR supersedes an old one. The shape, template, and the
 bar for writing one live in
 [`.claude/rules/adr.md`](../../.claude/rules/adr.md).
 
-## ADRs vs. audits
+## ADRs vs. Audits
 
 Its sibling [`../audits/`](../audits/) is retrospective: point-in-time
 snapshots of multi-agent reviews and their findings. When a decision comes out
