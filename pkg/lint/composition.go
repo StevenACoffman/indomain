@@ -25,6 +25,17 @@ type ownedLink struct {
 	index  int
 }
 
+// tarjan holds the state of one run of Tarjan's strongly-connected-components
+// algorithm.
+type tarjan struct {
+	edges      map[string][]string
+	index      map[string]int
+	low        map[string]int
+	onStack    map[string]bool
+	stack      []string
+	components [][]string
+}
+
 // runCompositionOwner warns on an owned relationship whose owner side is not
 // exactly one. `ownership: owned` says the target cannot exist without the
 // declaring entity, so each target instance has exactly one owner: "n:1 owned"
@@ -43,11 +54,9 @@ func runCompositionOwner(m *model.Model, res *Result) {
 			if !ok || exactlyOne(owner) {
 				continue
 			}
-			res.Findings = append(res.Findings, Finding{
-				Severity: SeverityWarning,
-				Category: CategorySemantic,
-				Path:     fmt.Sprintf("/entities/%s/relationships/%d/ownership", name, i),
-				Message: fmt.Sprintf(
+			res.add(SeverityWarning, CategorySemantic,
+				fmt.Sprintf("/entities/%s/relationships/%d/ownership", name, i),
+				fmt.Sprintf(
 					"%s→%s is owned, so each %s has exactly one %s, but cardinality %q does not say so — write the owner (left) side as \"1\", or use ownership: referenced if a %s can be shared or stand alone",
 					name,
 					rel.Entity,
@@ -55,8 +64,7 @@ func runCompositionOwner(m *model.Model, res *Result) {
 					name,
 					rel.Cardinality,
 					rel.Entity,
-				),
-			})
+				))
 		}
 	}
 }
@@ -93,25 +101,7 @@ func runOwnershipCycles(m *model.Model, res *Result) {
 // declared owned from both ends, which runReciprocity or runPairing already
 // reports, and fixing it first may be what breaks the larger loop.
 func ownershipCycles(m *model.Model) []ownershipCycle {
-	owns := map[[2]string]bool{}
-	for _, name := range m.EntityNames() {
-		for _, rel := range m.Entities[name].Relationships {
-			if _, local := m.Entities[rel.Entity]; local && requiresOwner(rel) {
-				owns[[2]string{name, rel.Entity}] = true
-			}
-		}
-	}
-	links := map[string][]ownedLink{}
-	edges := map[string][]string{}
-	for _, name := range m.EntityNames() {
-		for i, rel := range m.Entities[name].Relationships {
-			mutual := name != rel.Entity && owns[[2]string{rel.Entity, name}]
-			if owns[[2]string{name, rel.Entity}] && !mutual {
-				links[name] = append(links[name], ownedLink{target: rel.Entity, index: i})
-				edges[name] = append(edges[name], rel.Entity)
-			}
-		}
-	}
+	links, edges := ownerLinks(m)
 
 	var cycles []ownershipCycle
 	for _, component := range stronglyConnected(m.EntityNames(), edges) {
@@ -136,9 +126,35 @@ func ownershipCycles(m *model.Model) []ownershipCycle {
 	return cycles
 }
 
+// ownerLinks returns, per entity, the owned relationships that require an owner
+// (with their positions) and the entities they point at, leaving out one that
+// the target owns right back.
+func ownerLinks(m *model.Model) (map[string][]ownedLink, map[string][]string) {
+	owns := map[[2]string]bool{}
+	for _, name := range m.EntityNames() {
+		for _, rel := range m.Entities[name].Relationships {
+			if _, local := m.Entities[rel.Entity]; local && requiresOwner(&rel) {
+				owns[[2]string{name, rel.Entity}] = true
+			}
+		}
+	}
+	links := map[string][]ownedLink{}
+	edges := map[string][]string{}
+	for _, name := range m.EntityNames() {
+		for i, rel := range m.Entities[name].Relationships {
+			mutual := name != rel.Entity && owns[[2]string{rel.Entity, name}]
+			if owns[[2]string{name, rel.Entity}] && !mutual {
+				links[name] = append(links[name], ownedLink{target: rel.Entity, index: i})
+				edges[name] = append(edges[name], rel.Entity)
+			}
+		}
+	}
+	return links, edges
+}
+
 // requiresOwner reports whether rel is owned and its owner side needs at least
 // one owner.
-func requiresOwner(rel model.Relationship) bool {
+func requiresOwner(rel *model.Relationship) bool {
 	if rel.Ownership != "owned" {
 		return false
 	}
@@ -149,47 +165,51 @@ func requiresOwner(rel model.Relationship) bool {
 // stronglyConnected partitions nodes into strongly connected components using
 // Tarjan's algorithm.
 func stronglyConnected(nodes []string, edges map[string][]string) [][]string {
-	index := map[string]int{}
-	low := map[string]int{}
-	onStack := map[string]bool{}
-	var stack []string
-	var components [][]string
-
-	var visit func(string)
-	visit = func(v string) {
-		index[v] = len(index)
-		low[v] = index[v]
-		stack = append(stack, v)
-		onStack[v] = true
-		for _, w := range edges[v] {
-			if _, seen := index[w]; !seen {
-				visit(w)
-				low[v] = min(low[v], low[w])
-			} else if onStack[w] {
-				low[v] = min(low[v], index[w])
-			}
-		}
-		if low[v] != index[v] {
-			return
-		}
-		var component []string
-		for {
-			w := stack[len(stack)-1]
-			stack = stack[:len(stack)-1]
-			onStack[w] = false
-			component = append(component, w)
-			if w == v {
-				break
-			}
-		}
-		components = append(components, component)
+	t := &tarjan{
+		edges:   edges,
+		index:   map[string]int{},
+		low:     map[string]int{},
+		onStack: map[string]bool{},
 	}
 	for _, v := range nodes {
-		if _, seen := index[v]; !seen {
-			visit(v)
+		if _, seen := t.index[v]; !seen {
+			t.visit(v)
 		}
 	}
-	return components
+	return t.components
+}
+
+func (t *tarjan) visit(v string) {
+	t.index[v] = len(t.index)
+	t.low[v] = t.index[v]
+	t.stack = append(t.stack, v)
+	t.onStack[v] = true
+	for _, w := range t.edges[v] {
+		if _, seen := t.index[w]; !seen {
+			t.visit(w)
+			t.low[v] = min(t.low[v], t.low[w])
+		} else if t.onStack[w] {
+			t.low[v] = min(t.low[v], t.index[w])
+		}
+	}
+	if t.low[v] == t.index[v] {
+		t.components = append(t.components, t.popComponent(v))
+	}
+}
+
+// popComponent pops the stack down to and including root, which is the
+// component root leads.
+func (t *tarjan) popComponent(root string) []string {
+	var component []string
+	for {
+		w := t.stack[len(t.stack)-1]
+		t.stack = t.stack[:len(t.stack)-1]
+		t.onStack[w] = false
+		component = append(component, w)
+		if w == root {
+			return component
+		}
+	}
 }
 
 func cycleMessage(cycle []string) string {

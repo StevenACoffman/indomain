@@ -16,9 +16,9 @@ func planned(t *testing.T, inputs []Input, files fakeFiles) []FileResult {
 
 func editedVendored(t *testing.T) string {
 	t.Helper()
-	copy := stamp(t, gappy)
-	edited := strings.Replace(copy, "One car's stay in the garage.", "One car's stay.", 1)
-	if edited == copy {
+	stamped := stamp(t, gappy)
+	edited := strings.Replace(stamped, "One car's stay in the garage.", "One car's stay.", 1)
+	if edited == stamped {
 		t.Fatal("fixture did not change the vendored copy")
 	}
 	return edited

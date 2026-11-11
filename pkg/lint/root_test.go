@@ -83,13 +83,13 @@ func m5Tree(t *testing.T) string {
 	}
 	if err := os.Symlink(
 		filepath.Join(base, "outside", "p.modelith.yaml"),
-		filepath.Join(base, "repo/docs", "link.modelith.yaml"),
+		filepath.Join(base, "repo", "docs", "link.modelith.yaml"),
 	); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Symlink(
 		filepath.Join(base, "outside", "gone.modelith.yaml"),
-		filepath.Join(base, "repo/docs", "dangle.modelith.yaml"),
+		filepath.Join(base, "repo", "docs", "dangle.modelith.yaml"),
 	); err != nil {
 		t.Fatal(err)
 	}
