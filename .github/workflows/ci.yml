@@ -36,15 +36,15 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          modelith="${{ runner.temp }}/modelith"
+          indomain="${{ runner.temp }}/indomain"
           files=(examples/*.modelith.yaml docs/05-parking-garage/*.modelith.yaml)
           if [ ${#files[@]} -eq 0 ]; then
             echo "::error::No example models found"
             exit 1
           fi
-          "$modelith" lint --completeness error "${files[@]}"
+          "$indomain" lint --completeness error "${files[@]}"
           for f in "${files[@]}"; do
-            "$modelith" render --check "$f"
+            "$indomain" render --check "$f"
           done
       - name: Validate plugin manifest
         # Lightweight structural check (jq is preinstalled on ubuntu-latest). The
