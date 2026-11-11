@@ -33,7 +33,11 @@ func TestExampleIsClean(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(res.Findings) != 0 {
-		t.Fatalf("expected example to lint clean, got %d findings: %+v", len(res.Findings), res.Findings)
+		t.Fatalf(
+			"expected example to lint clean, got %d findings: %+v",
+			len(res.Findings),
+			res.Findings,
+		)
 	}
 }
 
@@ -129,7 +133,10 @@ entities:
 		}
 	}
 	if !strings.Contains(got, "unsupported schema version") || !strings.Contains(got, "v1") {
-		t.Fatalf("expected a friendly unsupported-version message naming the supported versions, got: %q", got)
+		t.Fatalf(
+			"expected a friendly unsupported-version message naming the supported versions, got: %q",
+			got,
+		)
 	}
 }
 
@@ -246,8 +253,12 @@ scenarios:
 
 func TestHasBlockingTable(t *testing.T) {
 	errOnly := &Result{Findings: []Finding{{Severity: SeverityError, Category: CategorySemantic}}}
-	warnOnly := &Result{Findings: []Finding{{Severity: SeverityWarning, Category: CategorySemantic}}}
-	complOnly := &Result{Findings: []Finding{{Severity: SeverityWarning, Category: CategoryCompleteness}}}
+	warnOnly := &Result{
+		Findings: []Finding{{Severity: SeverityWarning, Category: CategorySemantic}},
+	}
+	complOnly := &Result{
+		Findings: []Finding{{Severity: SeverityWarning, Category: CategoryCompleteness}},
+	}
 	cases := []struct {
 		name              string
 		res               *Result
@@ -373,7 +384,10 @@ entities:
 		t.Fatal(err)
 	}
 	if countBy(res.Findings, SeverityWarning, CategoryCompleteness) < 2 {
-		t.Fatalf("expected completeness warnings (no invariants, no scenario), got: %+v", res.Findings)
+		t.Fatalf(
+			"expected completeness warnings (no invariants, no scenario), got: %+v",
+			res.Findings,
+		)
 	}
 	if res.HasBlocking(false) {
 		t.Fatal("completeness warnings should not block by default")
@@ -547,7 +561,10 @@ entities:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !findingWithMessage(res.Findings, "role term \"Maintainer\" is not a defined entity or glossary term") {
+	if !findingWithMessage(
+		res.Findings,
+		"role term \"Maintainer\" is not a defined entity or glossary term",
+	) {
 		t.Fatalf("expected a warning for the undefined role, got: %+v", res.Findings)
 	}
 	if res.HasBlocking(false) {
@@ -596,12 +613,20 @@ func TestADR_0008_ProseRoleIsWarning(t *testing.T) {
 	}{
 		{name: "role name", role: "`Owner`", want: false},
 		{name: "two role names", role: "`Owner` or `Member`", want: false},
-		{name: "a comma-separated pair of role names is a list, not prose", role: "`Owner`, `Member`", want: false},
+		{
+			name: "a comma-separated pair of role names is a list, not prose",
+			role: "`Owner`, `Member`",
+			want: false,
+		},
 		{name: "a field accessor is not a sentence", role: "`Project`.owner", want: false},
 		{name: "a version number is not a sentence", role: "v1.0 owner", want: false},
 		{name: "four words", role: "primary contact for escalation", want: false},
 		{name: "five words", role: "the record this one supersedes", want: true},
-		{name: "one word too long for a label", role: "pneumonoultramicroscopicsilicovolcanoconiosisadministrator", want: true},
+		{
+			name: "one word too long for a label",
+			role: "pneumonoultramicroscopicsilicovolcanoconiosisadministrator",
+			want: true,
+		},
 		{name: "full stop", role: "The owning project.", want: true},
 		{name: "semicolon", role: "owner; also billing", want: true},
 		{name: "empty", role: "", want: false},
@@ -628,7 +653,13 @@ entities:
 			}
 			got := findingWithMessage(res.Findings, "reads as prose")
 			if got != tc.want {
-				t.Fatalf("role %q: prose warning = %v, want %v; findings: %+v", tc.role, got, tc.want, res.Findings)
+				t.Fatalf(
+					"role %q: prose warning = %v, want %v; findings: %+v",
+					tc.role,
+					got,
+					tc.want,
+					res.Findings,
+				)
 			}
 			if !got {
 				return
@@ -763,7 +794,12 @@ entities:
 				t.Fatal(err)
 			}
 			if got := findingWithMessage(res.Findings, "mutual ownership"); got != (tc.want != "") {
-				t.Fatalf("mutual-ownership finding = %v, want %v; findings: %+v", got, tc.want != "", res.Findings)
+				t.Fatalf(
+					"mutual-ownership finding = %v, want %v; findings: %+v",
+					got,
+					tc.want != "",
+					res.Findings,
+				)
 			}
 			if tc.want == "" {
 				if res.HasBlocking(false) {
@@ -834,7 +870,11 @@ scenarios:
 		t.Fatal(err)
 	}
 	if len(res.Findings) != 0 {
-		t.Fatalf("expected no findings on a reciprocal composition, got %d: %+v", len(res.Findings), res.Findings)
+		t.Fatalf(
+			"expected no findings on a reciprocal composition, got %d: %+v",
+			len(res.Findings),
+			res.Findings,
+		)
 	}
 }
 
@@ -985,13 +1025,22 @@ func TestADR_0008_AmbiguousPairingIsWarning(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			res, err := Run(testModelPath, []byte("kind: DomainModel\nversion: v1\nentities:"+tc.rels), nil)
+			res, err := Run(
+				testModelPath,
+				[]byte("kind: DomainModel\nversion: v1\nentities:"+tc.rels),
+				nil,
+			)
 			if err != nil {
 				t.Fatal(err)
 			}
 			got := findingWithMessage(res.Findings, "ambiguous reciprocal pairing")
 			if got != tc.want {
-				t.Fatalf("ambiguous-pairing warning = %v, want %v; findings: %+v", got, tc.want, res.Findings)
+				t.Fatalf(
+					"ambiguous-pairing warning = %v, want %v; findings: %+v",
+					got,
+					tc.want,
+					res.Findings,
+				)
 			}
 			if !got {
 				return
@@ -1055,7 +1104,10 @@ entities:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !findingWithMessage(res.Findings, "looks like an enum reference but no enum \"ProjectStatus\" is defined") {
+	if !findingWithMessage(
+		res.Findings,
+		"looks like an enum reference but no enum \"ProjectStatus\" is defined",
+	) {
 		t.Fatalf("expected a warning for the unresolved enum type, got: %+v", res.Findings)
 	}
 }
@@ -1078,7 +1130,10 @@ entities:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !findingWithMessage(res.Findings, "glossary term \"Ghost\" is defined but never referenced") {
+	if !findingWithMessage(
+		res.Findings,
+		"glossary term \"Ghost\" is defined but never referenced",
+	) {
 		t.Fatalf("expected an unused-glossary advisory, got: %+v", res.Findings)
 	}
 	if !findingWithMessage(res.Findings, "enum \"Unused\" is defined but no attribute uses it") {
@@ -1144,8 +1199,13 @@ entities:
 			src:  strings.Replace(vocabulary, "version: v1", "version: v1\nshared: true", 1),
 		},
 		{
-			name:     "shared, with a gap that is not about being used",
-			src:      strings.Replace(vocabulary, "version: v1", "version: v1\nshared: true", 1) + contentGap,
+			name: "shared, with a gap that is not about being used",
+			src: strings.Replace(
+				vocabulary,
+				"version: v1",
+				"version: v1\nshared: true",
+				1,
+			) + contentGap,
 			blocking: true,
 			gap:      true,
 		},
@@ -1163,7 +1223,13 @@ entities:
 				`enum "PaymentMethod" is defined but no attribute uses it`,
 			} {
 				if got := findingWithMessage(res.Findings, msg); got != tc.unused {
-					t.Errorf("finding %q present = %v, want %v: %+v", msg, got, tc.unused, res.Findings)
+					t.Errorf(
+						"finding %q present = %v, want %v: %+v",
+						msg,
+						got,
+						tc.unused,
+						res.Findings,
+					)
 				}
 			}
 			for _, msg := range []string{
@@ -1171,7 +1237,13 @@ entities:
 				`no scenario exercises entity "Refund"`,
 			} {
 				if got := findingWithMessage(res.Findings, msg); got != tc.gap {
-					t.Errorf("finding %q present = %v, want %v: %+v", msg, got, tc.gap, res.Findings)
+					t.Errorf(
+						"finding %q present = %v, want %v: %+v",
+						msg,
+						got,
+						tc.gap,
+						res.Findings,
+					)
 				}
 			}
 			// The boundary this exists for: only the shared model with nothing
@@ -1200,7 +1272,10 @@ entities:
 		t.Fatal(err)
 	}
 	if countBy(res.Findings, SeverityError, CategoryStructural) == 0 {
-		t.Fatalf("expected a structural error: derived attribute without derivation, got: %+v", res.Findings)
+		t.Fatalf(
+			"expected a structural error: derived attribute without derivation, got: %+v",
+			res.Findings,
+		)
 	}
 }
 
@@ -1243,7 +1318,10 @@ entities:
 		t.Fatal(err)
 	}
 	if countBy(res.Findings, SeverityError, CategoryStructural) != 0 {
-		t.Fatalf("expected derived entity without derivation to lint clean structurally, got: %+v", res.Findings)
+		t.Fatalf(
+			"expected derived entity without derivation to lint clean structurally, got: %+v",
+			res.Findings,
+		)
 	}
 }
 
@@ -1263,7 +1341,10 @@ entities:
 		t.Fatal(err)
 	}
 	if countBy(res.Findings, SeverityError, CategoryStructural) == 0 {
-		t.Fatalf("expected a structural error: entity derivation without derived, got: %+v", res.Findings)
+		t.Fatalf(
+			"expected a structural error: entity derivation without derived, got: %+v",
+			res.Findings,
+		)
 	}
 }
 
@@ -1329,7 +1410,10 @@ entities:
 		t.Fatal(err)
 	}
 	if findingWithMessage(res.Findings, "which is derived") {
-		t.Fatalf("did not expect a derived-ownership warning for a referenced relationship, got: %+v", res.Findings)
+		t.Fatalf(
+			"did not expect a derived-ownership warning for a referenced relationship, got: %+v",
+			res.Findings,
+		)
 	}
 }
 
@@ -1546,7 +1630,10 @@ entities:
 		t.Fatal(err)
 	}
 	if findingWithMessage(res.Findings, `"Card" has no invariants`) {
-		t.Fatalf("subtype should inherit its parent's invariants for completeness: %+v", res.Findings)
+		t.Fatalf(
+			"subtype should inherit its parent's invariants for completeness: %+v",
+			res.Findings,
+		)
 	}
 	if !findingWithMessage(res.Findings, `"Cash" has no invariants`) {
 		t.Fatalf("an unrelated empty entity should still be flagged: %+v", res.Findings)

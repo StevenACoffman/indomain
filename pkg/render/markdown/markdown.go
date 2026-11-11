@@ -101,8 +101,15 @@ func renderImports(b *strings.Builder, m *model.Model, sourceDir, outDir string)
 	// as every other string here, and the link destination through its own. The
 	// link's own label is a fixed word, so it carries nothing to escape.
 	for _, imp := range m.Imports {
-		fmt.Fprintf(b, "- **%s** — %s ([rendered](%s))\n",
-			codeSpan(imp.Scope), codeSpan(imp.Path), linkTarget(importLinkTarget(imp.Path, sourceDir, outDir)))
+		fmt.Fprintf(
+			b,
+			"- **%s** — %s ([rendered](%s))\n",
+			codeSpan(
+				imp.Scope,
+			),
+			codeSpan(imp.Path),
+			linkTarget(importLinkTarget(imp.Path, sourceDir, outDir)),
+		)
 	}
 	b.WriteString("\n")
 }
@@ -256,7 +263,11 @@ func renderEntities(b *strings.Builder, m *model.Model, sourceDir, outDir string
 		}
 
 		if ent.SubtypeOf != "" {
-			fmt.Fprintf(b, "**Subtype of** %s\n\n", qualifiedReference(ent.SubtypeOf, importTargets))
+			fmt.Fprintf(
+				b,
+				"**Subtype of** %s\n\n",
+				qualifiedReference(ent.SubtypeOf, importTargets),
+			)
 		}
 		if kids := subtypes[name]; len(kids) > 0 {
 			quoted := make([]string, len(kids))
@@ -313,7 +324,13 @@ func renderEntities(b *strings.Builder, m *model.Model, sourceDir, outDir string
 						desc = d
 					}
 				}
-				fmt.Fprintf(b, "| %s | %s | %s |\n", codeCell(attr.Name), typeCell(attr.Type, importTargets), mdCell(desc))
+				fmt.Fprintf(
+					b,
+					"| %s | %s | %s |\n",
+					codeCell(attr.Name),
+					typeCell(attr.Type, importTargets),
+					mdCell(desc),
+				)
 			}
 			b.WriteString("\n")
 		}
@@ -624,25 +641,28 @@ func parseMarkup(s, prefix string) []byteRange {
 		}
 	}
 	// Walk never returns an error: the callback below returns none.
-	_ = ast.Walk(mdParser.Parse(text.NewReader([]byte(src))), func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if !entering {
+	_ = ast.Walk(
+		mdParser.Parse(text.NewReader([]byte(src))),
+		func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+			if !entering {
+				return ast.WalkContinue, nil
+			}
+			switch node := n.(type) {
+			case *ast.RawHTML:
+				addSegments(node.Segments)
+			case *ast.HTMLBlock:
+				addSegments(node.Lines())
+				if node.HasClosure() {
+					add(node.ClosureLine.Start, node.ClosureLine.Stop)
+				}
+			case *ast.FencedCodeBlock:
+				if node.Info != nil {
+					add(node.Info.Segment.Start, node.Info.Segment.Stop)
+				}
+			}
 			return ast.WalkContinue, nil
-		}
-		switch node := n.(type) {
-		case *ast.RawHTML:
-			addSegments(node.Segments)
-		case *ast.HTMLBlock:
-			addSegments(node.Lines())
-			if node.HasClosure() {
-				add(node.ClosureLine.Start, node.ClosureLine.Stop)
-			}
-		case *ast.FencedCodeBlock:
-			if node.Info != nil {
-				add(node.Info.Segment.Start, node.Info.Segment.Stop)
-			}
-		}
-		return ast.WalkContinue, nil
-	})
+		},
+	)
 	return out
 }
 

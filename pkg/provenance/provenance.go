@@ -65,7 +65,17 @@ var refTypes = []string{"branch", "tag", "commit"}
 
 // keyOrder is the order Format writes the keys in, and the set of keys that
 // exist at all: a line naming anything else is a Problem.
-var keyOrder = []string{"vendored", "fetch", "origin", "path", "ref", "ref-type", "commit", "imported", "digest"}
+var keyOrder = []string{
+	"vendored",
+	"fetch",
+	"origin",
+	"path",
+	"ref",
+	"ref-type",
+	"commit",
+	"imported",
+	"digest",
+}
 
 // commonKeys are required whatever the fetch method is. methodKeys are the ones
 // each method requires on top, so adding a method means declaring what it
@@ -166,9 +176,13 @@ func Parse(src []byte) (*Header, []Problem) {
 		}
 		num, key, value := i+1, m[1], strings.TrimSpace(m[2])
 		if i >= lead {
-			problems = append(problems, Problem{num, fmt.Sprintf(
-				"provenance line %q is below the leading comment block, so it was read as an ordinary comment rather than as header — the whole header belongs at the top of the file, before any model content",
-				LinePrefix+key)})
+			problems = append(problems, Problem{
+				num,
+				fmt.Sprintf(
+					"provenance line %q is below the leading comment block, so it was read as an ordinary comment rather than as header — the whole header belongs at the top of the file, before any model content",
+					LinePrefix+key,
+				),
+			})
 			continue
 		}
 		field := h.field(key)
@@ -204,9 +218,14 @@ func (h *Header) validate(seen map[string]int) []Problem {
 		// The missing-key report below names it; naming a method that is not
 		// there as unknown too would report one mistake twice.
 	case !known:
-		problems = append(problems, Problem{seen["fetch"], fmt.Sprintf(
-			"unknown fetch method %q — this indomain supports %s. If you need another, please open an issue at https://github.com/StevenACoffman/indomain/issues",
-			h.Fetch, quotedList(Methods()))})
+		problems = append(problems, Problem{
+			seen["fetch"],
+			fmt.Sprintf(
+				"unknown fetch method %q — this indomain supports %s. If you need another, please open an issue at https://github.com/StevenACoffman/indomain/issues",
+				h.Fetch,
+				quotedList(Methods()),
+			),
+		})
 	default:
 		required = append(required, method...)
 	}

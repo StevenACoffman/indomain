@@ -36,7 +36,11 @@ func m5Tree(t *testing.T) string {
 			break
 		}
 		if _, err := os.Lstat(filepath.Join(cur, ".git")); err == nil {
-			t.Skipf("temp directory %s sits inside a repository (%s), so the no-repository cases cannot be built", base, cur)
+			t.Skipf(
+				"temp directory %s sits inside a repository (%s), so the no-repository cases cannot be built",
+				base,
+				cur,
+			)
 		}
 		cur = parent
 	}
@@ -53,23 +57,40 @@ func m5Tree(t *testing.T) string {
 			t.Fatal(err)
 		}
 	}
-	if err := os.WriteFile(filepath.Join(base, "wt", ".git"), []byte("gitdir: /elsewhere/.git/worktrees/wt\n"), 0o600); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(base, "wt", ".git"),
+		[]byte("gitdir: /elsewhere/.git/worktrees/wt\n"),
+		0o600,
+	); err != nil {
 		t.Fatal(err)
 	}
 	for _, dir := range []string{"repo", "repo/docs", "repo-evil", "outside", "wt", "loose/a", "loose/ab", "loose/b", "inner/models"} {
-		if err := os.WriteFile(filepath.Join(base, dir, "p.modelith.yaml"), []byte(paymentsModel), 0o600); err != nil {
+		if err := os.WriteFile(
+			filepath.Join(base, dir, "p.modelith.yaml"),
+			[]byte(paymentsModel),
+			0o600,
+		); err != nil {
 			t.Fatal(err)
 		}
 	}
 	// A directory in one repository reached through a link in another, so a
 	// root taken from the path as written comes from the wrong tree.
-	if err := os.Symlink(filepath.Join(base, "inner", "models"), filepath.Join(base, "outer", "work")); err != nil {
+	if err := os.Symlink(
+		filepath.Join(base, "inner", "models"),
+		filepath.Join(base, "outer", "work"),
+	); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(base, "outside", "p.modelith.yaml"), filepath.Join(base, "repo/docs", "link.modelith.yaml")); err != nil {
+	if err := os.Symlink(
+		filepath.Join(base, "outside", "p.modelith.yaml"),
+		filepath.Join(base, "repo/docs", "link.modelith.yaml"),
+	); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(base, "outside", "gone.modelith.yaml"), filepath.Join(base, "repo/docs", "dangle.modelith.yaml")); err != nil {
+	if err := os.Symlink(
+		filepath.Join(base, "outside", "gone.modelith.yaml"),
+		filepath.Join(base, "repo/docs", "dangle.modelith.yaml"),
+	); err != nil {
 		t.Fatal(err)
 	}
 	return base

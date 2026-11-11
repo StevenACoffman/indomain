@@ -44,7 +44,10 @@ func runProvenance(path string, src []byte, res *Result) bool {
 				Path:     "",
 				Message: fmt.Sprintf(
 					"this vendored file no longer matches the digest its provenance header records (recorded %s, computed %s) — it has been edited since it was imported. Restore it with `indomain deps update %s`, or delete the provenance header if the change is a deliberate fork, which makes this repository the file's home",
-					h.Digest, got, refreshTarget(path)),
+					h.Digest,
+					got,
+					refreshTarget(path),
+				),
 			})
 		}
 	}

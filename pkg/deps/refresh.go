@@ -147,9 +147,20 @@ func Update(ctx context.Context, opts UpdateOptions) ([]Report, error) {
 	if opts.Ref != "" && len(opts.Paths) != 1 {
 		return nil, fmt.Errorf(
 			"--ref re-pins one copy and %d files were named — a single ref across several origins names a different version in each. Run it once per copy",
-			len(opts.Paths))
+			len(opts.Paths),
+		)
 	}
-	return survey(ctx, surveyOptions{paths: opts.Paths, ref: opts.Ref, now: opts.Now, timeout: opts.Timeout, run: opts.Run, write: true})
+	return survey(
+		ctx,
+		surveyOptions{
+			paths:   opts.Paths,
+			ref:     opts.Ref,
+			now:     opts.Now,
+			timeout: opts.Timeout,
+			run:     opts.Run,
+			write:   true,
+		},
+	)
 }
 
 type surveyOptions struct {
@@ -362,13 +373,18 @@ func sourceFromHeader(h *provenance.Header, ref string) (Source, error) {
 	}
 	switch originHost(h.Origin) {
 	case "github.com":
-		return ParseSource(fmt.Sprintf("%s/blob/%s/%s", normOrigin(h.Origin), escapePath(ref), escapePath(h.Path)), ref)
+		return ParseSource(
+			fmt.Sprintf("%s/blob/%s/%s", normOrigin(h.Origin), escapePath(ref), escapePath(h.Path)),
+			ref,
+		)
 	case "dev.azure.com":
 		return adoSourceFromHeader(h, ref)
 	default:
 		return Source{}, fmt.Errorf(
 			"cannot be refreshed: it was vendored from %q, and deps check and deps update reach github.com and dev.azure.com origins only. To take a newer version, import it again from its origin (`indomain deps import <the file's address>`) — that overwrites this copy with the origin's current file. If you need refresh for another host, please open an issue at %s",
-			h.Origin, issuesURL)
+			h.Origin,
+			issuesURL,
+		)
 	}
 }
 
@@ -425,13 +441,17 @@ func checkFetched(upstream []byte, src Source) (*model.Model, error) {
 	if provenance.Present(upstream) {
 		return nil, fmt.Errorf(
 			"%s now carries a %s line at its origin, so indomain reads it as somebody else's copy rather than a model's home. Vendoring a copy of a copy would record the wrong repository as this model's home — vendor it from the origin its own header names instead",
-			src.Path, provenance.LinePrefix)
+			src.Path,
+			provenance.LinePrefix,
+		)
 	}
 	m, err := model.Parse(upstream)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"%s no longer parses as a domain model at its origin, so the copy here was left alone: %w",
-			src.Path, err)
+			src.Path,
+			err,
+		)
 	}
 	if m.Kind != "DomainModel" {
 		declares := fmt.Sprintf("declares kind %q", m.Kind)
@@ -440,7 +460,9 @@ func checkFetched(upstream []byte, src Source) (*model.Model, error) {
 		}
 		return nil, fmt.Errorf(
 			"%s is no longer a domain model at its origin — it %s, not \"DomainModel\" — so the copy here was left alone",
-			src.Path, declares)
+			src.Path,
+			declares,
+		)
 	}
 	return m, nil
 }
@@ -460,7 +482,11 @@ func movedHint(src Source, err error) string {
 	}
 	return fmt.Sprintf(
 		"\n\n%s/%s has no %q at %q. Either the model moved, in which case import it from its new address, or it was deleted, in which case this copy is orphaned and whether to keep it is your call",
-		src.Owner, src.Repo, src.Path, src.Ref)
+		src.Owner,
+		src.Repo,
+		src.Path,
+		src.Ref,
+	)
 }
 
 // newImports are the import paths the origin declares that the copy on disk did

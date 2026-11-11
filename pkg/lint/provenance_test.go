@@ -79,7 +79,12 @@ func TestADR_0015_HeaderSuppressesCompletenessOnly(t *testing.T) {
 			continue
 		}
 		if f.Category != CategoryCompleteness {
-			t.Errorf("a %s finding was suppressed on a vendored file: %s: %s", f.Category, f.Path, f.Message)
+			t.Errorf(
+				"a %s finding was suppressed on a vendored file: %s: %s",
+				f.Category,
+				f.Path,
+				f.Message,
+			)
 			continue
 		}
 		droppedCompleteness++
@@ -111,7 +116,11 @@ func TestADR_0015_HeaderSuppressesCompletenessOnly(t *testing.T) {
 		}
 	}
 	if errs == 0 || warns == 0 {
-		t.Errorf("vendored file reported %d error(s) and %d warning(s); both layers should still run", errs, warns)
+		t.Errorf(
+			"vendored file reported %d error(s) and %d warning(s); both layers should still run",
+			errs,
+			warns,
+		)
 	}
 }
 
@@ -212,7 +221,11 @@ func TestVendored_HeaderProblemsAreReported(t *testing.T) {
 		contains string
 	}{
 		{"unknown key", "# modelith-surface: sha256:x\n", "unknown provenance key"},
-		{"unknown fetch method", "# modelith-fetch: carrier-pigeon\n", `unknown fetch method "carrier-pigeon"`},
+		{
+			"unknown fetch method",
+			"# modelith-fetch: carrier-pigeon\n",
+			`unknown fetch method "carrier-pigeon"`,
+		},
 		{"missing required key", "# modelith-fetch: git\n", `missing "# modelith-commit"`},
 	}
 	for _, tc := range cases {

@@ -112,7 +112,10 @@ func runImports(modelPath string, m *model.Model, files Files, res *Result, vend
 			Path:     fmt.Sprintf("/imports/%d", imp.index),
 			Message: fmt.Sprintf(
 				"import %q (scope %q) is never referenced — drop it, or reference one of its enums as %s.Name in an attribute type or one of its entities as %s.Entity in a relationship or subtypeOf",
-				imp.path, scope, scope, scope,
+				imp.path,
+				scope,
+				scope,
+				scope,
 			),
 		})
 	}
@@ -131,7 +134,13 @@ func runImports(modelPath string, m *model.Model, files Files, res *Result, vend
 // vendored peers that import each other do resolve here; and every entry still
 // claims its scope, which is what keeps a reference into an import that did not
 // load from reading as a reference to nothing (see checkQualifiedTypes).
-func loadImports(modelPath string, m *model.Model, files Files, res *Result, vendored bool) (byScope map[string]importedModel, claimed map[string]string) {
+func loadImports(
+	modelPath string,
+	m *model.Model,
+	files Files,
+	res *Result,
+	vendored bool,
+) (byScope map[string]importedModel, claimed map[string]string) {
 	byScope = map[string]importedModel{}
 	claimed = map[string]string{}
 	if len(m.Imports) == 0 {
@@ -166,8 +175,13 @@ func loadImports(modelPath string, m *model.Model, files Files, res *Result, ven
 		scopeOK := scopeRE.MatchString(imp.Scope)
 		if scopeOK {
 			if prev, dup := claimed[imp.Scope]; dup {
-				reject("import %q binds scope %q, which import %q already binds — give one of them an explicit, different scope so %s.Name resolves unambiguously",
-					imp.Path, imp.Scope, prev, imp.Scope)
+				reject(
+					"import %q binds scope %q, which import %q already binds — give one of them an explicit, different scope so %s.Name resolves unambiguously",
+					imp.Path,
+					imp.Scope,
+					prev,
+					imp.Scope,
+				)
 				continue
 			}
 			claimed[imp.Scope] = imp.Path
@@ -177,18 +191,29 @@ func loadImports(modelPath string, m *model.Model, files Files, res *Result, ven
 		// Markdown. Every message here quotes the path with %q, so an escape
 		// survives as text rather than as a line break in the output.
 		if at := strings.IndexFunc(imp.Path, unicode.IsControl); at >= 0 {
-			reject("import path %q contains a control character at byte %d — a filename cannot contain one; check for a stray newline or escape in the YAML", imp.Path, at)
+			reject(
+				"import path %q contains a control character at byte %d — a filename cannot contain one; check for a stray newline or escape in the YAML",
+				imp.Path,
+				at,
+			)
 			continue
 		}
 		if !scopeOK {
 			// A filename that yields no usable slug is the case the explicit form
 			// exists for.
-			reject("import %q binds the scope %q taken from its filename, which is not a valid slug (lowercase kebab-case) — name the scope explicitly instead: `- {scope: <slug>, path: %q}`",
-				imp.Path, imp.Scope, imp.Path)
+			reject(
+				"import %q binds the scope %q taken from its filename, which is not a valid slug (lowercase kebab-case) — name the scope explicitly instead: `- {scope: <slug>, path: %q}`",
+				imp.Path,
+				imp.Scope,
+				imp.Path,
+			)
 			continue
 		}
 		if filepath.IsAbs(imp.Path) || imp.Path[0] == '/' {
-			reject("import %q is an absolute path — imports are relative to this model so they resolve in any checkout", imp.Path)
+			reject(
+				"import %q is an absolute path — imports are relative to this model so they resolve in any checkout",
+				imp.Path,
+			)
 			continue
 		}
 		// Containment is decided before the file is opened, because opening it
@@ -200,18 +225,33 @@ func loadImports(modelPath string, m *model.Model, files Files, res *Result, ven
 		if failure != nil {
 			switch failure.kind {
 			case importOutsideRepository:
-				reject("import %q resolves to %q, outside %q — that directory is the repository holding this model (the nearest ancestor with a .git entry), and an import may not name a file beyond it",
-					imp.Path, failure.resolvedPath, root)
+				reject(
+					"import %q resolves to %q, outside %q — that directory is the repository holding this model (the nearest ancestor with a .git entry), and an import may not name a file beyond it",
+					imp.Path,
+					failure.resolvedPath,
+					root,
+				)
 			case importOutsideModelDirectory:
-				reject("import %q resolves to %q, outside %q — this model is in no repository, so resolution is confined to the directory holding it; move the imported model into that directory or below it",
-					imp.Path, failure.resolvedPath, root)
+				reject(
+					"import %q resolves to %q, outside %q — this model is in no repository, so resolution is confined to the directory holding it; move the imported model into that directory or below it",
+					imp.Path,
+					failure.resolvedPath,
+					root,
+				)
 			case importUnreadable:
 				reject("import %q cannot be read: %v", imp.Path, failure.err)
 			case importNotDomainModel:
-				reject("import %q is not a domain model — lint it on its own with `indomain lint` to see why", imp.Path)
+				reject(
+					"import %q is not a domain model — lint it on its own with `indomain lint` to see why",
+					imp.Path,
+				)
 			case importUnsupportedSchema:
-				reject("import %q declares schema version %q, which this indomain does not support: %s (upgrade indomain, or move that model to a supported version)",
-					imp.Path, failure.version, strings.Join(schema.SupportedVersions(), ", "))
+				reject(
+					"import %q declares schema version %q, which this indomain does not support: %s (upgrade indomain, or move that model to a supported version)",
+					imp.Path,
+					failure.version,
+					strings.Join(schema.SupportedVersions(), ", "),
+				)
 			}
 			continue
 		}
@@ -222,7 +262,12 @@ func loadImports(modelPath string, m *model.Model, files Files, res *Result, ven
 
 // loadImport reads and validates an imported model after its path syntax and
 // scope have been checked by loadImports.
-func loadImport(modelPath, root string, inRepo bool, importPath string, files Files) (loadedImport, *importLoadFailure) {
+func loadImport(
+	modelPath, root string,
+	inRepo bool,
+	importPath string,
+	files Files,
+) (loadedImport, *importLoadFailure) {
 	joined := filepath.Join(filepath.Dir(modelPath), importPath)
 	resolvedPath := files.Resolve(joined)
 	if !withinRoot(root, resolvedPath) {
@@ -255,7 +300,12 @@ func loadImport(modelPath, root string, inRepo bool, importPath string, files Fi
 // PascalCase type that names no enum is only a warning (runSemantic). The
 // asymmetry is deliberate: an unqualified name may be a primitive the author
 // invented, while "scope.Name" can only be a cross-model reference.
-func checkQualifiedTypes(m *model.Model, byScope map[string]importedModel, claimed map[string]string, res *Result) map[string]bool {
+func checkQualifiedTypes(
+	m *model.Model,
+	byScope map[string]importedModel,
+	claimed map[string]string,
+	res *Result,
+) map[string]bool {
 	used := map[string]bool{}
 	unbound := map[string]*unboundScope{}
 	for _, name := range m.EntityNames() {
@@ -278,8 +328,11 @@ func checkQualifiedTypes(m *model.Model, byScope map[string]importedModel, claim
 			}
 			match := qualifiedRefRE.FindStringSubmatch(attr.Type)
 			if match == nil {
-				broken("attribute type %q is a malformed cross-model reference (%s) — write it as scope.Name: one dot, a lowercase kebab-case scope, a PascalCase item name",
-					attr.Type, malformedRefReason(attr.Type))
+				broken(
+					"attribute type %q is a malformed cross-model reference (%s) — write it as scope.Name: one dot, a lowercase kebab-case scope, a PascalCase item name",
+					attr.Type,
+					malformedRefReason(attr.Type),
+				)
 				// The scope the author was reaching for is still referenced, so a
 				// typo in the item name does not also read as an unused import.
 				if head, _, _ := strings.Cut(attr.Type, "."); byScope[head].model != nil {
@@ -313,7 +366,12 @@ func checkQualifiedTypes(m *model.Model, byScope map[string]importedModel, claim
 				continue
 			}
 			if _, ok := imp.model.Entities[item]; ok {
-				broken("attribute type %q resolves to the entity %q in %q — only an enum can be referenced across models", attr.Type, item, imp.path)
+				broken(
+					"attribute type %q resolves to the entity %q in %q — only an enum can be referenced across models",
+					attr.Type,
+					item,
+					imp.path,
+				)
 				continue
 			}
 			broken("%s", unresolvedItemMessage(attr.Type, item, imp))
@@ -326,7 +384,12 @@ func checkQualifiedTypes(m *model.Model, byScope map[string]importedModel, claim
 // checkQualifiedEntities resolves qualified relationship targets and subtype
 // parents against direct imports. Their imported semantics end at the boundary:
 // local reciprocity, ownership, and subtype traversal do not inspect that model.
-func checkQualifiedEntities(m *model.Model, byScope map[string]importedModel, claimed map[string]string, res *Result) map[string]bool {
+func checkQualifiedEntities(
+	m *model.Model,
+	byScope map[string]importedModel,
+	claimed map[string]string,
+	res *Result,
+) map[string]bool {
 	used := map[string]bool{}
 	check := func(path, ref, kind string) {
 		match := qualifiedRefRE.FindStringSubmatch(ref)
@@ -344,7 +407,13 @@ func checkQualifiedEntities(m *model.Model, byScope map[string]importedModel, cl
 				Severity: SeverityError,
 				Category: CategorySemantic,
 				Path:     path,
-				Message:  fmt.Sprintf("%s %q references the scope %q, which no import binds — add the model that defines %s to `imports:`", kind, ref, scope, item),
+				Message: fmt.Sprintf(
+					"%s %q references the scope %q, which no import binds — add the model that defines %s to `imports:`",
+					kind,
+					ref,
+					scope,
+					item,
+				),
 			})
 			return
 		}
@@ -354,7 +423,13 @@ func checkQualifiedEntities(m *model.Model, byScope map[string]importedModel, cl
 				Severity: SeverityError,
 				Category: CategorySemantic,
 				Path:     path,
-				Message:  fmt.Sprintf("%s %q names no entity %q in %q — check the name, or whether you meant to import a different model", kind, ref, item, imp.path),
+				Message: fmt.Sprintf(
+					"%s %q names no entity %q in %q — check the name, or whether you meant to import a different model",
+					kind,
+					ref,
+					item,
+					imp.path,
+				),
 			})
 		}
 	}
@@ -362,7 +437,11 @@ func checkQualifiedEntities(m *model.Model, byScope map[string]importedModel, cl
 		ent := m.Entities[name]
 		check(fmt.Sprintf("/entities/%s/subtypeOf", name), ent.SubtypeOf, "subtype parent")
 		for i, rel := range ent.Relationships {
-			check(fmt.Sprintf("/entities/%s/relationships/%d/entity", name, i), rel.Entity, "relationship target")
+			check(
+				fmt.Sprintf("/entities/%s/relationships/%d/entity", name, i),
+				rel.Entity,
+				"relationship target",
+			)
 		}
 	}
 	return used
@@ -390,7 +469,9 @@ func unresolvedItemMessage(typ, item string, imp importedModel) string {
 	}
 	return msg + fmt.Sprintf(
 		" — that model imports %s, and resolution is not transitive: if %q is defined in one of them, add that model to this model's `imports:` too and reference it with its own scope",
-		theirs, item)
+		theirs,
+		item,
+	)
 }
 
 // unboundScope accumulates the references to one scope no import binds, so a
@@ -405,9 +486,17 @@ type unboundScope struct {
 func reportUnboundScopes(unbound map[string]*unboundScope, res *Result) {
 	for _, scope := range sortedMapKeys(unbound) {
 		u := unbound[scope]
-		msg := fmt.Sprintf("attribute type %q references the scope %q, which no import binds — add the model that defines %s to `imports:`", u.typ, scope, u.item)
+		msg := fmt.Sprintf(
+			"attribute type %q references the scope %q, which no import binds — add the model that defines %s to `imports:`",
+			u.typ,
+			scope,
+			u.item,
+		)
 		if u.count > 1 {
-			msg += fmt.Sprintf(" (%d attribute types reference this scope; this is the first)", u.count)
+			msg += fmt.Sprintf(
+				" (%d attribute types reference this scope; this is the first)",
+				u.count,
+			)
 		}
 		res.Findings = append(res.Findings, Finding{
 			Severity: SeverityError,

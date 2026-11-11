@@ -184,7 +184,13 @@ func ER(m *model.Model) string {
 					continue
 				}
 			}
-			e := &edge{from: name, to: rel.Entity, card: rel.Cardinality, label: label, owned: owned}
+			e := &edge{
+				from:  name,
+				to:    rel.Entity,
+				card:  rel.Cardinality,
+				label: label,
+				owned: owned,
+			}
 			byKey[key] = append(byKey[key], e)
 			edges = append(edges, e)
 		}

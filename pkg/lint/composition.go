@@ -32,7 +32,12 @@ func runCompositionOwner(m *model.Model, res *Result) {
 				Path:     fmt.Sprintf("/entities/%s/relationships/%d/ownership", name, i),
 				Message: fmt.Sprintf(
 					"%s→%s is owned, so each %s has exactly one %s, but cardinality %q does not say so — write the owner (left) side as \"1\", or use ownership: referenced if a %s can be shared or stand alone",
-					name, rel.Entity, rel.Entity, name, rel.Cardinality, rel.Entity,
+					name,
+					rel.Entity,
+					rel.Entity,
+					name,
+					rel.Cardinality,
+					rel.Entity,
 				),
 			})
 		}
@@ -52,8 +57,12 @@ func runOwnershipCycles(m *model.Model, res *Result) {
 		res.Findings = append(res.Findings, Finding{
 			Severity: SeverityError,
 			Category: CategorySemantic,
-			Path:     fmt.Sprintf("/entities/%s/relationships/%d/ownership", c.members[0], c.firstLink),
-			Message:  cycleMessage(c.members),
+			Path: fmt.Sprintf(
+				"/entities/%s/relationships/%d/ownership",
+				c.members[0],
+				c.firstLink,
+			),
+			Message: cycleMessage(c.members),
 		})
 	}
 }
@@ -116,7 +125,10 @@ func ownershipCycles(m *model.Model) []ownershipCycle {
 			firstLink: links[component[0]][first].index,
 		})
 	}
-	slices.SortFunc(cycles, func(a, b ownershipCycle) int { return strings.Compare(a.members[0], b.members[0]) })
+	slices.SortFunc(
+		cycles,
+		func(a, b ownershipCycle) int { return strings.Compare(a.members[0], b.members[0]) },
+	)
 	return cycles
 }
 
@@ -189,7 +201,11 @@ func cycleMessage(cycle []string) string {
 	}
 	var names string
 	if len(cycle) > maxCycleNames {
-		names = fmt.Sprintf("%s, and %d others", strings.Join(cycle[:maxCycleNames], ", "), len(cycle)-maxCycleNames)
+		names = fmt.Sprintf(
+			"%s, and %d others",
+			strings.Join(cycle[:maxCycleNames], ", "),
+			len(cycle)-maxCycleNames,
+		)
 	} else {
 		names = strings.Join(cycle[:len(cycle)-1], ", ") + ", and " + cycle[len(cycle)-1]
 	}

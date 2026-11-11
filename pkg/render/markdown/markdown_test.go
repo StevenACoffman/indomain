@@ -265,7 +265,10 @@ func TestRenderEntity_DerivedMarker(t *testing.T) {
 		},
 	}
 	got = render(withoutDerivation)
-	if !strings.Contains(got, "**Derived.** Computed on demand from other state; never persisted.\n\n") {
+	if !strings.Contains(
+		got,
+		"**Derived.** Computed on demand from other state; never persisted.\n\n",
+	) {
 		t.Fatalf("expected a generic derived marker when derivation is omitted, got:\n%s", got)
 	}
 
@@ -322,8 +325,12 @@ func TestGoldenExample(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got != string(want) {
-		t.Errorf("rendered output does not match %s.\nRegenerate with: go run ./cmd/indomain render %s\n%s",
-			golden, src, firstDiff(string(want), got))
+		t.Errorf(
+			"rendered output does not match %s.\nRegenerate with: go run ./cmd/indomain render %s\n%s",
+			golden,
+			src,
+			firstDiff(string(want), got),
+		)
 	}
 }
 
@@ -554,8 +561,22 @@ func TestRenderImports_HostilePathCannotEscapeItsMarkup(t *testing.T) {
 			t.Errorf("%q escaped its code span into the document text:\n%s", tok, bare)
 		}
 	}
-	if want := []string{"Domain Model", "Imports", "Entities", "Ticket", "Relationships"}; !slices.Equal(headings(t, got), want) {
-		t.Errorf("headings = %q, want %q — a path opened a section:\n%s", headings(t, got), want, got)
+	if want := []string{
+		"Domain Model",
+		"Imports",
+		"Entities",
+		"Ticket",
+		"Relationships",
+	}; !slices.Equal(
+		headings(t, got),
+		want,
+	) {
+		t.Errorf(
+			"headings = %q, want %q — a path opened a section:\n%s",
+			headings(t, got),
+			want,
+			got,
+		)
 	}
 	// One "([rendered](…))" per import, plus the deep link on the qualified
 	// attribute type. A destination that closed early would add another.
@@ -647,8 +668,16 @@ func TestProse_EscapesHTMLOutsideCodeSpans(t *testing.T) {
 		block          bool
 	}{
 		{name: "plain text", in: "A parking ticket.", want: "A parking ticket."},
-		{name: "tag", in: "an <img src=q onerror=alert(1)> tag", want: "an &lt;img src=q onerror=alert(1)&gt; tag"},
-		{name: "markdown survives", in: "a `Ticket` with *emphasis*", want: "a `Ticket` with *emphasis*"},
+		{
+			name: "tag",
+			in:   "an <img src=q onerror=alert(1)> tag",
+			want: "an &lt;img src=q onerror=alert(1)&gt; tag",
+		},
+		{
+			name: "markdown survives",
+			in:   "a `Ticket` with *emphasis*",
+			want: "a `Ticket` with *emphasis*",
+		},
 		{name: "inside a code span", in: "a `<x>` span", want: "a `<x>` span"},
 		{name: "in and out", in: "<a> `<b>` <c>", want: "&lt;a&gt; `<b>` &lt;c&gt;"},
 		{name: "unclosed span is text", in: "a ` <b> tail", want: "a ` &lt;b&gt; tail"},
@@ -670,7 +699,11 @@ func TestProse_EscapesHTMLOutsideCodeSpans(t *testing.T) {
 		{name: "multibyte passes through", in: "café — naïve <x>", want: "café — naïve &lt;x&gt;"},
 		// An "&" inside a tag is escaped with it, so the whole tag reaches the
 		// page as the bytes the author typed.
-		{name: "ampersand inside a tag", in: `<a href="?a=1&amp;b=2">`, want: `&lt;a href="?a=1&amp;amp;b=2"&gt;`},
+		{
+			name: "ampersand inside a tag",
+			in:   `<a href="?a=1&amp;b=2">`,
+			want: `&lt;a href="?a=1&amp;amp;b=2"&gt;`,
+		},
 
 		// Markdown structure is never escaped. Escaping it was the previous
 		// rule's undoing: a ">" turned into "&gt;" stops opening a blockquote,
@@ -682,8 +715,16 @@ func TestProse_EscapesHTMLOutsideCodeSpans(t *testing.T) {
 			in:    "Quoted from the migration notes:\n\n>     <script>alert(31)</script>\n\nNothing after is affected.",
 			want:  "Quoted from the migration notes:\n\n>     <script>alert(31)</script>\n\nNothing after is affected.",
 		},
-		{name: "angle-bracket link destination", in: "[click](<http://example.com/a>)", want: "[click](<http://example.com/a>)"},
-		{name: "autolink", in: "see <https://example.com> ok", want: "see <https://example.com> ok"},
+		{
+			name: "angle-bracket link destination",
+			in:   "[click](<http://example.com/a>)",
+			want: "[click](<http://example.com/a>)",
+		},
+		{
+			name: "autolink",
+			in:   "see <https://example.com> ok",
+			want: "see <https://example.com> ok",
+		},
 
 		// An HTML block opens on a tag that is not a complete one, and a value
 		// on a line can still begin a block: a scenario step is rendered as
@@ -734,12 +775,24 @@ func TestProse_EscapesHTMLOutsideCodeSpans(t *testing.T) {
 		// Inside a line there is no block context to open, so what looks like
 		// a fence is text and the tag behind it is escaped.
 		{name: "fence opener inside a line", in: "```<b>", want: "```&lt;b&gt;"},
-		{name: "code fence info is not text", block: true, in: "```<b>\nx\n```", want: "```&lt;b&gt;\nx\n```"},
+		{
+			name:  "code fence info is not text",
+			block: true,
+			in:    "```<b>\nx\n```",
+			want:  "```&lt;b&gt;\nx\n```",
+		},
 	}
 	for _, tc := range cases {
 		got := escapeProse(tc.in, tc.block)
 		if got != tc.want {
-			t.Errorf("%s: escapeProse(%q, %t) = %q, want %q", tc.name, tc.in, tc.block, got, tc.want)
+			t.Errorf(
+				"%s: escapeProse(%q, %t) = %q, want %q",
+				tc.name,
+				tc.in,
+				tc.block,
+				got,
+				tc.want,
+			)
 		}
 	}
 }
@@ -757,9 +810,15 @@ func TestADR_0014_NoRawHTMLSurvivesRender(t *testing.T) {
 	cases := []struct{ name, payload string }{
 		{"plain tag", "Legacy importers emit " + tag + " in the notes."},
 		// #37 F1: the escaped backtick opened a span the parser never sees.
-		{"escaped backtick", `A trailing \` + esc + ` marks it, then ` + tag + `, then \` + esc + `.`},
+		{
+			"escaped backtick",
+			`A trailing \` + esc + ` marks it, then ` + tag + `, then \` + esc + `.`,
+		},
 		// #37 F2: two bare backticks separated by a paragraph break.
-		{"paragraph break", "A trailing " + esc + " marks it.\n\n" + tag + " in the notes.\n\nA second " + esc + " here."},
+		{
+			"paragraph break",
+			"A trailing " + esc + " marks it.\n\n" + tag + " in the notes.\n\nA second " + esc + " here.",
+		},
 		{"unclosed span", "A trailing " + esc + " then " + tag + "."},
 		{"reference-encoded tag", "&#60;img src=x onerror=alert(1)&#62;"},
 		{"html block", "<div onclick=alert(1)>\ntext\n</div>"},
@@ -775,19 +834,26 @@ func TestADR_0014_NoRawHTMLSurvivesRender(t *testing.T) {
 				Description: tc.payload,
 				Glossary:    map[string]string{"Term": tc.payload},
 				Enums: map[string]model.Enum{
-					"Status": {Description: tc.payload, Values: []model.EnumValue{{Name: "active", Definition: tc.payload}}},
+					"Status": {
+						Description: tc.payload,
+						Values:      []model.EnumValue{{Name: "active", Definition: tc.payload}},
+					},
 				},
 				Entities: map[string]model.Entity{
 					"Ticket": {
 						Definition: tc.payload,
 						Derived:    true,
 						Derivation: tc.payload,
-						Attributes: []model.Attribute{{Name: "rate", Type: "string", Description: tc.payload}},
+						Attributes: []model.Attribute{
+							{Name: "rate", Type: "string", Description: tc.payload},
+						},
 						Actions:    []model.Action{{Name: "pay", Description: tc.payload}},
 						Invariants: []model.Invariant{{ID: "paid", Statement: tc.payload}},
 					},
 				},
-				Scenarios: []model.Scenario{{Name: tc.payload, Description: tc.payload, Steps: []string{tc.payload}}},
+				Scenarios: []model.Scenario{
+					{Name: tc.payload, Description: tc.payload, Steps: []string{tc.payload}},
+				},
 			}
 			got := render(m)
 			if html := rawHTML(t, got); len(html) > 0 {
@@ -813,7 +879,8 @@ func TestADR_0014_BlockCodeStaysVerbatim(t *testing.T) {
 	if strings.Contains(got, "&lt;policy") {
 		t.Errorf("escaped inside a code block, so the reader sees the escape:\n%s", got)
 	}
-	if !strings.Contains(got, "<policy enabled=true>") || !strings.Contains(got, "<policy enabled=false>") {
+	if !strings.Contains(got, "<policy enabled=true>") ||
+		!strings.Contains(got, "<policy enabled=false>") {
 		t.Errorf("a code block did not survive verbatim:\n%s", got)
 	}
 	// Verbatim is only safe because a real parser agrees it is code.
@@ -846,13 +913,23 @@ func TestADR_0014_ProseRendersHTMLAsText(t *testing.T) {
 				Derived:    true,
 				Derivation: "Derivation " + tag,
 				Relationships: []model.Relationship{
-					{Entity: "Policy", Cardinality: "1:n", Role: "Role " + tag, Note: "Note " + tag},
+					{
+						Entity:      "Policy",
+						Cardinality: "1:n",
+						Role:        "Role " + tag,
+						Note:        "Note " + tag,
+					},
 				},
 				Attributes: []model.Attribute{
 					{Name: "paid", Type: "map<string, int>", Description: "Attribute " + tag},
 				},
 				Actions: []model.Action{
-					{Name: "pay", Actor: "Attendant", Preserves: []string{"pre-" + tag}, Description: "Action " + tag},
+					{
+						Name:        "pay",
+						Actor:       "Attendant",
+						Preserves:   []string{"pre-" + tag},
+						Description: "Action " + tag,
+					},
 				},
 				Invariants: []model.Invariant{{ID: "ticket-paid", Statement: "Invariant " + tag}},
 			},
@@ -959,12 +1036,23 @@ func TestADR_0014_AssembledLineEscapesAsOneLine(t *testing.T) {
 			"Team": {
 				Definition: "A team.",
 				Relationships: []model.Relationship{
-					{Entity: "Member", Cardinality: "n:n", Role: "`Owner or `Member`", Note: "Rendered as `" + tag + "` in the UI"},
+					{
+						Entity:      "Member",
+						Cardinality: "n:n",
+						Role:        "`Owner or `Member`",
+						Note:        "Rendered as `" + tag + "` in the UI",
+					},
 				},
 				Actions: []model.Action{
-					{Name: "add", Preserves: []string{"a ` stray"}, Description: "Shown as `" + tag + "` there"},
+					{
+						Name:        "add",
+						Preserves:   []string{"a ` stray"},
+						Description: "Shown as `" + tag + "` there",
+					},
 				},
-				Invariants: []model.Invariant{{ID: "one ` tick", Statement: "Holds for `" + tag + "` rows"}},
+				Invariants: []model.Invariant{
+					{ID: "one ` tick", Statement: "Holds for `" + tag + "` rows"},
+				},
 			},
 			"Member": {Definition: "A member."},
 		},
@@ -1001,7 +1089,10 @@ func TestRenderCodeSpans_HostileNamesStayInsideTheirSpan(t *testing.T) {
 		Entities: map[string]model.Entity{
 			"Ticket": {
 				Definition: "A stub.",
-				Attributes: []model.Attribute{{Name: breakout, Type: "string"}, {Name: "pipe|name", Type: "string"}},
+				Attributes: []model.Attribute{
+					{Name: breakout, Type: "string"},
+					{Name: "pipe|name", Type: "string"},
+				},
 				Actions: []model.Action{
 					{Name: breakout},
 					{Name: "structured " + breakout, Actor: "actor " + breakout},
@@ -1050,6 +1141,11 @@ func TestRenderCodeSpans_HostileNamesStayInsideTheirSpan(t *testing.T) {
 	// A pipe that broke out of its cell changes a row's cell count. The enum
 	// table is two columns and the attribute table three, header rows included.
 	if want := []int{2, 2, 2, 3, 3, 3}; !slices.Equal(tableRows(t, got), want) {
-		t.Errorf("table row widths = %v, want %v — a pipe escaped its cell:\n%s", tableRows(t, got), want, got)
+		t.Errorf(
+			"table row widths = %v, want %v — a pipe escaped its cell:\n%s",
+			tableRows(t, got),
+			want,
+			got,
+		)
 	}
 }

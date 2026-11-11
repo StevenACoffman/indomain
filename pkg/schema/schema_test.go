@@ -18,7 +18,11 @@ func TestADR_0020_SchemaV1Frozen(t *testing.T) {
 	const want = "2e08e8293a6c71fc3750146be6e19f5e59a9a33bb1b4d613e6bead26db1e75b7"
 	sum := sha256.Sum256(JSONFor("v1"))
 	if got := hex.EncodeToString(sum[:]); got != want {
-		t.Fatalf("embedded v1 schema changed (sha256 %s, want %s): v1 is frozen to stay readable by modelith — see ADR-0020", got, want)
+		t.Fatalf(
+			"embedded v1 schema changed (sha256 %s, want %s): v1 is frozen to stay readable by modelith — see ADR-0020",
+			got,
+			want,
+		)
 	}
 }
 

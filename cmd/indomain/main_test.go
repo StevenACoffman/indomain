@@ -131,7 +131,12 @@ func TestLintMissingFileErrors(t *testing.T) {
 func TestLintReportsDiscoveredVendoredChildUnderChildPath(t *testing.T) {
 	dir := t.TempDir()
 	childPath := filepath.Join(dir, "child.modelith.yaml")
-	child := strings.Replace(minimalValid, "A thing that exists in the model.", "A changed thing.", 1)
+	child := strings.Replace(
+		minimalValid,
+		"A thing that exists in the model.",
+		"A changed thing.",
+		1,
+	)
 	writeTemp(t, dir, "child.modelith.yaml", vendorHeader(minimalValid)+child)
 	rootPath := writeTemp(t, dir, "root.modelith.yaml", `kind: DomainModel
 version: v1
@@ -146,7 +151,10 @@ entities:
 	if !errors.Is(err, errBlocking) {
 		t.Fatalf("expected errBlocking, got %v\noutput:\n%s", err, out)
 	}
-	if !strings.Contains(out, childPath+":\n  error   [semantic] (root): this vendored file no longer matches the digest") {
+	if !strings.Contains(
+		out,
+		childPath+":\n  error   [semantic] (root): this vendored file no longer matches the digest",
+	) {
 		t.Fatalf("discovered provenance finding was not grouped under %s:\n%s", childPath, out)
 	}
 }
@@ -154,7 +162,12 @@ entities:
 func TestLintDoesNotDuplicateExplicitDiscoveredChild(t *testing.T) {
 	dir := t.TempDir()
 	childPath := filepath.Join(dir, "child.modelith.yaml")
-	child := strings.Replace(minimalValid, "A thing that exists in the model.", "A changed thing.", 1)
+	child := strings.Replace(
+		minimalValid,
+		"A thing that exists in the model.",
+		"A changed thing.",
+		1,
+	)
 	writeTemp(t, dir, "child.modelith.yaml", vendorHeader(minimalValid)+child)
 	rootPath := writeTemp(t, dir, "root.modelith.yaml", `kind: DomainModel
 version: v1
@@ -289,7 +302,13 @@ entities:
 	link := importLinkFromMarkdown(t, string(rendered))
 	resolved := filepath.Join(filepath.Dir(target), link)
 	if _, err := os.Stat(resolved); err != nil {
-		t.Fatalf("import link %q resolved to %s, which does not exist: %v\nrendered output:\n%s", link, resolved, err, rendered)
+		t.Fatalf(
+			"import link %q resolved to %s, which does not exist: %v\nrendered output:\n%s",
+			link,
+			resolved,
+			err,
+			rendered,
+		)
 	}
 }
 
@@ -427,7 +446,14 @@ func TestRenderCheckRejectsAnOutPathUnderNoDirectory(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
 			yamlPath := writeTemp(t, dir, "m.modelith.yaml", tc.src)
-			out, err := run(t, "render", "--check", "-o", filepath.Join(dir, "nosuchdir", "out.md"), yamlPath)
+			out, err := run(
+				t,
+				"render",
+				"--check",
+				"-o",
+				filepath.Join(dir, "nosuchdir", "out.md"),
+				yamlPath,
+			)
 			if err == nil {
 				t.Fatalf("a target under a missing directory passed --check: %s", out)
 			}
@@ -558,8 +584,20 @@ func TestDepsImportOutput(t *testing.T) {
 	t.Run("an absolute destination is relativized", func(t *testing.T) {
 		var out, errOut bytes.Buffer
 		abs := *res
-		abs.Path = filepath.Join(string(filepath.Separator), "home", "me", "repo", "docs", "payments.modelith.yaml")
-		printImportResult(&out, &errOut, &abs, filepath.Join(string(filepath.Separator), "home", "me", "repo"))
+		abs.Path = filepath.Join(
+			string(filepath.Separator),
+			"home",
+			"me",
+			"repo",
+			"docs",
+			"payments.modelith.yaml",
+		)
+		printImportResult(
+			&out,
+			&errOut,
+			&abs,
+			filepath.Join(string(filepath.Separator), "home", "me", "repo"),
+		)
 		if !strings.Contains(out.String(), "- ./docs/payments.modelith.yaml") {
 			t.Errorf("stdout does not contain a relative entry:\n%s", out.String())
 		}
@@ -592,7 +630,12 @@ func TestDepsImportRejectsBadArguments(t *testing.T) {
 	}{
 		{
 			name: "a host indomain cannot fetch from",
-			args: []string{"deps", "import", "https://gitlab.com/acme/billing/-/blob/main/m.modelith.yaml", dir},
+			args: []string{
+				"deps",
+				"import",
+				"https://gitlab.com/acme/billing/-/blob/main/m.modelith.yaml",
+				dir,
+			},
 			want: "github.com/StevenACoffman/indomain/issues",
 		},
 		{
@@ -602,12 +645,22 @@ func TestDepsImportRejectsBadArguments(t *testing.T) {
 		},
 		{
 			name: "a destination that is a file",
-			args: []string{"deps", "import", "https://github.com/acme/billing/blob/main/m.modelith.yaml", file},
+			args: []string{
+				"deps",
+				"import",
+				"https://github.com/acme/billing/blob/main/m.modelith.yaml",
+				file,
+			},
 			want: "is not a directory",
 		},
 		{
 			name: "a destination that does not exist",
-			args: []string{"deps", "import", "https://github.com/acme/billing/blob/main/m.modelith.yaml", filepath.Join(dir, "nope")},
+			args: []string{
+				"deps",
+				"import",
+				"https://github.com/acme/billing/blob/main/m.modelith.yaml",
+				filepath.Join(dir, "nope"),
+			},
 			want: "no such file or directory",
 		},
 	}
@@ -630,8 +683,12 @@ func report(path, ref, commit string) deps.Report {
 	return deps.Report{
 		Path: path,
 		State: &deps.State{
-			Path: path, Ref: ref,
-			Header:   &provenance.Header{Commit: commit, Digest: provenance.Digest([]byte(content))},
+			Path: path,
+			Ref:  ref,
+			Header: &provenance.Header{
+				Commit: commit,
+				Digest: provenance.Digest([]byte(content)),
+			},
 			Local:    []byte(content),
 			Upstream: []byte(content),
 		},
@@ -651,7 +708,10 @@ func TestDepsCheckOutput(t *testing.T) {
 			report("docs/payments.modelith.yaml", "v2.1.0", "4f2c1e9c8b3ad0e5"),
 			stale,
 			{Path: "docs/ours.modelith.yaml", Skipped: true},
-			{Path: "docs/gone.modelith.yaml", Err: errors.New("cannot be read: no such file or directory")},
+			{
+				Path: "docs/gone.modelith.yaml",
+				Err:  errors.New("cannot be read: no such file or directory"),
+			},
 		}
 		blocking := printCheckReports(&out, &errOut, reports)
 		if !blocking {
@@ -684,7 +744,10 @@ func TestDepsCheckOutput(t *testing.T) {
 		if blocking {
 			t.Error("a run with nothing to check exited non-zero")
 		}
-		if want := "checked 0 vendored copies, 0 stale; skipped 2 files with no provenance header"; !strings.Contains(out.String(), want) {
+		if want := "checked 0 vendored copies, 0 stale; skipped 2 files with no provenance header"; !strings.Contains(
+			out.String(),
+			want,
+		) {
 			t.Errorf("stdout does not contain %q:\n%s", want, out.String())
 		}
 	})
@@ -707,7 +770,10 @@ func TestDepsCheckOutput(t *testing.T) {
 				t.Errorf("stdout does not contain %q:\n%s", want, out.String())
 			}
 		}
-		if !strings.Contains(errOut.String(), "current commit could not be resolved: gh: HTTP 500") {
+		if !strings.Contains(
+			errOut.String(),
+			"current commit could not be resolved: gh: HTTP 500",
+		) {
 			t.Errorf("the reason the commit is missing is not on stderr:\n%s", errOut.String())
 		}
 	})
@@ -735,34 +801,40 @@ func TestDepsCheckOutput(t *testing.T) {
 }
 
 func TestDepsUpdateOutput(t *testing.T) {
-	t.Run("a refresh names both commits, and the run closes with what to do next", func(t *testing.T) {
-		var out, errOut bytes.Buffer
-		refreshed := report("docs/ledger.modelith.yaml", "main", "a91b0c37e5d248fa")
-		refreshed.State.Header.Commit = "4f2c1e9c8b3ad0e5"
-		refreshed.Written = true
-		refreshed.NewImports = []string{"./tax.modelith.yaml"}
+	t.Run(
+		"a refresh names both commits, and the run closes with what to do next",
+		func(t *testing.T) {
+			var out, errOut bytes.Buffer
+			refreshed := report("docs/ledger.modelith.yaml", "main", "a91b0c37e5d248fa")
+			refreshed.State.Header.Commit = "4f2c1e9c8b3ad0e5"
+			refreshed.Written = true
+			refreshed.NewImports = []string{"./tax.modelith.yaml"}
 
-		if printUpdateReports(&out, &errOut, []deps.Report{
-			refreshed,
-			report("docs/payments.modelith.yaml", "v2.1.0", "4f2c1e9c8b3ad0e5"),
-		}) {
-			t.Error("a successful update exited non-zero")
-		}
-		for _, want := range []string{
-			"docs/ledger.modelith.yaml: 4f2c1e9 → a91b0c3 at main",
-			"docs/payments.modelith.yaml: up to date at v2.1.0",
-			"updated 1 of 2 vendored copies",
-			"now declares an import of its own (./tax.modelith.yaml)",
-			"Run `indomain lint` on the models that import these copies",
-		} {
-			if !strings.Contains(out.String(), want) {
-				t.Errorf("stdout does not contain %q:\n%s", want, out.String())
+			if printUpdateReports(&out, &errOut, []deps.Report{
+				refreshed,
+				report("docs/payments.modelith.yaml", "v2.1.0", "4f2c1e9c8b3ad0e5"),
+			}) {
+				t.Error("a successful update exited non-zero")
 			}
-		}
-		if !strings.Contains(errOut.String(), "Only vendor from sources you trust") {
-			t.Errorf("an update that wrote did not repeat the trust warning:\n%s", errOut.String())
-		}
-	})
+			for _, want := range []string{
+				"docs/ledger.modelith.yaml: 4f2c1e9 → a91b0c3 at main",
+				"docs/payments.modelith.yaml: up to date at v2.1.0",
+				"updated 1 of 2 vendored copies",
+				"now declares an import of its own (./tax.modelith.yaml)",
+				"Run `indomain lint` on the models that import these copies",
+			} {
+				if !strings.Contains(out.String(), want) {
+					t.Errorf("stdout does not contain %q:\n%s", want, out.String())
+				}
+			}
+			if !strings.Contains(errOut.String(), "Only vendor from sources you trust") {
+				t.Errorf(
+					"an update that wrote did not repeat the trust warning:\n%s",
+					errOut.String(),
+				)
+			}
+		},
+	)
 
 	// Nothing arrived, so there is nothing to warn about and no vocabulary that
 	// can have moved under the models importing these copies. Printing either
@@ -785,7 +857,10 @@ func TestDepsUpdateOutput(t *testing.T) {
 		restored := report("docs/payments.modelith.yaml", "main", "4f2c1e9c8b3ad0e5")
 		restored.Written, restored.Restored = true, true
 		printUpdateReports(&out, &errOut, []deps.Report{restored})
-		if want := "restored to 4f2c1e9 — local edits discarded, make the change at its origin"; !strings.Contains(out.String(), want) {
+		if want := "restored to 4f2c1e9 — local edits discarded, make the change at its origin"; !strings.Contains(
+			out.String(),
+			want,
+		) {
 			t.Errorf("stdout does not contain %q:\n%s", want, out.String())
 		}
 	})
@@ -864,8 +939,10 @@ func TestDepsImportTimeoutFlagParses(t *testing.T) {
 			var buf bytes.Buffer
 			cmd.SetOut(&buf)
 			cmd.SetErr(&buf)
-			cmd.SetArgs([]string{"--timeout", tc.val,
-				"https://gitlab.com/acme/billing/-/blob/main/m.modelith.yaml", dir})
+			cmd.SetArgs([]string{
+				"--timeout", tc.val,
+				"https://gitlab.com/acme/billing/-/blob/main/m.modelith.yaml", dir,
+			})
 			err := cmd.ExecuteContext(context.Background())
 			if err == nil {
 				t.Fatal("expected the unsupported-host error, got nil")

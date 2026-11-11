@@ -44,11 +44,22 @@ type ExecRunner struct{}
 // CLI reports why it refused on standard error. It is the shared tail of the
 // platform-specific Run methods in exec_unix.go and exec_windows.go, so the
 // error text cannot drift between platforms.
-func runCommand(cmd *exec.Cmd, name string, args []string, stderr *strings.Builder) ([]byte, error) {
+func runCommand(
+	cmd *exec.Cmd,
+	name string,
+	args []string,
+	stderr *strings.Builder,
+) ([]byte, error) {
 	out, err := cmd.Output()
 	if err != nil {
 		if errors.Is(err, exec.ErrNotFound) {
-			return nil, unusable{fmt.Errorf("%s is not installed — indomain delegates fetching to it%s", name, installHint(name))}
+			return nil, unusable{
+				fmt.Errorf(
+					"%s is not installed — indomain delegates fetching to it%s",
+					name,
+					installHint(name),
+				),
+			}
 		}
 		if msg := strings.TrimSpace(stderr.String()); msg != "" {
 			failed := fmt.Errorf("%s %s: %s", name, strings.Join(args, " "), msg)
@@ -102,8 +113,13 @@ func (r timeoutRunner) Run(ctx context.Context, name string, args ...string) ([]
 	// user can raise with --timeout. And err must be non-nil: a command that
 	// completed successfully just before the bound must not have its output
 	// discarded because the deadline ticked over in the same instant.
-	if err != nil && (errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, exec.ErrWaitDelay)) {
-		return nil, fmt.Errorf("%s did not finish within %s — the fetch was abandoned (raise it with --timeout if this is a slow but legitimate fetch)", name, r.timeout)
+	if err != nil &&
+		(errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, exec.ErrWaitDelay)) {
+		return nil, fmt.Errorf(
+			"%s did not finish within %s — the fetch was abandoned (raise it with --timeout if this is a slow but legitimate fetch)",
+			name,
+			r.timeout,
+		)
 	}
 	return out, err
 }
@@ -166,7 +182,8 @@ func ParseSource(raw, ref string) (Source, error) {
 	if host == "raw.githubusercontent.com" {
 		return Source{}, fmt.Errorf(
 			"%q is a raw file URL, and indomain wants the page you see when you open the file on github.com — the same address with /blob/ in it. Open the file there and copy the address bar",
-			raw)
+			raw,
+		)
 	}
 
 	switch {
@@ -178,11 +195,16 @@ func ParseSource(raw, ref string) (Source, error) {
 		org := strings.TrimSuffix(host, ".visualstudio.com")
 		return Source{}, fmt.Errorf(
 			"%q is a legacy visualstudio.com URL — Azure DevOps moved to dev.azure.com. Open the file in your browser on dev.azure.com (e.g. https://dev.azure.com/%s) and import that address instead",
-			raw, org)
+			raw,
+			org,
+		)
 	default:
 		return Source{}, fmt.Errorf(
 			"indomain can currently fetch only from github.com and dev.azure.com, and %q is on %q. Support for other hosts is not written yet because nobody has needed it — if you do, please open an issue at %s saying where your models live",
-			raw, u.Host, issuesURL)
+			raw,
+			u.Host,
+			issuesURL,
+		)
 	}
 }
 
@@ -194,13 +216,16 @@ func parseGitHubSource(u *url.URL, ref string) (Source, error) {
 	if len(parts) < 5 || parts[2] != "blob" {
 		return Source{}, fmt.Errorf(
 			"%q is not a GitHub file URL — it should look like https://github.com/<owner>/<repo>/blob/<ref>/<path to the .modelith.yaml>, which is the address you get by opening the file on github.com",
-			u.String())
+			u.String(),
+		)
 	}
 	for _, p := range parts {
 		if p == "" || p == "." || p == ".." {
 			return Source{}, fmt.Errorf(
 				"%q has a %q path segment, which is not part of a file's address on github.com — copy the address bar from the file's page rather than assembling the URL by hand",
-				u.String(), p)
+				u.String(),
+				p,
+			)
 		}
 	}
 	src := Source{
@@ -236,26 +261,35 @@ func parseADOSource(u *url.URL, ref string) (Source, error) {
 	if len(parts) < 4 || parts[2] != "_git" {
 		return Source{}, fmt.Errorf(
 			"%q is not an Azure DevOps file URL — it should look like https://dev.azure.com/<org>/<project>/_git/<repo>?path=<path>&version=GB<branch>, which is the address you get by opening the file on dev.azure.com",
-			u.String())
+			u.String(),
+		)
 	}
 	for _, p := range parts {
 		if p == "" || p == "." || p == ".." {
 			return Source{}, fmt.Errorf(
 				"%q has a %q path segment, which is not part of a file's address on dev.azure.com — copy the address bar from the file's page rather than assembling the URL by hand",
-				u.String(), p)
+				u.String(),
+				p,
+			)
 		}
 	}
 
 	q := u.Query()
 	filePath := strings.TrimPrefix(strings.TrimSpace(q.Get("path")), "/")
 	if filePath == "" {
-		return Source{}, fmt.Errorf("%q names no file inside the repository — it needs a ?path= query parameter", u.String())
+		return Source{}, fmt.Errorf(
+			"%q names no file inside the repository — it needs a ?path= query parameter",
+			u.String(),
+		)
 	}
 	for _, p := range strings.Split(filePath, "/") {
-		if p == "" || p == "." || p == ".." || strings.Contains(p, "\\") || strings.TrimSpace(p) != p {
+		if p == "" || p == "." || p == ".." || strings.Contains(p, "\\") ||
+			strings.TrimSpace(p) != p {
 			return Source{}, fmt.Errorf(
 				"%q has a %q path segment, which is not part of a file's address on dev.azure.com — copy the address bar from the file's page rather than assembling the URL by hand",
-				u.String(), p)
+				u.String(),
+				p,
+			)
 		}
 	}
 
@@ -289,7 +323,8 @@ func parseADOSource(u *url.URL, ref string) (Source, error) {
 	if src.Ref == "" {
 		return Source{}, fmt.Errorf(
 			"%q has no version parameter — add &version=GB<branch> to the URL, or pass --ref to pin a specific ref",
-			u.String())
+			u.String(),
+		)
 	}
 	return src, nil
 }
@@ -370,20 +405,28 @@ func Import(ctx context.Context, opts Options) (*Result, error) {
 	if provenance.Present(content) {
 		return nil, fmt.Errorf(
 			"%s carries a %s line, so indomain reads it as somebody else's copy rather than a model's home. If it is a copy, vendor it from the origin its header names instead, so this repository tracks the model's home. If it is not — the line is an ordinary comment that happens to use indomain's reserved prefix at column zero — it has to be indented or removed at the origin before this file can be vendored",
-			opts.URL, provenance.LinePrefix)
+			opts.URL,
+			provenance.LinePrefix,
+		)
 	}
 	m, err := model.Parse(content)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"%s did not parse as a domain model — check that the URL names a *.modelith.yaml file, and that this indomain is new enough to read it: %w",
-			opts.URL, err)
+			opts.URL,
+			err,
+		)
 	}
 	if m.Kind != "DomainModel" {
 		declares := fmt.Sprintf("declares kind %q", m.Kind)
 		if m.Kind == "" {
 			declares = "declares no kind"
 		}
-		return nil, fmt.Errorf("%s is not a domain model — it %s, not \"DomainModel\"", opts.URL, declares)
+		return nil, fmt.Errorf(
+			"%s is not a domain model — it %s, not \"DomainModel\"",
+			opts.URL,
+			declares,
+		)
 	}
 
 	h := &provenance.Header{
@@ -433,7 +476,8 @@ func guardTarget(target string, src Source) (replaced bool, err error) {
 	if !provenance.Present(existing) {
 		return false, fmt.Errorf(
 			"%s already exists and carries no provenance header, so it is a model this repository owns rather than a copy of one — importing would overwrite it. Import into a different directory, or move that file aside first",
-			target)
+			target,
+		)
 	}
 	// A malformed header can still be repaired, but only if its surviving
 	// identity names this exact source. A reserved-prefix comment alone is not
@@ -442,7 +486,10 @@ func guardTarget(target string, src Source) (replaced bool, err error) {
 	if h.Origin == "" || h.Path == "" {
 		return false, fmt.Errorf(
 			"%s cannot be identified as a copy of the source (%s/%s) because its provenance header does not name both an origin and path. Import into a different directory, or deliberately move or delete the existing file first",
-			target, src.Origin, src.Path)
+			target,
+			src.Origin,
+			src.Path,
+		)
 	}
 	switch {
 	// GitHub treats an owner and a repository name case-insensitively, and
@@ -451,14 +498,24 @@ func guardTarget(target string, src Source) (replaced bool, err error) {
 	case !strings.EqualFold(normOrigin(h.Origin), normOrigin(src.Origin)):
 		return false, fmt.Errorf(
 			"%s is a vendored copy of %s/%s, not of %s/%s — two different models share that filename. Import into a different directory so both can live here",
-			target, h.Origin, h.Path, src.Origin, src.Path)
+			target,
+			h.Origin,
+			h.Path,
+			src.Origin,
+			src.Path,
+		)
 	case h.Path != src.Path:
 		// Same repository, different path: either the model moved upstream or
 		// this repository has two models from it sharing a basename. Only the
 		// user knows which, and the two remedies are different.
 		return false, fmt.Errorf(
 			"%s is a vendored copy of %s in %s, and you are importing %s from the same repository. If the model moved, delete %s and import again; if these are two different models, import into a different directory so both can live here",
-			target, h.Path, h.Origin, src.Path, target)
+			target,
+			h.Path,
+			h.Origin,
+			src.Path,
+			target,
+		)
 	}
 	return true, nil
 }
@@ -481,7 +538,9 @@ func splitHint(src Source, err error) string {
 	}
 	return fmt.Sprintf(
 		"\n\nindomain read %q as the ref and %q as the path. If the ref has a slash in it that split is wrong: pass the whole ref to --ref, or — if --ref is already pinning a different ref, which cannot re-split the path — open the file on the ref you want and import that URL instead",
-		src.Ref, src.Path)
+		src.Ref,
+		src.Path,
+	)
 }
 
 // isNotFound reports whether err says the endpoint does not exist.
@@ -563,7 +622,10 @@ func resolveADORefType(ctx context.Context, runner Runner, src *Source) error {
 	}
 	return fmt.Errorf(
 		"%q is neither a branch, a tag, nor a commit in %s/%s, so its type cannot be resolved. Check the ref, or name the type in the URL's version= parameter (GB<branch>, GT<tag>, or GC<commit>)",
-		src.Ref, src.Owner, src.Repo)
+		src.Ref,
+		src.Owner,
+		src.Repo,
+	)
 }
 
 // adoRefExists reports whether the repository has the named ref. The filter is
@@ -635,7 +697,13 @@ func fetchCommit(ctx context.Context, runner Runner, src Source) (string, error)
 	}
 	sha := strings.TrimSpace(string(out))
 	if sha == "" || sha == "null" {
-		return "", fmt.Errorf("%s/%s has no commit touching %q at %q", src.Owner, src.Repo, src.Path, src.Ref)
+		return "", fmt.Errorf(
+			"%s/%s has no commit touching %q at %q",
+			src.Owner,
+			src.Repo,
+			src.Path,
+			src.Ref,
+		)
 	}
 	return sha, nil
 }
@@ -715,9 +783,12 @@ func adoVersionType(src Source) string {
 func fetchContentADO(ctx context.Context, runner Runner, src Source) ([]byte, error) {
 	uri := fmt.Sprintf(
 		"https://dev.azure.com/%s/%s/_apis/git/repositories/%s/items?path=%s&versionDescriptor.version=%s&download=true&api-version=7.1",
-		url.PathEscape(src.Owner), url.PathEscape(src.Project),
-		url.PathEscape(src.Repo), url.QueryEscape(src.Path),
-		url.QueryEscape(src.Ref))
+		url.PathEscape(src.Owner),
+		url.PathEscape(src.Project),
+		url.PathEscape(src.Repo),
+		url.QueryEscape(src.Path),
+		url.QueryEscape(src.Ref),
+	)
 	if vt := adoVersionType(src); vt != "" {
 		uri += "&versionDescriptor.versionType=" + url.QueryEscape(vt)
 	}
@@ -746,9 +817,12 @@ func fetchContentADO(ctx context.Context, runner Runner, src Source) ([]byte, er
 func fetchCommitADO(ctx context.Context, runner Runner, src Source) (string, error) {
 	uri := fmt.Sprintf(
 		"https://dev.azure.com/%s/%s/_apis/git/repositories/%s/commits?searchCriteria.itemPath=%s&searchCriteria.itemVersion.version=%s&$top=1&api-version=7.1",
-		url.PathEscape(src.Owner), url.PathEscape(src.Project),
-		url.PathEscape(src.Repo), url.QueryEscape(src.Path),
-		url.QueryEscape(src.Ref))
+		url.PathEscape(src.Owner),
+		url.PathEscape(src.Project),
+		url.PathEscape(src.Repo),
+		url.QueryEscape(src.Path),
+		url.QueryEscape(src.Ref),
+	)
 	if vt := adoVersionType(src); vt != "" {
 		uri += "&searchCriteria.itemVersion.versionType=" + url.QueryEscape(vt)
 	}

@@ -75,7 +75,10 @@ func (f *fakeRunner) runAz(args []string) ([]byte, error) {
 	}
 	// The ADO resource ID must be present.
 	if resource != "499b84ac-1321-427f-aa17-267ca6975798" {
-		return nil, fmt.Errorf("az: expected --resource 499b84ac-1321-427f-aa17-267ca6975798, got %q", resource)
+		return nil, fmt.Errorf(
+			"az: expected --resource 499b84ac-1321-427f-aa17-267ca6975798, got %q",
+			resource,
+		)
 	}
 	if f.fail != "" && strings.Contains(uri, f.fail) {
 		return nil, fmt.Errorf("az: HTTP 404: Not Found (%s)", uri)
@@ -108,7 +111,11 @@ func (f *fakeRunner) runAz(args []string) ([]byte, error) {
 			vt = "branch"
 		}
 		if !adoVersionKnown(vt, ver, f.sha) {
-			return nil, fmt.Errorf("az: TF401175: The version descriptor <%s: %s> could not be resolved to a version (https://dev.azure.com/x/_apis/git/repositories/y/items)", adoTypeLabel(vt), ver)
+			return nil, fmt.Errorf(
+				"az: TF401175: The version descriptor <%s: %s> could not be resolved to a version (https://dev.azure.com/x/_apis/git/repositories/y/items)",
+				adoTypeLabel(vt),
+				ver,
+			)
 		}
 		// The real fetch writes the body to --output-file (az rest appends a
 		// newline when printing a body to stdout, which would drift the
@@ -130,7 +137,9 @@ func (f *fakeRunner) runAz(args []string) ([]byte, error) {
 		// rather than a surprise against a real endpoint.
 		body := []byte(f.content)
 		if !strings.Contains(uri, "download=true") {
-			body = []byte(`{"objectId":"` + f.sha + `","gitObjectType":"blob","path":"/payments.modelith.yaml"}`)
+			body = []byte(
+				`{"objectId":"` + f.sha + `","gitObjectType":"blob","path":"/payments.modelith.yaml"}`,
+			)
 		}
 		if err := os.WriteFile(outPath, body, 0o644); err != nil {
 			return nil, err
@@ -148,7 +157,11 @@ func (f *fakeRunner) runAz(args []string) ([]byte, error) {
 			vt = "branch"
 		}
 		if !adoVersionKnown(vt, ver, f.sha) {
-			return nil, fmt.Errorf("az: TF401175: the commits query could not resolve <%s: %s>", adoTypeLabel(vt), ver)
+			return nil, fmt.Errorf(
+				"az: TF401175: the commits query could not resolve <%s: %s>",
+				adoTypeLabel(vt),
+				ver,
+			)
 		}
 		return []byte(f.sha + "\n"), nil
 	}
@@ -383,7 +396,10 @@ func TestADR_0019_RefTypeIsRecordedOnlyWhereItIsNeeded(t *testing.T) {
 		t.Fatal(err)
 	}
 	if gh.Header.RefType != "" {
-		t.Errorf("a GitHub header carries a ref type (%q); its API needs none, and the key must be omitted", gh.Header.RefType)
+		t.Errorf(
+			"a GitHub header carries a ref type (%q); its API needs none, and the key must be omitted",
+			gh.Header.RefType,
+		)
 	}
 	if got := readImportFile(t, gh.Path); strings.Contains(got, "# modelith-ref-type:") {
 		t.Errorf("a GitHub copy was stamped with a ref-type line:\n%s", got)
@@ -395,7 +411,11 @@ func TestADR_0019_RefTypeIsRecordedOnlyWhereItIsNeeded(t *testing.T) {
 		t.Fatal(err)
 	}
 	if ado.Header.RefType != "branch" {
-		t.Errorf("an ADO header recorded ref type %q, want %q for a GB URL", ado.Header.RefType, "branch")
+		t.Errorf(
+			"an ADO header recorded ref type %q, want %q for a GB URL",
+			ado.Header.RefType,
+			"branch",
+		)
 	}
 }
 
@@ -476,11 +496,15 @@ func TestImport_CallsGhWithTheExpectedEndpoints(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := [][]string{
-		{"gh", "api", "-H", "Accept: application/vnd.github.raw",
-			"repos/acme/billing/contents/docs/payments.modelith.yaml?ref=main"},
-		{"gh", "api",
+		{
+			"gh", "api", "-H", "Accept: application/vnd.github.raw",
+			"repos/acme/billing/contents/docs/payments.modelith.yaml?ref=main",
+		},
+		{
+			"gh", "api",
 			"repos/acme/billing/commits?path=docs%2Fpayments.modelith.yaml&sha=main&per_page=1",
-			"--jq", ".[0].sha"},
+			"--jq", ".[0].sha",
+		},
 	}
 	if len(r.calls) != len(want) {
 		t.Fatalf("want %d gh calls, got %d: %+v", len(want), len(r.calls), r.calls)
@@ -541,8 +565,11 @@ func TestImport_Rejections(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name:    "a file that is already a vendored copy",
-			runner:  &fakeRunner{content: "# modelith-origin: https://github.com/other/repo\n" + upstream, sha: sha},
+			name: "a file that is already a vendored copy",
+			runner: &fakeRunner{
+				content: "# modelith-origin: https://github.com/other/repo\n" + upstream,
+				sha:     sha,
+			},
 			url:     blobURL,
 			wantErr: "reads it as somebody else's copy",
 		},
@@ -668,7 +695,12 @@ func TestImport_RefusesUnknownReservedPrefixAtTarget(t *testing.T) {
 
 	dir := t.TempDir()
 	target := filepath.Join(dir, "payments.modelith.yaml")
-	existing := "# modelith-note: locally owned\n" + strings.Replace(upstream, "title: Payments", "title: Ours", 1)
+	existing := "# modelith-note: locally owned\n" + strings.Replace(
+		upstream,
+		"title: Payments",
+		"title: Ours",
+		1,
+	)
 	if err := os.WriteFile(target, []byte(existing), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -711,12 +743,25 @@ func TestSplitHint(t *testing.T) {
 		want bool
 	}{
 		{"a not-found", src, fmt.Errorf("gh: HTTP 404: Not Found"), true},
-		{"gh missing", src, fmt.Errorf("gh is not installed — indomain delegates fetching to it"), false},
+		{
+			"gh missing",
+			src,
+			fmt.Errorf("gh is not installed — indomain delegates fetching to it"),
+			false,
+		},
 		{"a rejected credential", src, fmt.Errorf("gh: HTTP 401: Bad credentials"), false},
 		{"a forbidden repository", src, fmt.Errorf("gh: HTTP 403: Forbidden"), false},
-		{"an unreachable network", src, fmt.Errorf("dial tcp: lookup api.github.com: no such host"), false},
-		{"a single-segment path has nothing to lose to the ref",
-			Source{Host: HostGitHub, Ref: "main", Path: "payments.modelith.yaml"}, fmt.Errorf("gh: HTTP 404: Not Found"), false},
+		{
+			"an unreachable network",
+			src,
+			fmt.Errorf("dial tcp: lookup api.github.com: no such host"),
+			false,
+		},
+		{
+			"a single-segment path has nothing to lose to the ref",
+			Source{Host: HostGitHub, Ref: "main", Path: "payments.modelith.yaml"},
+			fmt.Errorf("gh: HTTP 404: Not Found"), false,
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -741,7 +786,12 @@ func TestImport_RefreshIsNotRefusedOverCasing(t *testing.T) {
 		"https://github.com/Acme/Billing/blob/main/docs/payments.modelith.yaml"); err != nil {
 		t.Fatal(err)
 	}
-	res, err := importInto(t, dir, &fakeRunner{content: upstream + "  # newer\n", sha: "9" + sha[1:]}, blobURL)
+	res, err := importInto(
+		t,
+		dir,
+		&fakeRunner{content: upstream + "  # newer\n", sha: "9" + sha[1:]},
+		blobURL,
+	)
 	if err != nil {
 		t.Fatalf("a refresh differing only in the origin's casing was refused: %v", err)
 	}
@@ -774,7 +824,12 @@ func TestImport_RefreshIsNotRefusedOverATrailingSlash(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err = importInto(t, dir, &fakeRunner{content: upstream + "  # newer\n", sha: "9" + sha[1:]}, blobURL)
+	res, err = importInto(
+		t,
+		dir,
+		&fakeRunner{content: upstream + "  # newer\n", sha: "9" + sha[1:]},
+		blobURL,
+	)
 	if err != nil {
 		t.Fatalf("a refresh differing only in a trailing slash was refused: %v", err)
 	}
@@ -1144,7 +1199,10 @@ func TestImport_ADO_CallsAzWithTheExpectedEndpoints(t *testing.T) {
 					// Without download=true the Items API returns a JSON
 					// GitItem, and the import cannot parse the model out of it.
 					if !strings.Contains(uri, "download=true") {
-						t.Errorf("the items request omits download=true, so the API returns JSON metadata rather than the model: %s", uri)
+						t.Errorf(
+							"the items request omits download=true, so the API returns JSON metadata rather than the model: %s",
+							uri,
+						)
 					}
 				}
 				if strings.Contains(uri, "/commits") {
@@ -1234,7 +1292,11 @@ func TestImport_ADO_OverrideRefResolvesTheType(t *testing.T) {
 		t.Fatal(err)
 	}
 	if res.Header.RefType != "tag" {
-		t.Errorf("the header recorded ref-type %q, want %q — the override named a tag", res.Header.RefType, "tag")
+		t.Errorf(
+			"the header recorded ref-type %q, want %q — the override named a tag",
+			res.Header.RefType,
+			"tag",
+		)
 	}
 
 	var sawRefs, sawTypedFetch bool
@@ -1299,7 +1361,10 @@ func TestImport_ADO_OverrideRefCommitNeedsNoRefsLookup(t *testing.T) {
 func TestImport_ADO_RejectsAlreadyVendored(t *testing.T) {
 	t.Parallel()
 
-	r := adoRunner("# modelith-origin: https://dev.azure.com/other/proj/_git/repo\n"+adoContent, adoCommit)
+	r := adoRunner(
+		"# modelith-origin: https://dev.azure.com/other/proj/_git/repo\n"+adoContent,
+		adoCommit,
+	)
 	_, err := importAdoInto(t, t.TempDir(), r, adoBlobURL)
 	if err == nil || !strings.Contains(err.Error(), "reads it as somebody else's copy") {
 		t.Fatalf("want 'reads it as somebody else's copy', got %v", err)
@@ -1438,7 +1503,13 @@ func TestTimeoutRunner_ReturnsAClearErrorOnDeadline(t *testing.T) {
 	})
 	r := timeoutRunner{inner: inner, timeout: 10 * time.Millisecond}
 
-	_, err := r.Run(context.Background(), "az", "rest", "--uri", "https://dev.azure.com/secret/org/_apis/items")
+	_, err := r.Run(
+		context.Background(),
+		"az",
+		"rest",
+		"--uri",
+		"https://dev.azure.com/secret/org/_apis/items",
+	)
 	if err == nil {
 		t.Fatal("expected a timeout error, got nil")
 	}
@@ -1621,7 +1692,11 @@ func TestImport_WithTimeoutBoundsEachCall(t *testing.T) {
 	for i, ctx := range rec.ctxs {
 		d, ok := ctx.Deadline()
 		if !ok {
-			t.Errorf("call %d received no deadline; Timeout %v should bound each call", i, time.Minute)
+			t.Errorf(
+				"call %d received no deadline; Timeout %v should bound each call",
+				i,
+				time.Minute,
+			)
 			continue
 		}
 		if time.Until(d) > time.Minute {

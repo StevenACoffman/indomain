@@ -40,10 +40,22 @@ func TestPresent(t *testing.T) {
 	}{
 		{"a stamped file", vendored, true},
 		{"a model this repo owns", plain, false},
-		{"an ordinary comment that only looks like one", "#modelith-fetch: git\nkind: DomainModel\n", false},
-		{"an indented provenance line is an ordinary comment", "  # modelith-fetch: git\nkind: DomainModel\n", false},
+		{
+			"an ordinary comment that only looks like one",
+			"#modelith-fetch: git\nkind: DomainModel\n",
+			false,
+		},
+		{
+			"an indented provenance line is an ordinary comment",
+			"  # modelith-fetch: git\nkind: DomainModel\n",
+			false,
+		},
 		{"a broken header is still a header", "# modelith-nonsense: x\nkind: DomainModel\n", true},
-		{"a header displaced below the model content is still a header", plain + "# modelith-fetch: git\n", true},
+		{
+			"a header displaced below the model content is still a header",
+			plain + "# modelith-fetch: git\n",
+			true,
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -207,7 +219,11 @@ func TestADR_0015_DigestCoversTheFileWithoutItsHeader(t *testing.T) {
 		t.Errorf("Digest(plain) = %s, want %s", got, want)
 	}
 	if got := Digest([]byte(vendored)); got != want {
-		t.Errorf("Digest(vendored) = %s, want %s — the header must not change the digest of the file it is stamped into", got, want)
+		t.Errorf(
+			"Digest(vendored) = %s, want %s — the header must not change the digest of the file it is stamped into",
+			got,
+			want,
+		)
 	}
 }
 
@@ -400,7 +416,11 @@ func TestStamp(t *testing.T) {
 		stamped := Stamp([]byte(plain), h)
 		parsed, _ := Parse(stamped)
 		if ok, got := parsed.Verify(stamped); !ok {
-			t.Errorf("a freshly stamped file does not verify: recorded %s, computed %s", parsed.Digest, got)
+			t.Errorf(
+				"a freshly stamped file does not verify: recorded %s, computed %s",
+				parsed.Digest,
+				got,
+			)
 		}
 	})
 }

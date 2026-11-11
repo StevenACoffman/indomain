@@ -113,6 +113,10 @@ func TestInvariant_ScopeSlugMatchesSchema(t *testing.T) {
 	got, _ := scope["pattern"].(string)
 
 	if want := "^" + ScopeSlug + "$"; got != want {
-		t.Errorf("schema importObject.scope pattern is %q, want %q (from model.ScopeSlug)", got, want)
+		t.Errorf(
+			"schema importObject.scope pattern is %q, want %q (from model.ScopeSlug)",
+			got,
+			want,
+		)
 	}
 }

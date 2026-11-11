@@ -60,7 +60,11 @@ func TestADR_0009_NoSelfModel(t *testing.T) {
 	}
 	for rel, why := range allowed {
 		if !slices.Contains(found, rel) {
-			t.Errorf("allowlisted model file %s is missing (%s); update the allowlist if it moved", rel, why)
+			t.Errorf(
+				"allowlisted model file %s is missing (%s); update the allowlist if it moved",
+				rel,
+				why,
+			)
 		}
 	}
 }

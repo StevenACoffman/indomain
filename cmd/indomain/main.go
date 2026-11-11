@@ -163,7 +163,10 @@ this command prints the entry to add.`),
 				return fmt.Errorf("%s: %w", dir, err)
 			}
 			if !info.IsDir() {
-				return fmt.Errorf("%s is not a directory — the destination is a directory, and the filename comes from the origin", dir)
+				return fmt.Errorf(
+					"%s is not a directory — the destination is a directory, and the filename comes from the origin",
+					dir,
+				)
 			}
 
 			res, err := deps.Import(cmd.Context(), deps.Options{
@@ -185,7 +188,8 @@ this command prints the entry to add.`),
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&ref, "ref", "", "ref to fetch, overriding the one in the URL (a tag pins the copy)")
+	cmd.Flags().
+		StringVar(&ref, "ref", "", "ref to fetch, overriding the one in the URL (a tag pins the copy)")
 	cmd.Flags().DurationVar(&timeout, "timeout", 60*time.Second,
 		"abandon a delegated fetch (gh/az) that exceeds this duration; 0 disables the bound")
 	return cmd
@@ -275,10 +279,14 @@ CLI fails fast instead of stalling the run.`),
   indomain deps check docs/*.modelith.yaml`),
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			reports, err := deps.Check(cmd.Context(), deps.CheckOptions{Paths: args, Timeout: timeout})
+			reports, err := deps.Check(
+				cmd.Context(),
+				deps.CheckOptions{Paths: args, Timeout: timeout},
+			)
 			// A run that got nowhere has nothing to summarise, and "checked 0
 			// vendored copies" above the reason would read as the outcome.
-			blocking := len(reports) > 0 && printCheckReports(cmd.OutOrStdout(), cmd.ErrOrStderr(), reports)
+			blocking := len(reports) > 0 &&
+				printCheckReports(cmd.OutOrStdout(), cmd.ErrOrStderr(), reports)
 			if err != nil {
 				return err
 			}
@@ -336,7 +344,8 @@ CLI fails fast instead of stalling the run.`),
 				Timeout: timeout,
 			})
 			// See depsCheckCmd: nothing reached means nothing to summarise.
-			blocking := len(reports) > 0 && printUpdateReports(cmd.OutOrStdout(), cmd.ErrOrStderr(), reports)
+			blocking := len(reports) > 0 &&
+				printUpdateReports(cmd.OutOrStdout(), cmd.ErrOrStderr(), reports)
 			if err != nil {
 				return err
 			}
@@ -384,9 +393,16 @@ func printCheckReports(out, errOut io.Writer, reports []deps.Report) bool {
 		}
 	}
 	reached, failed, skipped := tally(reports)
-	line := fmt.Sprintf("checked %s, %d stale", plural(reached, "vendored copy", "vendored copies"), stale)
+	line := fmt.Sprintf(
+		"checked %s, %d stale",
+		plural(reached, "vendored copy", "vendored copies"),
+		stale,
+	)
 	if stale == 0 && reached > 0 {
-		line = fmt.Sprintf("checked %s, all up to date", plural(reached, "vendored copy", "vendored copies"))
+		line = fmt.Sprintf(
+			"checked %s, all up to date",
+			plural(reached, "vendored copy", "vendored copies"),
+		)
 	}
 	printSummary(out, line, failed, skipped)
 	return stale > 0 || failed > 0
@@ -404,8 +420,12 @@ func printUpdateReports(out, errOut io.Writer, reports []deps.Report) bool {
 			fmt.Fprintf(errOut, "%s: %v\n", r.Path, r.Err)
 		case r.Restored:
 			written++
-			fmt.Fprintf(out, "%s: restored to %s — local edits discarded, make the change at its origin\n",
-				r.Path, shortSHA(r.Commit))
+			fmt.Fprintf(
+				out,
+				"%s: restored to %s — local edits discarded, make the change at its origin\n",
+				r.Path,
+				shortSHA(r.Commit),
+			)
 		case r.State == nil:
 			// See printCheckReports: a file the run abandoned rather than judged.
 		case r.Written:
@@ -430,9 +450,12 @@ func printUpdateReports(out, errOut io.Writer, reports []deps.Report) bool {
 			printTransitiveNote(out, filepath.Base(r.Path), r.NewImports, "now declares")
 		}
 	}
-	fmt.Fprint(out, "\nRun `indomain lint` on the models that import these copies. An item a copy\n"+
-		"used to define may have been renamed or removed upstream, which breaks a\n"+
-		"reference this command cannot see.\n")
+	fmt.Fprint(
+		out,
+		"\nRun `indomain lint` on the models that import these copies. An item a copy\n"+
+			"used to define may have been renamed or removed upstream, which breaks a\n"+
+			"reference this command cannot see.\n",
+	)
 	printTrustWarning(errOut)
 	return failed > 0
 }
@@ -460,7 +483,10 @@ func printSummary(out io.Writer, line string, failed, skipped int) {
 		line += fmt.Sprintf(", %s could not be reached", plural(failed, "file", "files"))
 	}
 	if skipped > 0 {
-		line += fmt.Sprintf("; skipped %s with no provenance header", plural(skipped, "file", "files"))
+		line += fmt.Sprintf(
+			"; skipped %s with no provenance header",
+			plural(skipped, "file", "files"),
+		)
 	}
 	fmt.Fprintf(out, "\n%s\n", line)
 }
@@ -577,7 +603,14 @@ func lintCmd() *cobra.Command {
 						if loc == "" {
 							loc = "(root)"
 						}
-						fmt.Fprintf(out, "  %-7s [%s] %s: %s\n", f.Severity, f.Category, loc, f.Message)
+						fmt.Fprintf(
+							out,
+							"  %-7s [%s] %s: %s\n",
+							f.Severity,
+							f.Category,
+							loc,
+							f.Message,
+						)
 					}
 				}
 				fmt.Fprintf(out, "\n%d error(s), %d warning(s)\n", errs, warns)
@@ -589,7 +622,8 @@ func lintCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&completeness, "completeness", "warn", "treat completeness gaps as warn or error")
+	cmd.Flags().
+		StringVar(&completeness, "completeness", "warn", "treat completeness gaps as warn or error")
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
 	_ = cmd.RegisterFlagCompletionFunc("completeness",
 		cobra.FixedCompletions([]string{"warn", "error"}, cobra.ShellCompDirectiveNoFileComp))
@@ -631,7 +665,11 @@ func renderCmd() *cobra.Command {
 			// anything below can exempt a file from the check, so no exemption
 			// can turn a typo into a pass.
 			if check && !isDir(filepath.Dir(target)) {
-				return fmt.Errorf("cannot check %s: %s is not a directory", target, filepath.Dir(target))
+				return fmt.Errorf(
+					"cannot check %s: %s is not a directory",
+					target,
+					filepath.Dir(target),
+				)
 			}
 
 			// A vendored model's rendered form belongs to its home repository,
@@ -665,7 +703,10 @@ func renderCmd() *cobra.Command {
 				fmt.Fprintf(cmd.OutOrStdout(), "%s is a vendored copy %s\n", in, tail)
 				return nil
 			}
-			unrenderable := fmt.Sprintf("this indomain cannot render — skipped (run `indomain lint %s` for details)", in)
+			unrenderable := fmt.Sprintf(
+				"this indomain cannot render — skipped (run `indomain lint %s` for details)",
+				in,
+			)
 			if check && vendored {
 				if _, err := os.Stat(target); errors.Is(err, fs.ErrNotExist) {
 					return skipVendored("with no committed " + filepath.Base(target) + " — skipped")
@@ -679,7 +720,12 @@ func renderCmd() *cobra.Command {
 					return skipVendored(unrenderable)
 				}
 				var b strings.Builder
-				fmt.Fprintf(&b, "%s is not a valid domain model — run `indomain lint %s` for details:", in, in)
+				fmt.Fprintf(
+					&b,
+					"%s is not a valid domain model — run `indomain lint %s` for details:",
+					in,
+					in,
+				)
 				for _, f := range findings {
 					loc := f.Path
 					if loc == "" {
@@ -720,10 +766,19 @@ func renderCmd() *cobra.Command {
 			if check {
 				existing, err := os.ReadFile(target)
 				if err != nil {
-					return fmt.Errorf("cannot read committed output %s: %w — regenerate it with `indomain render %s` and commit the result", target, err, in)
+					return fmt.Errorf(
+						"cannot read committed output %s: %w — regenerate it with `indomain render %s` and commit the result",
+						target,
+						err,
+						in,
+					)
 				}
 				if string(existing) != rendered {
-					return fmt.Errorf("%s is out of date — regenerate it with `indomain render %s` and commit the result", target, in)
+					return fmt.Errorf(
+						"%s is out of date — regenerate it with `indomain render %s` and commit the result",
+						target,
+						in,
+					)
 				}
 				fmt.Fprintf(cmd.OutOrStdout(), "%s is up to date\n", target)
 				return nil
@@ -738,7 +793,8 @@ func renderCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&out, "out", "o", "", "output path (default: input with .md extension)")
 	cmd.Flags().BoolVar(&stdout, "stdout", false, "write to stdout instead of a file")
-	cmd.Flags().BoolVar(&check, "check", false, "verify the committed output is up to date; non-zero exit on drift")
+	cmd.Flags().
+		BoolVar(&check, "check", false, "verify the committed output is up to date; non-zero exit on drift")
 	// --stdout has no output file, so it conflicts with both --out and --check.
 	cmd.MarkFlagsMutuallyExclusive("stdout", "out")
 	cmd.MarkFlagsMutuallyExclusive("stdout", "check")

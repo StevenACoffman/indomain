@@ -193,8 +193,12 @@ func runStructural(data []byte, res *Result) bool {
 					Severity: SeverityError,
 					Category: CategoryStructural,
 					Path:     "/version",
-					Message: fmt.Sprintf("unsupported schema version %q; this indomain supports: %s "+
-						"(upgrade indomain, or set a supported version)", v, strings.Join(schema.SupportedVersions(), ", ")),
+					Message: fmt.Sprintf(
+						"unsupported schema version %q; this indomain supports: %s "+
+							"(upgrade indomain, or set a supported version)",
+						v,
+						strings.Join(schema.SupportedVersions(), ", "),
+					),
 				})
 				return false
 			}
@@ -291,7 +295,10 @@ func runSemantic(m *model.Model, res *Result) {
 			Severity: SeverityError,
 			Category: CategorySemantic,
 			Path:     path,
-			Message:  fmt.Sprintf("duplicate invariant id %q — ids must be unique so references resolve unambiguously", id),
+			Message: fmt.Sprintf(
+				"duplicate invariant id %q — ids must be unique so references resolve unambiguously",
+				id,
+			),
 		})
 	}
 	for _, name := range m.EntityNames() {
@@ -336,7 +343,11 @@ func runSemantic(m *model.Model, res *Result) {
 					Severity: SeverityWarning,
 					Category: CategorySemantic,
 					Path:     fmt.Sprintf("/entities/%s/relationships/%d/ownership", name, i),
-					Message:  fmt.Sprintf("entity %q owns %q, which is derived — composing an ephemeral, never-persisted entity is usually a modeling error", name, rel.Entity),
+					Message: fmt.Sprintf(
+						"entity %q owns %q, which is derived — composing an ephemeral, never-persisted entity is usually a modeling error",
+						name,
+						rel.Entity,
+					),
 				})
 			}
 			// A prose role wrecks the diagram: it is the only label on the
@@ -369,7 +380,10 @@ func runSemantic(m *model.Model, res *Result) {
 						Severity: SeverityWarning,
 						Category: CategorySemantic,
 						Path:     fmt.Sprintf("/entities/%s/relationships/%d/role", name, i),
-						Message:  fmt.Sprintf("role term %q is not a defined entity or glossary term — define it in the glossary", base),
+						Message: fmt.Sprintf(
+							"role term %q is not a defined entity or glossary term — define it in the glossary",
+							base,
+						),
 					})
 				}
 			}
@@ -408,7 +422,10 @@ func runSemantic(m *model.Model, res *Result) {
 				Severity: SeverityWarning,
 				Category: CategorySemantic,
 				Path:     path,
-				Message:  fmt.Sprintf("backticked term %q is not a defined entity, glossary term, role, or actor", base),
+				Message: fmt.Sprintf(
+					"backticked term %q is not a defined entity, glossary term, role, or actor",
+					base,
+				),
 			})
 		}
 	}
@@ -437,10 +454,17 @@ func runSemantic(m *model.Model, res *Result) {
 					Severity: SeverityWarning,
 					Category: CategorySemantic,
 					Path:     fmt.Sprintf("/entities/%s/attributes/%d/type", name, i),
-					Message:  fmt.Sprintf("attribute type %q looks like an enum reference but no enum %q is defined (primitives are lowercase)", attr.Type, attr.Type),
+					Message: fmt.Sprintf(
+						"attribute type %q looks like an enum reference but no enum %q is defined (primitives are lowercase)",
+						attr.Type,
+						attr.Type,
+					),
 				})
 			}
-			checkRefs(fmt.Sprintf("/entities/%s/attributes/%d/derivation", name, i), attr.Derivation)
+			checkRefs(
+				fmt.Sprintf("/entities/%s/attributes/%d/derivation", name, i),
+				attr.Derivation,
+			)
 		}
 		for i, act := range ent.Actions {
 			if act.Actor != "" && !entitySet[act.Actor] && !glossary[act.Actor] {
@@ -448,7 +472,10 @@ func runSemantic(m *model.Model, res *Result) {
 					Severity: SeverityWarning,
 					Category: CategorySemantic,
 					Path:     fmt.Sprintf("/entities/%s/actions/%d/actor", name, i),
-					Message:  fmt.Sprintf("action actor %q is not a defined entity or glossary term", act.Actor),
+					Message: fmt.Sprintf(
+						"action actor %q is not a defined entity or glossary term",
+						act.Actor,
+					),
 				})
 			}
 			for j, id := range act.Preserves {
@@ -486,7 +513,11 @@ func runSemantic(m *model.Model, res *Result) {
 					Severity: SeverityError,
 					Category: CategorySemantic,
 					Path:     fmt.Sprintf("/scenarios/%d/invariants_touched/%d", i, j),
-					Message:  fmt.Sprintf("scenario %q touches unknown invariant id %q", sc.Name, id),
+					Message: fmt.Sprintf(
+						"scenario %q touches unknown invariant id %q",
+						sc.Name,
+						id,
+					),
 				})
 			}
 		}
@@ -535,7 +566,8 @@ func runRelationshipShape(m *model.Model, res *Result) {
 						Path:     path + "/symmetric",
 						Message: fmt.Sprintf(
 							"symmetric relationship %s→%s must be self-referential or have a target side greater than one",
-							name, rel.Entity,
+							name,
+							rel.Entity,
 						),
 					})
 				}
@@ -582,7 +614,11 @@ func runSubtypes(m *model.Model, res *Result) {
 				Severity: SeverityError,
 				Category: CategorySemantic,
 				Path:     fmt.Sprintf("/entities/%s/subtypeOf", name),
-				Message:  fmt.Sprintf("entity %q is a subtype of undefined entity %q", name, parent),
+				Message: fmt.Sprintf(
+					"entity %q is a subtype of undefined entity %q",
+					name,
+					parent,
+				),
 			})
 			continue
 		}
@@ -591,7 +627,10 @@ func runSubtypes(m *model.Model, res *Result) {
 				Severity: SeverityError,
 				Category: CategorySemantic,
 				Path:     fmt.Sprintf("/entities/%s/subtypeOf", name),
-				Message:  fmt.Sprintf("entity %q has a cyclic subtypeOf chain: an entity cannot be a kind of itself, directly or transitively", name),
+				Message: fmt.Sprintf(
+					"entity %q has a cyclic subtypeOf chain: an entity cannot be a kind of itself, directly or transitively",
+					name,
+				),
 			})
 		}
 	}
@@ -714,7 +753,10 @@ func runReciprocity(m *model.Model, res *Result) {
 				Path:     f.ownerPath,
 				Message: fmt.Sprintf(
 					"mutual ownership: %s→%s and %s→%s both declare ownership \"owned\" — a relationship is owned by at most one end, so make the other end \"referenced\" (or omit it)",
-					f.from, f.to, r.from, r.to,
+					f.from,
+					f.to,
+					r.from,
+					r.to,
 				),
 			})
 		}
@@ -736,7 +778,13 @@ func runReciprocity(m *model.Model, res *Result) {
 				Path:     f.path,
 				Message: fmt.Sprintf(
 					"reciprocal cardinality conflict: %s→%s declares %q but %s→%s declares %q (expected %q, the inverse)",
-					f.from, f.to, f.card, r.from, r.to, r.card, model.InvertCardinality(f.card),
+					f.from,
+					f.to,
+					f.card,
+					r.from,
+					r.to,
+					r.card,
+					model.InvertCardinality(f.card),
 				),
 			})
 		}
@@ -775,8 +823,13 @@ func runPairing(m *model.Model, res *Result) {
 			Path:     fmt.Sprintf("/entities/%s/relationships/%d", d.From, d.Index),
 			Message: fmt.Sprintf(
 				"ambiguous reciprocal pairing between %q and %q at cardinality %q: %s declares it %d time(s) and %s %d time(s), so which declaration is the reciprocal of which cannot be determined — the diagram draws every declaration as its own line; declare each relationship from one end only to pair them up",
-				g.FirstN, g.SecondN, g.First[0].Rel.Cardinality,
-				g.FirstN, len(g.First), g.SecondN, len(g.Second),
+				g.FirstN,
+				g.SecondN,
+				g.First[0].Rel.Cardinality,
+				g.FirstN,
+				len(g.First),
+				g.SecondN,
+				len(g.Second),
 			),
 		})
 	}
@@ -790,7 +843,10 @@ func runCompleteness(m *model.Model, res *Result) {
 				Severity: SeverityWarning,
 				Category: CategoryCompleteness,
 				Path:     fmt.Sprintf("/entities/%s", name),
-				Message:  fmt.Sprintf("entity %q has no invariants — fine if no rule must always hold for it, otherwise the rules that govern it are worth capturing", name),
+				Message: fmt.Sprintf(
+					"entity %q has no invariants — fine if no rule must always hold for it, otherwise the rules that govern it are worth capturing",
+					name,
+				),
 			})
 		}
 	}
@@ -976,7 +1032,10 @@ func plural(s string) string {
 	switch {
 	case strings.HasSuffix(s, "y"):
 		return s[:len(s)-1] + "ies"
-	case strings.HasSuffix(s, "s"), strings.HasSuffix(s, "x"), strings.HasSuffix(s, "ch"), strings.HasSuffix(s, "sh"):
+	case strings.HasSuffix(s, "s"),
+		strings.HasSuffix(s, "x"),
+		strings.HasSuffix(s, "ch"),
+		strings.HasSuffix(s, "sh"):
 		return s + "es"
 	default:
 		return s + "s"
@@ -988,7 +1047,11 @@ func plural(s string) string {
 // by path and message for determinism.
 func sortFindings(res *Result) {
 	severityRank := map[Severity]int{SeverityError: 0, SeverityWarning: 1}
-	categoryRank := map[Category]int{CategoryStructural: 0, CategorySemantic: 1, CategoryCompleteness: 2}
+	categoryRank := map[Category]int{
+		CategoryStructural:   0,
+		CategorySemantic:     1,
+		CategoryCompleteness: 2,
+	}
 	sort.SliceStable(res.Findings, func(i, j int) bool {
 		a, b := res.Findings[i], res.Findings[j]
 		if severityRank[a.Severity] != severityRank[b.Severity] {

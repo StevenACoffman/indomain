@@ -24,11 +24,31 @@ func TestComposition_OwnerSideMustBeOne(t *testing.T) {
 		{name: "one owner, bounded parts", cardinality: "1:0..5", ownership: "owned", want: false},
 		{name: "many owners share a part", cardinality: "n:1", ownership: "owned", want: true},
 		{name: "many to many", cardinality: "n:n", ownership: "owned", want: true},
-		{name: "optional owner lets a part stand alone", cardinality: "0..1:n", ownership: "owned", want: true},
+		{
+			name:        "optional owner lets a part stand alone",
+			cardinality: "0..1:n",
+			ownership:   "owned",
+			want:        true,
+		},
 		{name: "exact count above one", cardinality: "2:n", ownership: "owned", want: true},
-		{name: "referenced is unconstrained", cardinality: "n:1", ownership: "referenced", want: false},
-		{name: "omitted ownership means referenced", cardinality: "n:1", ownership: "", want: false},
-		{name: "inverted range is reported by its own check", cardinality: "5..2:n", ownership: "owned", want: false},
+		{
+			name:        "referenced is unconstrained",
+			cardinality: "n:1",
+			ownership:   "referenced",
+			want:        false,
+		},
+		{
+			name:        "omitted ownership means referenced",
+			cardinality: "n:1",
+			ownership:   "",
+			want:        false,
+		},
+		{
+			name:        "inverted range is reported by its own check",
+			cardinality: "5..2:n",
+			ownership:   "owned",
+			want:        false,
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -61,19 +81,29 @@ entities:
 			}
 			if !tc.want {
 				if len(got) != 0 {
-					t.Fatalf("cardinality %q: expected no ownership finding, got %+v", tc.cardinality, got)
+					t.Fatalf(
+						"cardinality %q: expected no ownership finding, got %+v",
+						tc.cardinality,
+						got,
+					)
 				}
 				return
 			}
 			if len(got) != 1 {
-				t.Fatalf("cardinality %q: expected exactly one ownership finding, got %+v", tc.cardinality, got)
+				t.Fatalf(
+					"cardinality %q: expected exactly one ownership finding, got %+v",
+					tc.cardinality,
+					got,
+				)
 			}
 			want := Finding{
 				Severity: SeverityWarning,
 				Category: CategorySemantic,
 				Path:     "/entities/Order/relationships/0/ownership",
 				Message: `Order→LineItem is owned, so each LineItem has exactly one Order, but cardinality ` +
-					strconv.Quote(tc.cardinality) +
+					strconv.Quote(
+						tc.cardinality,
+					) +
 					` does not say so — write the owner (left) side as "1", or use ownership: referenced if a LineItem can be shared or stand alone`,
 			}
 			if got[0] != want {
@@ -155,12 +185,14 @@ func TestComposition_OwnershipCycle(t *testing.T) {
     relationships:
       - {entity: Folder, cardinality: "1:n", ownership: owned}
 `,
-			want: []Finding{{
-				Severity: SeverityError,
-				Category: CategorySemantic,
-				Path:     "/entities/Folder/relationships/0/ownership",
-				Message:  "Folder owns Folder and every Folder must have an owner, so no Folder can be the root and none can exist — use ownership: referenced",
-			}},
+			want: []Finding{
+				{
+					Severity: SeverityError,
+					Category: CategorySemantic,
+					Path:     "/entities/Folder/relationships/0/ownership",
+					Message:  "Folder owns Folder and every Folder must have an owner, so no Folder can be the root and none can exist — use ownership: referenced",
+				},
+			},
 		},
 		{
 			name: "two separate cycles raise two findings",
@@ -237,12 +269,14 @@ func TestComposition_OwnershipCycle(t *testing.T) {
     relationships:
       - {entity: Alpha, cardinality: "1:n", ownership: owned}
 `,
-			want: []Finding{{
-				Severity: SeverityError,
-				Category: CategorySemantic,
-				Path:     "/entities/Alpha/relationships/1/ownership",
-				Message:  "Alpha, Beta, Delta, and Gamma own one another in a cycle and each must have an owner, so none can be the root and none can exist — make one of these relationships ownership: referenced",
-			}},
+			want: []Finding{
+				{
+					Severity: SeverityError,
+					Category: CategorySemantic,
+					Path:     "/entities/Alpha/relationships/1/ownership",
+					Message:  "Alpha, Beta, Delta, and Gamma own one another in a cycle and each must have an owner, so none can be the root and none can exist — make one of these relationships ownership: referenced",
+				},
+			},
 		},
 		{
 			name: "a long loop names its first five members",
@@ -276,12 +310,14 @@ func TestComposition_OwnershipCycle(t *testing.T) {
     relationships:
       - {entity: Ent1, cardinality: "1:n", ownership: owned}
 `,
-			want: []Finding{{
-				Severity: SeverityError,
-				Category: CategorySemantic,
-				Path:     "/entities/Ent1/relationships/0/ownership",
-				Message:  "Ent1, Ent2, Ent3, Ent4, Ent5, and 2 others own one another in a cycle and each must have an owner, so none can be the root and none can exist — make one of these relationships ownership: referenced",
-			}},
+			want: []Finding{
+				{
+					Severity: SeverityError,
+					Category: CategorySemantic,
+					Path:     "/entities/Ent1/relationships/0/ownership",
+					Message:  "Ent1, Ent2, Ent3, Ent4, Ent5, and 2 others own one another in a cycle and each must have an owner, so none can be the root and none can exist — make one of these relationships ownership: referenced",
+				},
+			},
 		},
 		{
 			name: "an optional owner leaves room for a root",

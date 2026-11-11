@@ -65,7 +65,8 @@ func Plan(inputs []Input, files Files) ([]FileResult, error) {
 				continue
 			}
 			loaded, failure := loadImport(current.resolvedPath, root, inRepo, imp.Path, files)
-			if explicit[loaded.resolvedPath] || discovered[loaded.resolvedPath] || (failure != nil && loaded.source == nil) {
+			if explicit[loaded.resolvedPath] || discovered[loaded.resolvedPath] ||
+				(failure != nil && loaded.source == nil) {
 				continue
 			}
 			discovered[loaded.resolvedPath] = true
@@ -74,7 +75,10 @@ func Plan(inputs []Input, files Files) ([]FileResult, error) {
 			runProvenance(loaded.resolvedPath, loaded.source, res)
 			sortFindings(res)
 			if len(res.Findings) > 0 {
-				results = append(results, FileResult{File: loaded.resolvedPath, Findings: res.Findings})
+				results = append(
+					results,
+					FileResult{File: loaded.resolvedPath, Findings: res.Findings},
+				)
 			}
 			if failure == nil {
 				// A broken nested edge stays silent, but a readable, structurally

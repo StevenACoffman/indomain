@@ -25,7 +25,8 @@ func runTermCollisions(m *model.Model, res *Result) {
 			if long == short || !strings.HasSuffix(long, short) {
 				continue
 			}
-			if slices.Contains(ancestors(m, long), short) || mentions(termDefinition(m, long), short) {
+			if slices.Contains(ancestors(m, long), short) ||
+				mentions(termDefinition(m, long), short) {
 				continue
 			}
 			res.Findings = append(res.Findings, Finding{
@@ -34,7 +35,10 @@ func runTermCollisions(m *model.Model, res *Result) {
 				Path:     termPath(m, long),
 				Message: fmt.Sprintf(
 					"%q ends with %q, which names a different concept, so shortening one to the other confuses them — rename one, or say how they differ by backticking `%s` in %s's definition",
-					long, short, short, long,
+					long,
+					short,
+					short,
+					long,
 				),
 			})
 		}
