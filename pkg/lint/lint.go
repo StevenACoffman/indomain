@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -126,10 +127,14 @@ func Run(path string, src []byte, files Files) (*Result, error) {
 		runImports(path, m, files, res, vendored)
 	}
 	runRelationshipShape(m, res)
+	runCompositionOwner(m, res)
+	runOwnershipCycles(m, res)
+	runTermCollisions(m, res)
 	runSubtypes(m, res)
 	runReciprocity(m, res)
 	runPairing(m, res)
 	runCompleteness(m, res)
+	runInvariantCoverage(m, res)
 
 	if vendored {
 		dropOwnedDiagnostics(res)
@@ -613,21 +618,28 @@ func subtypeChainCycles(m *model.Model, name string) bool {
 
 // inheritsInvariants reports whether any ancestor of name (via subtypeOf) has an
 // invariant, so a subtype's own empty invariant list is covered by its parent.
-// The walk is cycle-safe and stops at an undefined parent.
 func inheritsInvariants(m *model.Model, name string) bool {
+	return slices.ContainsFunc(ancestors(m, name), func(a string) bool {
+		return len(m.Entities[a].Invariants) > 0
+	})
+}
+
+// ancestors returns name's local supertypes, nearest first, following
+// subtypeOf. The walk is cycle-safe and stops at an undefined or imported
+// parent, so every name returned is a defined local entity.
+func ancestors(m *model.Model, name string) []string {
+	var out []string
 	seen := map[string]bool{name: true}
 	for cur := m.Entities[name].SubtypeOf; cur != "" && !seen[cur]; {
 		e, ok := m.Entities[cur]
 		if !ok {
-			return false
+			break
 		}
-		if len(e.Invariants) > 0 {
-			return true
-		}
+		out = append(out, cur)
 		seen[cur] = true
 		cur = e.SubtypeOf
 	}
-	return false
+	return out
 }
 
 // runReciprocity checks that a relationship declared from both sides agrees, on

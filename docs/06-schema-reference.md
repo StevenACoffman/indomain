@@ -135,7 +135,7 @@ deliberately lossy ER per the same principle as derived entities.
 | `cardinality` | string | yes | Written `left:right` (see below). `1:1`, `1:n`, `n:1`, `n:n` are the common shorthands. |
 | `symmetric` | boolean | no | The relationship carries no inherent order: `(a, b)` is the same as `(b, a)`. Only valid on a self-referential relationship or one whose target side is more than one. |
 | `role` | string | no | The **short** role the related entity plays (`Owner`, `Predecessor`) — ideally a glossary term. Backtick entity and glossary names. It is the only label the diagram draws, so prose belongs in `note`; the linter warns on a role that reads as a sentence. |
-| `ownership` | enum | no | Is the related entity *part of* this one? `owned` = it can't exist independently (composition: created within, and deleted with, this entity); `referenced` = an independent entity this one points at. Omitted ⇒ `referenced`. |
+| `ownership` | enum | no | Is the related entity *part of* this one? `owned` = it can't exist independently (composition: created within, and deleted with, this entity); `referenced` = an independent entity this one points at. Omitted ⇒ `referenced`. An `owned` part has exactly one owner, so its cardinality's left side is `1` (the linter warns otherwise). |
 | `note` | string | no | Freeform note. |
 
 **Cardinality grammar.** Each side is a multiplicity: `1` (exactly one), `n`
@@ -457,6 +457,12 @@ The JSON Schema covers structure. [`modelith lint`](./07-cli.md) adds:
       inverses (e.g. `Project`→`Policy` `1:n` but `Policy`→`Project` `1:1`);
     - a relationship declared from both sides where both ends claim
       `ownership: owned` — a relationship is owned by at most one end;
+    - three or more entities that own one another in a loop, or an entity that
+      owns itself, where every owned link's owner (left) side requires an
+      owner (`1`, `1..n`) — each instance needs an owner of the entity before
+      it, all the way around, so none can be the root and none can exist. An
+      optional owner (`0..1`) leaves room for a root and isn't reported here;
+      it gets the owner-side warning below instead;
     - a duplicate invariant `id` (across entity-level *and* model-level
       invariants — they share one namespace);
     - a scenario `invariants_touched` or an action `preserves` that references an
@@ -484,15 +490,49 @@ The JSON Schema covers structure. [`modelith lint`](./07-cli.md) adds:
     - an attribute `type` that looks like an enum reference (PascalCase) but
       names no defined enum — a *warning* where the qualified `scope.Name` form
       is an error, for the reason given under [Imports](#imports);
-    - an action `actor` that is neither a defined entity nor a glossary term.
+    - an action `actor` that is neither a defined entity nor a glossary term;
+    - an `ownership: owned` relationship whose owner (left) side is not
+      exactly `1` — `owned` means each part has exactly one owner, so `n:1`
+      has many owners sharing a part and `0..1:n` lets a part exist with none;
+      if the target can be shared or stand alone, it is `referenced`;
+    - an entity or glossary name that ends with another, such as
+      `TreatmentSession` and `Session` — people shorten a compound name to its
+      last word, and the two concepts blur. Rename one, or backtick the shorter
+      name in the longer one's definition to record how they differ. A subtype
+      that carries its parent's name (`CreditCard` with `subtypeOf: Card`)
+      doesn't warn.
 - **Completeness** checks (advisory warnings): entities with no invariants;
-  entities no scenario exercises; a glossary term nothing references; an enum no
-  attribute uses; an [import](#imports) nothing references. The unused
-  glossary term and unused enum checks don't apply to a model marked
-  [`shared: true`](#the-model-on-the-other-end-shared-true); the unused import
-  check still does.
+  entities no scenario exercises; an invariant no scenario's
+  `invariants_touched` lists and no action `preserves`; a glossary term nothing
+  references; an enum no attribute uses; an [import](#imports) nothing
+  references. The unused glossary term and unused enum checks don't apply to a
+  model marked [`shared: true`](#the-model-on-the-other-end-shared-true); the
+  unreferenced invariant and unused import checks still do.
 
   These are advisory on purpose. An entity that genuinely has no rule to state
   is fine — leave its invariants empty rather than inventing a filler rule that
   only restates its cardinality or its type. The warning is a prompt to check,
   not a demand to fill.
+
+### What the linter can't see
+
+A clean lint means the model's references resolve and its structure is
+consistent. It doesn't mean the rules are right:
+
+- **The meaning of prose is never checked.** Lint resolves the backticked
+  terms in an invariant `statement`, a scenario step, or a definition, but it
+  can't read what they say. Two invariants that contradict each other both
+  pass.
+- **In prose, only backticked PascalCase names are references.** An entity
+  named in a definition or step without backticks isn't checked, and it
+  doesn't count as used for the completeness checks.
+- **Term collisions are suffixes between entity and glossary names.**
+  `TreatmentSession` and `Session` warn. Enum names, roles, actors, and other
+  ways people shorten a name aren't compared.
+- **Cross-model checks stop at the import boundary.** A qualified reference is
+  checked to exist in the imported model, but an imported entity's ancestry,
+  ownership, and reciprocal declarations aren't followed.
+
+Warnings flag what is likely but not certainly wrong, and completeness
+findings flag gaps. For both, a person decides whether the model needs to
+change.

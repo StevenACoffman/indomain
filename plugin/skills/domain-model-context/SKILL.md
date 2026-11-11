@@ -36,7 +36,9 @@ relationships, and don't violate invariants.
 - Name variables, types, functions, and UI strings using the model's terms.
 - When a requirement seems to need a concept the model doesn't have, stop: that
   may be a real gap. Flag it and offer to capture it with the
-  `domain-model-author` skill rather than silently inventing a name.
+  `domain-model-author` skill rather than silently inventing a name. Report
+  the gap; don't settle the domain question yourself — what the concept means
+  is the user's call.
 - When code would violate an invariant, treat that as a bug in the plan, not a
   detail to smooth over.
 

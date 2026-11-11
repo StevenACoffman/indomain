@@ -135,11 +135,12 @@ Policy:
       statement: "Belongs to exactly one `Project`"
 ```
 
-> **Agent:** `modelith lint` reports the expected gap: no scenario exercises
-> `Policy` yet. Want to add one, such as "attach a policy to a project"?
+> **Agent:** `modelith lint` reports the expected gaps: no scenario exercises
+> `Policy` yet, and nothing touches or preserves `belongs-to-one-project`. Want
+> to add a scenario that covers both, such as "attach a policy to a project"?
 
 The agent drafted the YAML, validated the model, regenerated the Markdown, and
-surfaced the remaining completeness gap as a question. That is the loop you'll
+surfaced the remaining completeness gaps as a question. That is the loop you'll
 repeat as the model grows.
 
 For a full session start to finish — building a parking-garage model from

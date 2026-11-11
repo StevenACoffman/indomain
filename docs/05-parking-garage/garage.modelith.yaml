@@ -50,10 +50,10 @@ entities:
       intentionally out of scope for now.
     relationships:
       - entity: Spot
-        cardinality: 1:n
+        cardinality: "1:n"
         ownership: owned
       - entity: Kiosk
-        cardinality: 1:n
+        cardinality: "1:n"
         ownership: owned
     attributes:
       - name: name
@@ -80,7 +80,7 @@ entities:
       by at most one active `Visit`.
     relationships:
       - entity: Account
-        cardinality: n:1
+        cardinality: "n:1"
         ownership: referenced
         note: >-
           Set only for a reserved `Spot`: the monthly `Account` it is assigned
@@ -127,13 +127,13 @@ entities:
       visitors have no `Account` — they enter with a `Ticket`.
     relationships:
       - entity: Keycard
-        cardinality: 1:n
+        cardinality: "1:n"
         ownership: owned
         note: >-
           One per driver who needs gate access; independent of how many reserved
           `Spot`s, if any, the `Account` holds.
       - entity: Car
-        cardinality: 1:n
+        cardinality: "1:n"
         ownership: owned
     attributes:
       - name: holderName
@@ -229,7 +229,7 @@ entities:
       at a `Kiosk` before exit. Each `Ticket` belongs to exactly one `Visit`.
     relationships:
       - entity: Kiosk
-        cardinality: n:1
+        cardinality: "n:1"
         ownership: referenced
         note: The `Kiosk` where the `Ticket` is paid on exit; unset until paid.
     attributes:
@@ -277,20 +277,20 @@ entities:
       exit times.
     relationships:
       - entity: Spot
-        cardinality: n:1
+        cardinality: "n:1"
         ownership: referenced
       - entity: Car
-        cardinality: n:1
+        cardinality: "n:1"
         ownership: referenced
         note: >-
           The registered `Car`, when the entrant is a monthly parker and the
           vehicle is identified; absent for temporary visitors.
       - entity: Keycard
-        cardinality: n:1
+        cardinality: "n:1"
         ownership: referenced
         note: Present when entry was by `Keycard` (monthly).
       - entity: Ticket
-        cardinality: 1:1
+        cardinality: "1:1"
         ownership: owned
         note: >-
           Present when entry was by `Ticket` (temporary); created together with
