@@ -1,4 +1,4 @@
-name: "Modelith"
+name: "indomain"
 description: "Lint domain-model YAML and verify the committed Markdown is up to date. Requires Linux or macOS runners (Windows not supported)."
 branding:
   icon: "check-circle"
@@ -19,7 +19,7 @@ inputs:
   version:
     description: "indomain release to install, e.g. 'v0.5.0'. Bumped manually after each release — see CLAUDE.md's release checklist in the indomain repo."
     required: false
-    default: "v0.5.0"
+    default: "v0.3.0"
 
 runs:
   using: "composite"
@@ -31,16 +31,22 @@ runs:
       run: |
         set -euo pipefail
 
-        os=$(uname -s | tr '[:upper:]' '[:lower:]')
+        # Release archives are named indomain_<uname -s>_<arch>.tar.gz, e.g.
+        # indomain_Linux_x86_64.tar.gz (see .goreleaser.yaml).
+        os=$(uname -s)
+        case "$os" in
+          Linux | Darwin) ;;
+          *) echo "::error::unsupported OS: $os (Linux and macOS runners only)"; exit 1 ;;
+        esac
         arch=$(uname -m)
         case "$arch" in
-          x86_64) arch=amd64 ;;
+          x86_64) ;;
           arm64 | aarch64) arch=arm64 ;;
           *) echo "::error::unsupported architecture: $arch"; exit 1 ;;
         esac
 
-        base="https://github.com/stacklok/modelith/releases/download/${VERSION}"
-        archive="modelith_${VERSION#v}_${os}_${arch}.tar.gz"
+        base="https://github.com/StevenACoffman/indomain/releases/download/${VERSION}"
+        archive="indomain_${os}_${arch}.tar.gz"
         workdir=$(mktemp -d)
 
         curl -sSfL -o "$workdir/$archive" "$base/$archive"
@@ -57,14 +63,14 @@ runs:
           exit 1
         fi
 
-        tar -xzf "$workdir/$archive" -C "$workdir" modelith
-        chmod +x "$workdir/modelith"
-        mv "$workdir/modelith" "${{ runner.temp }}/modelith"
+        tar -xzf "$workdir/$archive" -C "$workdir" indomain
+        chmod +x "$workdir/indomain"
+        mv "$workdir/indomain" "${{ runner.temp }}/indomain"
 
     - name: Lint and check
       shell: bash
       env:
-        MODELITH: ${{ runner.temp }}/indomain
+        INDOMAIN: ${{ runner.temp }}/indomain
         FILES_INPUT: ${{ inputs.files }}
         COMPLETENESS: ${{ inputs.completeness }}
         CHECK_RENDERED: ${{ inputs.check-rendered }}
@@ -87,14 +93,14 @@ runs:
         fi
         echo "Linting: ${files[*]}"
 
-        "$MODELITH" lint --completeness "$COMPLETENESS" "${files[@]}"
+        "$INDOMAIN" lint --completeness "$COMPLETENESS" "${files[@]}"
 
         # Accept common boolean spellings; fail loudly on anything unrecognized
         # rather than silently skipping the render check.
         case "${CHECK_RENDERED,,}" in
           true | yes | 1)
             for f in "${files[@]}"; do
-              "$MODELITH" render --check "$f"
+              "$INDOMAIN" render --check "$f"
             done
             ;;
           false | no | 0 | "") ;;
