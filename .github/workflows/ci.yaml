@@ -27,7 +27,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@25e2cdc5eb1d7a04fdc45ff538f1a00e960ae128 # v8.0.0
         with:
-          version: v2.12.2
+          version: v2.15.0
       - name: Test
         run: go test -race ./...
       - name: Build indomain

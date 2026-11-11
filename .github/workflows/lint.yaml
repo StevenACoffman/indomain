@@ -32,6 +32,8 @@ jobs:
     - name: golangci-lint
       uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
       with:
-        version: latest
+        # Same pinned version as ci.yaml and the Taskfile, so local, CI, and
+        # this job report the same findings.
+        version: v2.15.0
         args: '--timeout 5m'
         # only-new-issues: true #show only new issues if it's a pull request. options working-directory and only-new-issues are incompatible
