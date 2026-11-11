@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -39,7 +40,10 @@ var (
 	backtickRunRE = regexp.MustCompile("`+")
 )
 
-// mdParser is a CommonMark parser used only to locate the literal regions of a
+// byteRange is a half-open [start, stop) region of a prose string.
+type byteRange struct{ start, stop int }
+
+// newMarkdownParser builds a CommonMark parser used only to locate the literal regions of a
 // prose string. Nothing is ever rendered through goldmark: its renderer
 // normalizes and reflows text, which would rewrite prose the author wrote and
 // churn every committed .md, so the escaping writes back into the original
@@ -49,14 +53,13 @@ var (
 // goldmark.New so the HTML renderer never enters the binary. parser.Parse is
 // safe for concurrent use: its one-time setup is guarded by a sync.Once and
 // each call carries its own context.
-var mdParser = parser.NewParser(
-	parser.WithBlockParsers(parser.DefaultBlockParsers()...),
-	parser.WithInlineParsers(parser.DefaultInlineParsers()...),
-	parser.WithParagraphTransformers(parser.DefaultParagraphTransformers()...),
-)
-
-// byteRange is a half-open [start, stop) region of a prose string.
-type byteRange struct{ start, stop int }
+func newMarkdownParser() parser.Parser {
+	return parser.NewParser(
+		parser.WithBlockParsers(parser.DefaultBlockParsers()...),
+		parser.WithInlineParsers(parser.DefaultInlineParsers()...),
+		parser.WithParagraphTransformers(parser.DefaultParagraphTransformers()...),
+	)
+}
 
 // Render produces the full Markdown document for the model. sourceDir is the
 // directory holding the model's own .yaml (imports are written relative to
@@ -282,95 +285,129 @@ func renderEntities(b *strings.Builder, m *model.Model, sourceDir, outDir string
 	for _, name := range names {
 		ent := m.Entities[name]
 		fmt.Fprintf(b, "### `%s`\n\n", name)
-
-		if def := strings.TrimSpace(ent.Definition); def != "" {
-			b.WriteString(proseBlock(def))
-			b.WriteString("\n\n")
-		}
-
-		if ent.SubtypeOf != "" {
-			fmt.Fprintf(
-				b,
-				"**Subtype of** %s\n\n",
-				qualifiedReference(ent.SubtypeOf, importTargets),
-			)
-		}
-		if kids := subtypes[name]; len(kids) > 0 {
-			quoted := make([]string, len(kids))
-			for i, k := range kids {
-				quoted[i] = "`" + k + "`"
-			}
-			fmt.Fprintf(b, "**Subtypes** — %s\n\n", strings.Join(quoted, ", "))
-		}
-
-		if ent.Derived {
-			d := "**Derived.** Computed on demand from other state; never persisted."
-			if derivation := strings.TrimSpace(ent.Derivation); derivation != "" {
-				d = fmt.Sprintf("**Derived:** %s", proseLine(derivation))
-			}
-			b.WriteString(d)
-			b.WriteString("\n\n")
-		}
-
-		if len(ent.Relationships) > 0 {
-			b.WriteString("**Relationships**\n\n")
-			for _, rel := range ent.Relationships {
-				parts := []string{qualifiedReference(rel.Entity, importTargets), rel.Cardinality}
-				if rel.Symmetric {
-					parts = append(parts, "symmetric")
-				}
-				if rel.Ownership != "" {
-					parts = append(parts, rel.Ownership)
-				}
-				if rel.Role != "" {
-					parts = append(parts, oneLine(rel.Role))
-				}
-				if rel.Note != "" {
-					parts = append(parts, oneLine(rel.Note))
-				}
-				fmt.Fprintf(b, "- %s\n", assembledLine(parts...))
-			}
-			b.WriteString("\n")
-		}
-
-		if len(ent.Attributes) > 0 {
-			b.WriteString("**Attributes**\n\n")
-			b.WriteString("| Name | Type | Description |\n")
-			b.WriteString("| --- | --- | --- |\n")
-			for _, attr := range ent.Attributes {
-				desc := strings.TrimSpace(attr.Description)
-				if attr.Derived {
-					d := "_Derived._"
-					if attr.Derivation != "" {
-						d = "_Derived:_ " + attr.Derivation
-					}
-					if desc != "" {
-						desc += " " + d
-					} else {
-						desc = d
-					}
-				}
-				fmt.Fprintf(
-					b,
-					"| %s | %s | %s |\n",
-					codeCell(attr.Name),
-					typeCell(attr.Type, importTargets),
-					mdCell(desc),
-				)
-			}
-			b.WriteString("\n")
-		}
-
+		renderEntityIntro(b, &ent, subtypes[name], importTargets)
+		renderRelationships(b, ent.Relationships, importTargets)
+		renderAttributes(b, ent.Attributes, importTargets)
 		renderActions(b, ent.Actions)
-
-		if len(ent.Invariants) > 0 {
-			b.WriteString("**Invariants**\n\n")
-			for _, inv := range ent.Invariants {
-				fmt.Fprintf(b, "- %s\n", invariantLine(inv.ID, inv.Statement))
-			}
-			b.WriteString("\n")
-		}
+		renderEntityInvariants(b, ent.Invariants)
 	}
+}
+
+// renderEntityIntro prints an entity's definition, its place in the subtype
+// hierarchy, and its derivation.
+func renderEntityIntro(
+	b *strings.Builder,
+	ent *model.Entity,
+	kids []string,
+	importTargets map[string]string,
+) {
+	if def := strings.TrimSpace(ent.Definition); def != "" {
+		b.WriteString(proseBlock(def))
+		b.WriteString("\n\n")
+	}
+
+	if ent.SubtypeOf != "" {
+		fmt.Fprintf(
+			b,
+			"**Subtype of** %s\n\n",
+			qualifiedReference(ent.SubtypeOf, importTargets),
+		)
+	}
+	if len(kids) > 0 {
+		quoted := make([]string, len(kids))
+		for i, k := range kids {
+			quoted[i] = "`" + k + "`"
+		}
+		fmt.Fprintf(b, "**Subtypes** — %s\n\n", strings.Join(quoted, ", "))
+	}
+
+	if ent.Derived {
+		d := "**Derived.** Computed on demand from other state; never persisted."
+		if derivation := strings.TrimSpace(ent.Derivation); derivation != "" {
+			d = fmt.Sprintf("**Derived:** %s", proseLine(derivation))
+		}
+		b.WriteString(d)
+		b.WriteString("\n\n")
+	}
+}
+
+func renderRelationships(
+	b *strings.Builder,
+	rels []model.Relationship,
+	importTargets map[string]string,
+) {
+	if len(rels) == 0 {
+		return
+	}
+	b.WriteString("**Relationships**\n\n")
+	for _, rel := range rels {
+		parts := []string{qualifiedReference(rel.Entity, importTargets), rel.Cardinality}
+		if rel.Symmetric {
+			parts = append(parts, "symmetric")
+		}
+		if rel.Ownership != "" {
+			parts = append(parts, rel.Ownership)
+		}
+		if rel.Role != "" {
+			parts = append(parts, oneLine(rel.Role))
+		}
+		if rel.Note != "" {
+			parts = append(parts, oneLine(rel.Note))
+		}
+		fmt.Fprintf(b, "- %s\n", assembledLine(parts...))
+	}
+	b.WriteString("\n")
+}
+
+func renderAttributes(
+	b *strings.Builder,
+	attrs []model.Attribute,
+	importTargets map[string]string,
+) {
+	if len(attrs) == 0 {
+		return
+	}
+	b.WriteString("**Attributes**\n\n")
+	b.WriteString("| Name | Type | Description |\n")
+	b.WriteString("| --- | --- | --- |\n")
+	for _, attr := range attrs {
+		fmt.Fprintf(
+			b,
+			"| %s | %s | %s |\n",
+			codeCell(attr.Name),
+			typeCell(attr.Type, importTargets),
+			mdCell(attributeDescription(&attr)),
+		)
+	}
+	b.WriteString("\n")
+}
+
+// attributeDescription is an attribute's description with its derivation, when
+// it has one, appended.
+func attributeDescription(attr *model.Attribute) string {
+	desc := strings.TrimSpace(attr.Description)
+	if !attr.Derived {
+		return desc
+	}
+	d := "_Derived._"
+	if attr.Derivation != "" {
+		d = "_Derived:_ " + attr.Derivation
+	}
+	if desc == "" {
+		return d
+	}
+	return desc + " " + d
+}
+
+func renderEntityInvariants(b *strings.Builder, invariants []model.Invariant) {
+	if len(invariants) == 0 {
+		return
+	}
+	b.WriteString("**Invariants**\n\n")
+	for _, inv := range invariants {
+		fmt.Fprintf(b, "- %s\n", invariantLine(inv.ID, inv.Statement))
+	}
+	b.WriteString("\n")
 }
 
 // renderActions prints actions inline when they are all bare names, and as a
@@ -380,14 +417,7 @@ func renderActions(b *strings.Builder, actions []model.Action) {
 	if len(actions) == 0 {
 		return
 	}
-	structured := false
-	for _, a := range actions {
-		if a.Actor != "" || len(a.Preserves) > 0 || a.Description != "" {
-			structured = true
-			break
-		}
-	}
-	if !structured {
+	if !slices.ContainsFunc(actions, actionHasStructure) {
 		quoted := make([]string, len(actions))
 		for i, a := range actions {
 			quoted[i] = codeSpan(a.Name)
@@ -398,27 +428,35 @@ func renderActions(b *strings.Builder, actions []model.Action) {
 
 	b.WriteString("**Actions**\n\n")
 	for _, a := range actions {
-		var detail []string
-		if a.Actor != "" {
-			detail = append(detail, "actor "+codeSpan(a.Actor))
-		}
-		if len(a.Preserves) > 0 {
-			preserves := make([]string, len(a.Preserves))
-			for i, id := range a.Preserves {
-				preserves[i] = oneLine(id)
-			}
-			detail = append(detail, "preserves "+strings.Join(preserves, ", "))
-		}
-		parts := []string{codeSpan(a.Name)}
-		if len(detail) > 0 {
-			parts = append(parts, strings.Join(detail, "; "))
-		}
-		if a.Description != "" {
-			parts = append(parts, oneLine(a.Description))
-		}
-		fmt.Fprintf(b, "- %s\n", assembledLine(parts...))
+		fmt.Fprintf(b, "- %s\n", actionLine(&a))
 	}
 	b.WriteString("\n")
+}
+
+func actionHasStructure(a model.Action) bool {
+	return a.Actor != "" || len(a.Preserves) > 0 || a.Description != ""
+}
+
+func actionLine(a *model.Action) string {
+	var detail []string
+	if a.Actor != "" {
+		detail = append(detail, "actor "+codeSpan(a.Actor))
+	}
+	if len(a.Preserves) > 0 {
+		preserves := make([]string, len(a.Preserves))
+		for i, id := range a.Preserves {
+			preserves[i] = oneLine(id)
+		}
+		detail = append(detail, "preserves "+strings.Join(preserves, ", "))
+	}
+	parts := []string{codeSpan(a.Name)}
+	if len(detail) > 0 {
+		parts = append(parts, strings.Join(detail, "; "))
+	}
+	if a.Description != "" {
+		parts = append(parts, oneLine(a.Description))
+	}
+	return assembledLine(parts...)
 }
 
 func renderDiagram(b *strings.Builder, m *model.Model) {
@@ -450,40 +488,44 @@ func renderScenarios(b *strings.Builder, m *model.Model) {
 
 	b.WriteString("## Scenarios\n\n")
 	for _, sc := range m.Scenarios {
-		fmt.Fprintf(b, "### %s\n\n", proseLine(sc.Name))
+		renderScenario(b, &sc, statement)
+	}
+}
 
-		if desc := strings.TrimSpace(sc.Description); desc != "" {
-			b.WriteString(proseBlock(desc))
-			b.WriteString("\n\n")
+func renderScenario(b *strings.Builder, sc *model.Scenario, statement map[string]string) {
+	fmt.Fprintf(b, "### %s\n\n", proseLine(sc.Name))
+
+	if desc := strings.TrimSpace(sc.Description); desc != "" {
+		b.WriteString(proseBlock(desc))
+		b.WriteString("\n\n")
+	}
+
+	if len(sc.Actors) > 0 {
+		actors := make([]string, len(sc.Actors))
+		for i, a := range sc.Actors {
+			actors[i] = oneLine(a)
 		}
+		fmt.Fprintf(b, "%s\n\n", escapeProse("**Actors:** "+strings.Join(actors, ", "), false))
+	}
 
-		if len(sc.Actors) > 0 {
-			actors := make([]string, len(sc.Actors))
-			for i, a := range sc.Actors {
-				actors[i] = oneLine(a)
+	if len(sc.Steps) > 0 {
+		b.WriteString("**Steps**\n\n")
+		for i, step := range sc.Steps {
+			fmt.Fprintf(b, "%d. %s\n", i+1, proseLine(step))
+		}
+		b.WriteString("\n")
+	}
+
+	if len(sc.InvariantsTouched) > 0 {
+		b.WriteString("**Invariants touched**\n\n")
+		for _, id := range sc.InvariantsTouched {
+			if s, ok := statement[id]; ok {
+				fmt.Fprintf(b, "- %s\n", invariantLine(id, s))
+			} else {
+				fmt.Fprintf(b, "- %s\n", escapeProse("**"+oneLine(id)+"**", false))
 			}
-			fmt.Fprintf(b, "%s\n\n", escapeProse("**Actors:** "+strings.Join(actors, ", "), false))
 		}
-
-		if len(sc.Steps) > 0 {
-			b.WriteString("**Steps**\n\n")
-			for i, step := range sc.Steps {
-				fmt.Fprintf(b, "%d. %s\n", i+1, proseLine(step))
-			}
-			b.WriteString("\n")
-		}
-
-		if len(sc.InvariantsTouched) > 0 {
-			b.WriteString("**Invariants touched**\n\n")
-			for _, id := range sc.InvariantsTouched {
-				if s, ok := statement[id]; ok {
-					fmt.Fprintf(b, "- %s\n", invariantLine(id, s))
-				} else {
-					fmt.Fprintf(b, "- %s\n", escapeProse("**"+oneLine(id)+"**", false))
-				}
-			}
-			b.WriteString("\n")
-		}
+		b.WriteString("\n")
 	}
 }
 
@@ -642,7 +684,7 @@ func parseMarkup(s, prefix string) []byteRange {
 	}
 	// Walk never returns an error: the callback below returns none.
 	_ = ast.Walk(
-		mdParser.Parse(text.NewReader([]byte(src))),
+		newMarkdownParser().Parse(text.NewReader([]byte(src))),
 		func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 			if !entering {
 				return ast.WalkContinue, nil
