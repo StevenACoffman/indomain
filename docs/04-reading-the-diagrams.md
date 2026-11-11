@@ -194,7 +194,7 @@ role. An entity with several self-relationships gets one row each (`self`,
 
 This is a layout necessity, not a modeling statement: Mermaid's ER layout has no
 self-loop handling and draws an arc that swamps the rest of the diagram. See
-[ADR-0008](https://github.com/stacklok/modelith/blob/main/project-docs/adr/0008-er-diagram-conventions.md).
+[ADR-0008](https://github.com/StevenACoffman/indomain/blob/main/project-docs/adr/0008-er-diagram-conventions.md).
 
 ## What the diagram can't tell you
 
@@ -214,7 +214,7 @@ them in the text:
 
 ## A full example, read end to end
 
-Here is the diagram modelith renders for the [worked example](https://github.com/stacklok/modelith/blob/main/examples/example.modelith.md):
+Here is the diagram modelith renders for the [worked example](https://github.com/StevenACoffman/indomain/blob/main/examples/example.modelith.md):
 
 ```mermaid
 erDiagram

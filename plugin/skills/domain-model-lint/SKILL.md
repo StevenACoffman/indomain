@@ -20,8 +20,8 @@ First confirm `modelith` is installed (`modelith --version`); if it is not on
 YAML in its place:
 
 ```sh
-go install github.com/stacklok/indomain/cmd/indomain@latest
-# or download a binary from https://github.com/stacklok/modelith/releases
+go install github.com/StevenACoffman/indomain/cmd/indomain@latest
+# or download a binary from https://github.com/StevenACoffman/indomain/releases
 ```
 
 ```sh

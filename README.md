@@ -40,16 +40,11 @@ conversation) — the skills shell out to the binary, so install it first.
 
 **1. Install the CLI:**
 
-```sh
-brew install stacklok/tap/indomain
-```
-
-Or download a prebuilt binary from the
-[Releases page](https://github.com/stacklok/modelith/releases), or build from
-source:
+Download a prebuilt binary from the
+[Releases page](https://github.com/StevenACoffman/indomain/releases), or build from source:
 
 ```sh
-go install github.com/stacklok/indomain/cmd/indomain@latest
+go install github.com/StevenACoffman/indomain/cmd/indomain@latest
 ```
 
 **2. Install the Claude Code plugin** (the skills that author the model):
@@ -62,7 +57,7 @@ go install github.com/stacklok/indomain/cmd/indomain@latest
 Install with the [skills CLI](https://skills.sh) (also works with Cursor, Windsurf, and others):
 
 ```sh
-npx skills add stacklok/indomain
+npx skills add StevenACoffman/indomain
 ```
 
 Once the marketplace listing is approved:

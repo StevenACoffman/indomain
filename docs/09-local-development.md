@@ -9,7 +9,7 @@ description: Building indomain, the Task workflow, and developing the Claude Cod
 For people working **on** modelith itself — the binary, the docs, or the Claude
 Code plugin. For *using* the tool, start with the [overview](./index.md); for the
 format, see the [schema reference](./06-schema-reference.md). Agents working on the
-repo should also read [`CLAUDE.md`](https://github.com/stacklok/modelith/blob/main/CLAUDE.md),
+repo should also read [`CLAUDE.md`](https://github.com/StevenACoffman/indomain/blob/main/CLAUDE.md),
 which holds the repo layout and the CI-breaking conventions summarized at the
 bottom of this page.
 
@@ -70,7 +70,7 @@ Go pipeline does not depend on the Claude Code CLI.
 
 ## Developing the plugin locally
 
-modelith ships a Claude Code plugin under [`plugin/`](https://github.com/stacklok/modelith/tree/main/plugin)
+modelith ships a Claude Code plugin under [`plugin/`](https://github.com/StevenACoffman/indomain/tree/main/plugin)
 (skills that author, lint, and load domain models). The plugin files live here,
 next to the binary they drive, so the skills and CLI version stay in lockstep.
 
@@ -114,7 +114,7 @@ task validate-plugin          # or: claude plugin validate ./plugin --strict
 
 ## Conventions that break CI (summary)
 
-The full contract lives in [`CLAUDE.md`](https://github.com/stacklok/modelith/blob/main/CLAUDE.md);
+The full contract lives in [`CLAUDE.md`](https://github.com/StevenACoffman/indomain/blob/main/CLAUDE.md);
 the load-bearing ones:
 
 - **The example is a golden fixture.** After any change to the renderer *or*

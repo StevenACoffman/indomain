@@ -13,18 +13,12 @@ commands.
 
 ## Installation
 
-Install the latest release with Homebrew:
+Download a prebuilt binary from the
+[Releases page](https://github.com/StevenACoffman/indomain/releases), build from source with `go install`, or
+build from a checkout with `task build`:
 
 ```sh
-brew install stacklok/tap/indomain
-```
-
-Or download a prebuilt binary from the
-[Releases page](https://github.com/stacklok/modelith/releases), build from
-source with `go install`, or build from a checkout with `task build`:
-
-```sh
-go install github.com/stacklok/indomain/cmd/indomain@latest
+go install github.com/StevenACoffman/indomain/cmd/indomain@latest
 ```
 
 ## `modelith lint`
